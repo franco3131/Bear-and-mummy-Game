@@ -2168,18 +2168,34 @@ class Bear:
             self.comingUp = False
             self.y += JUMP_STEP
             for block in blocks:
+                # Range-check landing: bear feet within one step of platform top
+                bty = block.getBlockYPosition()
+                blx = block.getBlockXPosition()
+                brx = blx + block.getWidth()
+                by2 = self.y + 100
+                bx2 = self.x + 100
+                if bty <= by2 <= bty + JUMP_STEP and bx2 > blx and self.x < brx + 30:
+                    self.y = bty - 100   # snap exactly onto platform surface
+                    block.setOnPlatform(True)
+                    block.setDropStatus(False)
+                    self.setJumpStatus(False)
+                    self.setLeftJumpStatus(False)
+                    self.initialHeight = self.y
+                    break
                 block.isBoundaryPresent(self.getXPosition(), self.y)
                 if block.getOnPlatform():
+                    self.y = block.getBlockYPosition() - 100
                     self.setJumpStatus(False)
                     self.setLeftJumpStatus(False)
                     self.initialHeight = self.y
 
-        if self.y + 100 == 400:
+        # Floor landing – >= catches steps that overshoot the exact floor pixel
+        if self.y + 100 >= 400:
+            self.y = 300
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
 
     def leftJump(self, blocks):
-        # Fixed: was using self.blocks (undefined); uses the blocks parameter
         for block in blocks:
             block.setOnPlatform(False)
 
@@ -2192,8 +2208,23 @@ class Bear:
             self.y += JUMP_STEP
             self.setComingUpStatus(False)
             for block in blocks:
+                # Range-check landing: bear feet within one step of platform top
+                bty = block.getBlockYPosition()
+                blx = block.getBlockXPosition()
+                brx = blx + block.getWidth()
+                by2 = self.y + 100
+                bx2 = self.x + 100
+                if bty <= by2 <= bty + JUMP_STEP and bx2 > blx and self.x < brx + 30:
+                    self.y = bty - 100   # snap exactly onto platform surface
+                    block.setOnPlatform(True)
+                    block.setDropStatus(False)
+                    self.setJumpStatus(False)
+                    self.setLeftJumpStatus(False)
+                    self.initialHeight = self.y
+                    break
                 block.isBoundaryPresent(self.getXPosition(), self.y)
                 if block.getOnPlatform():
+                    self.y = block.getBlockYPosition() - 100
                     self.setJumpStatus(False)
                     self.setLeftJumpStatus(False)
                     self.initialHeight = self.y
@@ -2203,7 +2234,9 @@ class Bear:
         else:
             self.screen.blit(self.bearJumpingLeft2, (self.getXPosition(), self.getYPosition()))
 
-        if self.getYPosition() + 100 == 400:
+        # Floor landing – >= catches steps that overshoot the exact floor pixel
+        if self.getYPosition() + 100 >= 400:
+            self.setYPosition(300)
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
 
