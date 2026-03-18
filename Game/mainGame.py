@@ -1033,8 +1033,8 @@ class mainGame:
 
     # -----------------------------------------------------------------------
     def deleteAndCreateObjects(self, backgroundScrollX):
-        # Zone triggers are scaled from original 30px-step values
-        # by factor 8/30 ≈ 0.267  (original / 3.75, rounded)
+        # All spawn X positions are screen-relative and start just ahead of
+        # the player (~400-500 px) so objects appear immediately on zone entry.
 
         if backgroundScrollX > 1027 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
@@ -1044,17 +1044,20 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            block5 = Block(3030, 340, 100, 60, "red",     self.screen)
-            block7 = Block(3240, 340, 100, 60, "monster", self.screen)
-            block6 = Block(3500, 340, 100, 60, "monster", self.screen)
-            block8 = Block(3900, 340,  50, 60, "red",     self.screen)
+            # Platforms for the big-mummy / key / door room
+            block5 = Block(450,  340, 100, 60, "red",      self.screen)
+            block7 = Block(640,  340, 100, 60, "monster",  self.screen)
+            block6 = Block(850,  340, 100, 60, "monster",  self.screen)
+            block8 = Block(1100, 340,  50, 60, "red",      self.screen)
             self.blocks.extend([block5, block6, block7, block8])
 
-            mummy = Mummy(3030, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+            # Big mummy carrying the key – spawns close so player sees it
+            mummy = Mummy(480, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
-            self.door1 = Door(self.screen, 4200)
+            self.door1 = Door(self.screen, 1400)
             self.door.append(self.door1)
-            block9 = Block(4300, 0, 2800, 100, "greyRock", self.screen)
+            # Ceiling block that runs through this zone
+            block9 = Block(1500, 0, 2000, 100, "greyRock", self.screen)
             self.blocks.append(block9)
 
         elif backgroundScrollX > 3200 and not self.activeMonsters[2]:
@@ -1066,18 +1069,20 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            block1 = Block(2800, 340, 100, 60,  "greyRock", self.screen)
-            block2 = Block(3900, 100, 150, 300, "monster",  self.screen)
-            block6 = Block(3400, 160, 130, 60,  "greyRock", self.screen)
-            block4 = Block(2000, 340, 600, 60,  "greyRock", self.screen)
+            # Platforms – within visible range
+            block1 = Block(500,  340, 100, 60,  "greyRock", self.screen)
+            block2 = Block(820,  100, 150, 300, "monster",  self.screen)
+            block6 = Block(660,  160, 130, 60,  "greyRock", self.screen)
+            block4 = Block(350,  340, 600, 60,  "greyRock", self.screen)
             self.blocks.extend([block1, block2, block6, block4])
 
-            witch  = Witch(4200, 100, self.witch, self.witch2, self.screen)
-            witch2 = Witch(4500, 200, self.witch, self.witch2, self.screen)
-            witch3 = Witch(3300, 250, self.witch, self.witch2, self.screen)
-            witch4 = Witch(3100, 250, self.witch, self.witch2, self.screen)
-            witch5 = Witch(3000, 250, self.witch, self.witch2, self.screen)
-            witch6 = Witch(2900, 250, self.witch, self.witch2, self.screen)
+            # Six witches spread across the visible area
+            witch  = Witch(600,  100, self.witch, self.witch2, self.screen)
+            witch2 = Witch(900,  200, self.witch, self.witch2, self.screen)
+            witch3 = Witch(700,  250, self.witch, self.witch2, self.screen)
+            witch4 = Witch(500,  250, self.witch, self.witch2, self.screen)
+            witch5 = Witch(400,  250, self.witch, self.witch2, self.screen)
+            witch6 = Witch(1100, 150, self.witch, self.witch2, self.screen)
             self.witches.extend([witch, witch2, witch3, witch4, witch5, witch6])
             self.triggerFire = True
 
@@ -1089,38 +1094,44 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            block1 = Block(4000, 340, 900, 60, "greyRock", self.screen)
+            # Ground-level platform starts just ahead
+            block1 = Block(400, 340, 900, 60, "greyRock", self.screen)
             self.blocks.append(block1)
 
-            greenBlob  = GreenBlob(3100, 300, 100, 100, self.screen)
-            greenBlob2 = GreenBlob(3200, 300, 100, 100, self.screen)
-            greenBlob3 = GreenBlob(4000, 300, 100, 100, self.screen)
-            greenBlob4 = GreenBlob(5800, 300, 100, 100, self.screen)
-            greenBlob5 = GreenBlob(6100, 300, 100, 100, self.screen)
+            # Green blobs spread across near-visible range
+            greenBlob  = GreenBlob(420,  300, 100, 100, self.screen)
+            greenBlob2 = GreenBlob(600,  300, 100, 100, self.screen)
+            greenBlob3 = GreenBlob(800,  300, 100, 100, self.screen)
+            greenBlob4 = GreenBlob(1100, 300, 100, 100, self.screen)
+            greenBlob5 = GreenBlob(1400, 300, 100, 100, self.screen)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
                                     greenBlob4, greenBlob5])
 
-            block2 = Block(6000, 220, 2000, 60, "greyRock", self.screen)
+            # Upper platform further ahead
+            block2 = Block(1300, 220, 2000, 60, "greyRock", self.screen)
             self.blocks.append(block2)
 
-            x = 1000
+            # 12 mummies spread ahead – start close, space by 300
+            x = 450
             for _ in range(12):
-                x += 620
                 mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                 self.mummys.append(mummy)
+                x += 300
 
         elif backgroundScrollX > 6933 and not self.activeMonsters[4]:
             self.activeMonsters[4] = True
 
-            block1 = Block(8000, 280, 2000, 60, "greyRock", self.screen)
-            block2 = Block(8500, 340, 1000, 60, "greyRock", self.screen)
+            # Platforms just ahead instead of at 8000+
+            block1 = Block(500, 280, 2000, 60, "greyRock", self.screen)
+            block2 = Block(700, 340, 1000, 60, "greyRock", self.screen)
             self.blocks.extend([block1, block2])
 
-            x = 4000
+            # 10 mummies starting close, spaced 150 px
+            x = 450
             for _ in range(10):
-                x += 150
                 mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                 self.mummys.append(mummy)
+                x += 150
 
         elif backgroundScrollX > 8800 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
@@ -1130,19 +1141,21 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            block1 = Block(610,  220, 3000, 60, "striped",     self.screen)
-            block2 = Block(800,  280, 2000, 60, "stripedFlip", self.screen)
-            block3 = Block(1100, 340, 1000, 60, "striped",     self.screen)
+            # Tiered striped platforms – already well-positioned
+            block1 = Block(450,  220, 3000, 60, "striped",     self.screen)
+            block2 = Block(600,  280, 2000, 60, "stripedFlip", self.screen)
+            block3 = Block(800,  340, 1000, 60, "striped",     self.screen)
             self.blocks.extend([block1, block2, block3])
 
-            x = 400
+            # 6 mummies starting immediately ahead
+            x = 450
             for _ in range(6):
-                x += 250
                 mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                 self.mummys.append(mummy)
+                x += 250
 
-            witch  = Witch(1100, 100, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1300, 100, self.witch, self.witch2, self.screen)
+            witch  = Witch(900,  100, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1100, 100, self.witch, self.witch2, self.screen)
             self.witches.extend([witch, witch2])
 
         elif backgroundScrollX > 10400 and not self.activeMonsters[6]:
@@ -1152,25 +1165,28 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            block1 = Block(1710, 220, 3500, 60, "checkered", self.screen)
-            block2 = Block(1600, 280, 3500, 60, "checkered", self.screen)
-            block3 = Block(1500, 340, 3000, 60, "checkered", self.screen)
-            block4 = Block(1500, 100, 1000, 60, "greyRock",  self.screen)
+            # Layered checkered platforms starting from visible range
+            block1 = Block(500,  220, 3500, 60, "checkered", self.screen)
+            block2 = Block(420,  280, 3500, 60, "checkered", self.screen)
+            block3 = Block(350,  340, 3000, 60, "checkered", self.screen)
+            block4 = Block(500,  100, 1000, 60, "greyRock",  self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            greenBlob  = GreenBlob(900,  300, 100, 100, self.screen)
-            greenBlob2 = GreenBlob(1200, 300, 100, 100, self.screen)
-            greenBlob3 = GreenBlob(1300, 300, 100, 100, self.screen)
-            greenBlob4 = GreenBlob(1900, 300, 100, 100, self.screen)
-            greenBlob5 = GreenBlob(800,  300, 100, 100, self.screen)
+            # Green blobs right in front of the player
+            greenBlob  = GreenBlob(430,  300, 100, 100, self.screen)
+            greenBlob2 = GreenBlob(600,  300, 100, 100, self.screen)
+            greenBlob3 = GreenBlob(750,  300, 100, 100, self.screen)
+            greenBlob4 = GreenBlob(1000, 300, 100, 100, self.screen)
+            greenBlob5 = GreenBlob(380,  300, 100, 100, self.screen)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
                                     greenBlob4, greenBlob5])
 
-            x = 16000
+            # 3 mummies a bit further ahead
+            x = 900
             for _ in range(3):
-                x += 450
                 mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                 self.mummys.append(mummy)
+                x += 450
 
         elif backgroundScrollX > 12800 and not self.activeMonsters[7]:
             self.activeMonsters[7] = True
@@ -1180,15 +1196,17 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            block1 = Block(2300, 340, 100, 60, "checkered", self.screen)
-            block2 = Block(3000, 340, 100, 60, "checkered", self.screen)
-            block3 = Block(4510, 0,   5000, 80, "checkered", self.screen)
+            # Small platforms and a ceiling – pulled in from 4500+
+            block1 = Block(420,  340, 100, 60, "checkered",  self.screen)
+            block2 = Block(700,  340, 100, 60, "checkered",  self.screen)
+            block3 = Block(950,  0,  5000, 80, "checkered",  self.screen)
             self.blocks.extend([block1, block2, block3])
 
-            witch  = Witch(4900, 200, self.witch, self.witch2, self.screen)
-            witch2 = Witch(4800, 250, self.witch, self.witch2, self.screen)
-            witch3 = Witch(5000, 250, self.witch, self.witch2, self.screen)
-            witch4 = Witch(5100, 150, self.witch, self.witch2, self.screen)
+            # Witches just ahead of the player
+            witch  = Witch(1000, 200, self.witch, self.witch2, self.screen)
+            witch2 = Witch(900,  250, self.witch, self.witch2, self.screen)
+            witch3 = Witch(1100, 250, self.witch, self.witch2, self.screen)
+            witch4 = Witch(1200, 150, self.witch, self.witch2, self.screen)
             self.witches.extend([witch, witch2, witch3, witch4])
 
         elif backgroundScrollX > 14400 and not self.activeMonsters[8]:
@@ -1198,17 +1216,18 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            block1 = Block(4310, 220, 100, 60, "checkered", self.screen)
-            block2 = Block(4810, 220, 100, 60, "checkered", self.screen)
-            block3 = Block(5310, 280, 100, 60, "checkered", self.screen)
-            block4 = Block(3900, 340, 100, 60, "checkered", self.screen)
-            block5 = Block(6200, 280, 100, 60, "checkered", self.screen)
+            # Spike-and-platform gauntlet – pulled from 4000-6200 down to 350-1200
+            block1 = Block(450,  220, 100, 60, "checkered", self.screen)
+            block2 = Block(700,  220, 100, 60, "checkered", self.screen)
+            block3 = Block(950,  280, 100, 60, "checkered", self.screen)
+            block4 = Block(350,  340, 100, 60, "checkered", self.screen)
+            block5 = Block(1200, 280, 100, 60, "checkered", self.screen)
             self.blocks.extend([block1, block2, block3, block4, block5])
 
-            self.spikes.append(SpikeBlock(4100, 340, self.screen))
-            self.spikes.append(SpikeBlock(4600, 340, self.screen))
-            self.spikes.append(SpikeBlock(5100, 340, self.screen))
-            self.spikes.append(SpikeBlock(5900, 340, self.screen))
+            self.spikes.append(SpikeBlock(500,  340, self.screen))
+            self.spikes.append(SpikeBlock(750,  340, self.screen))
+            self.spikes.append(SpikeBlock(1000, 340, self.screen))
+            self.spikes.append(SpikeBlock(1300, 340, self.screen))
 
 
 # ---------------------------------------------------------------------------
