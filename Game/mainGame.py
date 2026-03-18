@@ -6,7 +6,7 @@ import random
 # Smaller value = smoother, slower feel. Jump step is kept separate.
 # ---------------------------------------------------------------------------
 STEP = 8
-JUMP_STEP = 15
+JUMP_STEP = 7
 
 # ---------------------------------------------------------------------------
 # Module-level font cache – created once after pygame.init(), reused every frame
@@ -501,24 +501,21 @@ class mainGame:
                             background.setXPosition(backgroundScrollX)
                             bear.setXPosition(bear.getXPosition() + STEP)
                         else:
-                            moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
-                            for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - STEP)
+                            # Refresh all boundary states before deciding to scroll
                             for block in self.blocks:
-                                if not block.getIsLeftBoundary():
-                                    block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            if not any(b.getIsLeftBoundary() for b in self.blocks):
+                                # No wall directly ahead – scroll the world left
+                                moveObjects = (self.mummys + self.fires + self.witches +
+                                               self.greenBlobs + self.door + self.keys + self.spikes)
+                                for obj in moveObjects:
+                                    obj.setXPosition(obj.getXPosition() - STEP)
+                                for block in self.blocks:
                                     block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                elif block.getIsLeftBoundary():
-                                    block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    totalDistance -= STEP
-                            backgroundScrollX = bear.getXPosition()
-                            background.setXPosition(backgroundScrollX)
-
-                        for block in self.blocks:
-                            if block.getIsLeftBoundary():
-                                bear.setXPosition(bear.getXPosition() - STEP)
+                                backgroundScrollX = bear.getXPosition()
+                                background.setXPosition(backgroundScrollX)
+                            else:
+                                # Wall is blocking – undo the totalDistance added at branch entry
                                 totalDistance -= STEP
 
                         if bearAnimation % 120 < 40:
@@ -564,25 +561,21 @@ class mainGame:
                             bear.setXPosition(bear.getXPosition() + STEP)
                         else:
                             jumpTimer = 0
-                            moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
-                            for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - STEP)
+                            # Refresh all boundary states before deciding to scroll
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if not block.getIsLeftBoundary():
+                            if not any(b.getIsLeftBoundary() for b in self.blocks):
+                                # No wall – scroll world left during airborne rightward move
+                                moveObjects = (self.mummys + self.fires + self.witches +
+                                               self.greenBlobs + self.door + self.keys + self.spikes)
+                                for obj in moveObjects:
+                                    obj.setXPosition(obj.getXPosition() - STEP)
+                                for block in self.blocks:
                                     block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    backgroundScrollX = bear.getXPosition()
-                                    background.setXPosition(backgroundScrollX)
-                                elif block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    backgroundScrollX = bear.getXPosition()
-                                    background.setXPosition(backgroundScrollX)
-
-                        for block in self.blocks:
-                            block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            if block.getIsLeftBoundary():
-                                bear.setXPosition(bear.getXPosition() - STEP)
+                                backgroundScrollX = bear.getXPosition()
+                                background.setXPosition(backgroundScrollX)
+                            else:
+                                # Wall blocking mid-air – undo totalDistance
                                 totalDistance -= STEP
 
                     bearAnimation -= STEP
@@ -1465,7 +1458,7 @@ class Mummy():
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
-        self.rand = random.randint(2, 5)
+        self.rand = random.randint(1, 2)
         randomMax = random.randint(60, 90)
         self.changeDirection = random.randint(30, randomMax)
         self.storeDirection = 1
@@ -1861,7 +1854,7 @@ class GreenBlob():
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
-        self.rand = random.randint(2, 5)
+        self.rand = random.randint(1, 2)
         randomMax = random.randint(30, 80)
         self.changeDirection = random.randint(30, randomMax)
         self.jump = False
