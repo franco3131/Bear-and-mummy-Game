@@ -105,7 +105,7 @@ class mainGame:
         pygame.init()
         _init_fonts()
 
-        self.screen = pygame.display.set_mode((900, 700))
+        self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
         self.clock = pygame.time.Clock()
 
         self.standingBear = pygame.image.load("Game/Images/Bear/standBear2.png")
@@ -187,21 +187,22 @@ class mainGame:
         attackingLeftAnimtationCounter = 0
         hurtTimer = 0
         background = Background(self.screen)
-        x = 330
+        x = 320
         for _ in range(10):
-            x += 220
+            x += 80
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
 
         self.activeMonsters = [False] * 14
 
-        block1 = Block(550,  340, 130, 60,  "red",     self.screen)
-        block2 = Block(1090, 190, 130, 60,  "monster", self.screen)
-        block3 = Block(1390, 190, 130, 60,  "red",     self.screen)
-        block5 = Block(2090, 190, 130, 60,  "red",     self.screen)
-        block7 = Block(2440, 190, 130, 60,  "monster", self.screen)
-        block6 = Block(2800, 190, 130, 60,  "monster", self.screen)
-        block8 = Block(3100, 100, 300, 300, "monster", self.screen)
+        # Initial obstacle platforms – scaled to STEP=8 so all clear before zone 1 fires
+        block1 = Block(380,  340, 100, 60,  "red",     self.screen)
+        block2 = Block(460,  190, 100, 60,  "monster", self.screen)
+        block3 = Block(530,  190, 100, 60,  "red",     self.screen)
+        block5 = Block(600,  190, 100, 60,  "red",     self.screen)
+        block7 = Block(660,  190, 100, 60,  "monster", self.screen)
+        block6 = Block(720,  190, 100, 60,  "monster", self.screen)
+        block8 = Block(700,  100, 250, 250, "monster", self.screen)
 
         self.door = []
         self.keys = []
@@ -496,11 +497,13 @@ class mainGame:
 
                     if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
                             and attackingAnimationCounter == 0):
+                        _right_scrolled = False
                         if bear.getXPosition() < self.rightBoundary:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
                             bear.setXPosition(bear.getXPosition() + STEP)
                         else:
+                            _right_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
@@ -520,6 +523,18 @@ class mainGame:
                             if block.getIsLeftBoundary():
                                 bear.setXPosition(bear.getXPosition() - STEP)
                                 totalDistance -= STEP
+
+                        # Undo world scroll when the bear was blocked by a wall
+                        if _right_scrolled and any(b.getIsLeftBoundary() for b in self.blocks):
+                            for obj in (self.mummys + self.fires + self.witches +
+                                        self.greenBlobs + self.door + self.keys +
+                                        self.spikes):
+                                obj.setXPosition(obj.getXPosition() + STEP)
+                            for b in self.blocks:
+                                b.setblockXPosition(b.getBlockXPosition() + STEP)
+                            totalDistance += STEP
+                            backgroundScrollX = bear.getXPosition()
+                            background.setXPosition(backgroundScrollX)
 
                         if bearAnimation % 120 < 40:
                             self.screen.blit(self.bearWalking1,
@@ -598,11 +613,13 @@ class mainGame:
 
                     if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
                             and attackingAnimationCounter == 0):
+                        _left_scrolled = False
                         if bear.getXPosition() > self.leftBoundary:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
                             bear.setXPosition(bear.getXPosition() - STEP)
                         else:
+                            _left_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
@@ -622,6 +639,18 @@ class mainGame:
                             if block.getIsRightBoundary():
                                 totalDistance += STEP
                                 bear.setXPosition(bear.getXPosition() + STEP)
+
+                        # Undo world scroll when the bear was blocked by a wall moving left
+                        if _left_scrolled and any(b.getIsRightBoundary() for b in self.blocks):
+                            for obj in (self.mummys + self.fires + self.witches +
+                                        self.greenBlobs + self.door + self.keys +
+                                        self.spikes):
+                                obj.setXPosition(obj.getXPosition() - STEP)
+                            for b in self.blocks:
+                                b.setblockXPosition(b.getBlockXPosition() - STEP)
+                            totalDistance -= STEP
+                            backgroundScrollX = bear.getXPosition()
+                            background.setXPosition(backgroundScrollX)
 
                         if bearAnimation % 188 < 80:
                             self.screen.blit(self.bearWalkingLeft1,
@@ -966,7 +995,7 @@ class mainGame:
             bear.displayBearExp()
 
             # ---- Story / trigger text (triggers scaled to 8px steps) ----
-            if totalDistance > 1500 and not self.triggerText1:
+            if totalDistance > 1600 and not self.triggerText1:
                 bear.setEndText(False)
                 self.triggerText1 = True
                 bear.setArrayText(['   The big mummy ahead has   ',
@@ -1036,7 +1065,7 @@ class mainGame:
         # All spawn X positions are screen-relative and start just ahead of
         # the player (~400-500 px) so objects appear immediately on zone entry.
 
-        if backgroundScrollX > 1027 and not self.activeMonsters[1]:
+        if backgroundScrollX > 1500 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
             self.mummys = []
             self.witches = []
