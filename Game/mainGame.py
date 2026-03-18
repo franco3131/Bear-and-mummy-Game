@@ -2,6 +2,13 @@ import pygame
 import random
 
 # ---------------------------------------------------------------------------
+# Movement step – pixels per frame for walking/world-scroll
+# Smaller value = smoother, slower feel. Jump step is kept separate.
+# ---------------------------------------------------------------------------
+STEP = 8
+JUMP_STEP = 15
+
+# ---------------------------------------------------------------------------
 # Module-level font cache – created once after pygame.init(), reused every frame
 # ---------------------------------------------------------------------------
 _FONT_DAMAGE = None
@@ -78,6 +85,18 @@ def isMonsterHurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition,
 
 
 # ---------------------------------------------------------------------------
+# Damage text helper – drawn once instead of duplicated across every class
+# ---------------------------------------------------------------------------
+def _render_damage_text(screen, font, damage, x, y):
+    black = pygame.Color(0, 0, 0)
+    white = pygame.Color(255, 255, 255)
+    outline = font.render(str(damage), True, black)
+    for dx, dy in ((-2, -2), (2, -2), (2, 2), (-2, 2)):
+        screen.blit(outline, (x + dx, y + dy))
+    screen.blit(font.render(str(damage), True, white), (x, y))
+
+
+# ---------------------------------------------------------------------------
 # Main game class
 # ---------------------------------------------------------------------------
 
@@ -89,8 +108,7 @@ class mainGame:
         self.screen = pygame.display.set_mode((900, 700))
         self.clock = pygame.time.Clock()
 
-        self.standingBear = pygame.image.load(
-            "Game/Images/Bear/standBear2.png")
+        self.standingBear = pygame.image.load("Game/Images/Bear/standBear2.png")
         self.standingBear = pygame.transform.scale(self.standingBear, (80, 100))
         self.standingBearLeft = pygame.transform.flip(self.standingBear, True, False)
 
@@ -145,6 +163,17 @@ class mainGame:
         self.leftBoundary = 180
         self.rightBoundary = 300
         self.isFinalBossDestroyed = False
+
+    # -----------------------------------------------------------------------
+    # Helper: draw the bear idle sprite (used to fill animation gaps)
+    # -----------------------------------------------------------------------
+    def _draw_idle_bear(self, bear):
+        if not bear.getLeftDirection():
+            self.screen.blit(self.standingBear,
+                             (bear.getXPosition(), bear.getYPosition()))
+        else:
+            self.screen.blit(self.standingBearLeft,
+                             (bear.getXPosition(), bear.getYPosition()))
 
     def runGame(self):
         self.triggerFire = False
@@ -218,29 +247,30 @@ class mainGame:
 
                 # ---- Z + RIGHT: jump-right --------------------------------
                 if keys[pygame.K_z] and keys[pygame.K_RIGHT] and jumpTimer > 20:
-                    totalDistance += 30
+                    totalDistance += STEP
                     if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if block.getIsLeftBoundary():
-                                    bear.setXPosition(bear.getXPosition() - 30)
-                                    totalDistance -= 30
-                            backgroundScrollX = bear.getXPosition() - 30
+                                    bear.setXPosition(bear.getXPosition() - STEP)
+                                    totalDistance -= STEP
+                            backgroundScrollX = bear.getXPosition() - STEP
                             background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() + 30)
+                            bear.setXPosition(bear.getXPosition() + STEP)
                         else:
-                            moveObjects = self.mummys + self.fires + self.witches + self.greenBlobs + self.door + self.keys + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - 30)
+                                obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - 30)
-                                    backgroundScrollX = bear.getXPosition() + 30
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
+                                    backgroundScrollX = bear.getXPosition() + STEP
                                     background.setXPosition(backgroundScrollX)
 
-                        backgroundScrollX -= 30
+                        backgroundScrollX -= STEP
                         background.setXPosition(backgroundScrollX)
                         bear.setJumpStatus(True)
                         background.update(bear.getXPosition(), bear.getYPosition())
@@ -252,28 +282,29 @@ class mainGame:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if block.getIsLeftBoundary():
-                                    bear.setXPosition(bear.getXPosition() - 30)
-                                    totalDistance -= 30
-                            bear.setXPosition(bear.getXPosition() + 30)
-                            totalDistance += 30
-                            backgroundScrollX = bear.getXPosition() - 30
+                                    bear.setXPosition(bear.getXPosition() - STEP)
+                                    totalDistance -= STEP
+                            bear.setXPosition(bear.getXPosition() + STEP)
+                            totalDistance += STEP
+                            backgroundScrollX = bear.getXPosition() - STEP
                             background.setXPosition(backgroundScrollX)
                         else:
                             jumpTimer = 0
-                            moveObjects = self.mummys + self.fires + self.witches + self.greenBlobs + self.door + self.keys + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - 30)
+                                obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - 30)
-                                    backgroundScrollX = bear.getXPosition() + 30
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
+                                    backgroundScrollX = bear.getXPosition() + STEP
                                     background.setXPosition(backgroundScrollX)
 
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
-                            bear.setXPosition(bear.getXPosition() - 30)
-                            totalDistance += 30
+                            bear.setXPosition(bear.getXPosition() - STEP)
+                            totalDistance += STEP
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
@@ -285,17 +316,20 @@ class mainGame:
                             hurtTimer = 0
                             bear.displayDamageOnBear(monster.getDamageAttack())
                             bear.setHp(bear.getHp() - monster.getDamageAttack())
-                            self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                            self.screen.blit(self.hurtBear,
+                                             (bear.getXPosition(), bear.getYPosition()))
                             if bear.getXPosition() <= 400:
-                                bear.setXPosition(bear.getXPosition() + 30)
-                                totalDistance += 30
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                                totalDistance += STEP
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
                                 bear.displayDamageOnBear(monster.getDamageAttack())
                             monster.setHurtTimer(monster.getHurtTimer() + 1)
                         elif 0 < monster.getHurtTimer() < 15:
                             monster.setHurtTimer(monster.getHurtTimer() + 1)
                             bear.displayDamageOnBear(monster.getDamageAttack())
-                            self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                            self.screen.blit(self.hurtBear,
+                                             (bear.getXPosition(), bear.getYPosition()))
                         else:
                             monster.setHurtTimer(0)
                         bear.setLeftDirection(False)
@@ -306,31 +340,32 @@ class mainGame:
 
                 # ---- Z + LEFT: jump-left ---------------------------------
                 elif keys[pygame.K_z] and keys[pygame.K_LEFT] and jumpTimer > 10:
-                    totalDistance -= 30
+                    totalDistance -= STEP
                     if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
                         jumpTimer = 0
                         if bear.getXPosition() > self.leftBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if block.getIsRightBoundary():
-                                    backgroundScrollX = bear.getXPosition() + 30
+                                    backgroundScrollX = bear.getXPosition() + STEP
                                     background.setXPosition(backgroundScrollX)
-                                    totalDistance += 30
-                            backgroundScrollX = bear.getXPosition() - 30
+                                    totalDistance += STEP
+                            backgroundScrollX = bear.getXPosition() - STEP
                             background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() + 30)
-                            totalDistance -= 30
+                            bear.setXPosition(bear.getXPosition() + STEP)
+                            totalDistance -= STEP
                         else:
-                            moveObjects = self.mummys + self.fires + self.witches + self.greenBlobs + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() + 30)
+                                obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - 30)
-                                    backgroundScrollX = bear.getXPosition() - 30
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
+                                    backgroundScrollX = bear.getXPosition() - STEP
                                     background.setXPosition(backgroundScrollX)
-                            backgroundScrollX = bear.getXPosition() + 30
+                            backgroundScrollX = bear.getXPosition() + STEP
                             background.setXPosition(backgroundScrollX)
                         background.update(backgroundScrollX, bear.getYPosition())
                         bear.setJumpStatus(True)
@@ -338,27 +373,28 @@ class mainGame:
                     else:
                         if bear.getXPosition() > self.leftBoundary:
                             jumpTimer = 0
-                            bear.setXPosition(bear.getXPosition() - 30)
-                            totalDistance -= 30
-                            backgroundScrollX = bear.getXPosition() + 30
+                            bear.setXPosition(bear.getXPosition() - STEP)
+                            totalDistance -= STEP
+                            backgroundScrollX = bear.getXPosition() + STEP
                             background.setXPosition(backgroundScrollX)
                         else:
                             jumpTimer = 0
-                            moveObjects = self.mummys + self.fires + self.witches + self.greenBlobs + self.door + self.keys + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() + 30)
+                                obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() + 30)
-                                    backgroundScrollX = bear.getXPosition() - 30
+                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
+                                    backgroundScrollX = bear.getXPosition() - STEP
                                     background.setXPosition(backgroundScrollX)
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
                         for block in self.blocks:
                             if block.getIsRightBoundary():
-                                bear.setXPosition(bear.getXPosition() + 30)
-                                totalDistance += 30
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                                totalDistance += STEP
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -370,16 +406,19 @@ class mainGame:
                                 hurtTimer = 0
                                 bear.displayDamageOnBear(monster.getDamageAttack())
                                 bear.setHp(bear.getHp() - monster.getDamageAttack())
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
                                 if bear.getXPosition() > self.leftBoundary:
-                                    bear.setXPosition(bear.getXPosition() + 30)
-                                    totalDistance += 30
-                                    self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                    bear.setXPosition(bear.getXPosition() + STEP)
+                                    totalDistance += STEP
+                                    self.screen.blit(self.hurtBear,
+                                                     (bear.getXPosition(), bear.getYPosition()))
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                             elif 0 < monster.getHurtTimer() < 15:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                                 bear.displayDamageOnBear(monster.getDamageAttack())
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
                             else:
                                 monster.setHurtTimer(0)
                             bear.setLeftDirection(True)
@@ -413,15 +452,15 @@ class mainGame:
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
                             if not self.frankenbear:
-                                monster.setXPosition(monster.getXPosition() + 30)
+                                monster.setXPosition(monster.getXPosition() + STEP)
                             monster.setDamageReceived(bear.getDamageAttack())
                             monster.setStunned(1)
                             monster.setHealth(monster.getHealth() - bear.getDamageAttack())
                             hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
-                            bear.setXPosition(bear.getXPosition() - 30)
-                            totalDistance -= 30
+                            bear.setXPosition(bear.getXPosition() - STEP)
+                            totalDistance -= STEP
 
                 # ---- A + LEFT: attack left --------------------------------
                 elif (keys[pygame.K_a] and keys[pygame.K_LEFT]
@@ -437,21 +476,21 @@ class mainGame:
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
                             if not self.frankenbear:
-                                monster.setXPosition(monster.getXPosition() + 30)
+                                monster.setXPosition(monster.getXPosition() + STEP)
                             monster.setDamageReceived(bear.getDamageAttack())
                             monster.setStunned(1)
                             monster.setHealth(monster.getHealth() - bear.getDamageAttack())
                             hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
-                            bear.setXPosition(bear.getXPosition() - 30)
-                            totalDistance += 30
+                            bear.setXPosition(bear.getXPosition() - STEP)
+                            totalDistance += STEP
 
                 # ---- RIGHT: walk right ------------------------------------
                 elif (keys[pygame.K_RIGHT]
                       and attackingAnimationCounter == 0
                       and attackingLeftAnimtationCounter == 0):
-                    totalDistance += 30
+                    totalDistance += STEP
                     self.deleteAndCreateObjects(totalDistance)
                     bear.setLeftDirection(False)
 
@@ -460,31 +499,34 @@ class mainGame:
                         if bear.getXPosition() < self.rightBoundary:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() + 30)
+                            bear.setXPosition(bear.getXPosition() + STEP)
                         else:
-                            moveObjects = self.mummys + self.fires + self.witches + self.greenBlobs + self.door + self.keys + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - 30)
+                                obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
                                 if not block.getIsLeftBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                    block.setblockXPosition(block.getBlockXPosition() - 30)
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
                                 elif block.getIsLeftBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                    block.setblockXPosition(block.getBlockXPosition() - 30)
-                                    totalDistance -= 30
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
+                                    totalDistance -= STEP
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
                         for block in self.blocks:
                             if block.getIsLeftBoundary():
-                                bear.setXPosition(bear.getXPosition() - 30)
-                                totalDistance -= 30
+                                bear.setXPosition(bear.getXPosition() - STEP)
+                                totalDistance -= STEP
 
                         if bearAnimation % 120 < 40:
-                            self.screen.blit(self.bearWalking1, (bear.getXPosition(), bear.getYPosition()))
+                            self.screen.blit(self.bearWalking1,
+                                             (bear.getXPosition(), bear.getYPosition()))
                         else:
-                            self.screen.blit(self.bearWalking2, (bear.getXPosition(), bear.getYPosition()))
+                            self.screen.blit(self.bearWalking2,
+                                             (bear.getXPosition(), bear.getYPosition()))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -496,14 +538,16 @@ class mainGame:
                                 hurtTimer = 0
                                 bear.displayDamageOnBear(monster.getDamageAttack())
                                 bear.setHp(bear.getHp() - monster.getDamageAttack())
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
-                                bear.setXPosition(bear.getXPosition() - 30)
-                                totalDistance -= 30
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
+                                bear.setXPosition(bear.getXPosition() - STEP)
+                                totalDistance -= STEP
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                             elif 0 < monster.getHurtTimer() < 15:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                                 bear.displayDamageOnBear(monster.getDamageAttack())
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
                             else:
                                 monster.setHurtTimer(0)
 
@@ -513,34 +557,35 @@ class mainGame:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if block.getIsLeftBoundary():
-                                    bear.setXPosition(bear.getXPosition() - 30)
-                                    totalDistance -= 30
+                                    bear.setXPosition(bear.getXPosition() - STEP)
+                                    totalDistance -= STEP
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() + 30)
+                            bear.setXPosition(bear.getXPosition() + STEP)
                         else:
                             jumpTimer = 0
-                            moveObjects = self.mummys + self.fires + self.witches + self.greenBlobs + self.door + self.keys + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - 30)
+                                obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - 30)
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
                                     backgroundScrollX = bear.getXPosition()
                                     background.setXPosition(backgroundScrollX)
                                 elif block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - 30)
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
                                     backgroundScrollX = bear.getXPosition()
                                     background.setXPosition(backgroundScrollX)
 
                         for block in self.blocks:
                             block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                             if block.getIsLeftBoundary():
-                                bear.setXPosition(bear.getXPosition() - 30)
-                                totalDistance -= 30
+                                bear.setXPosition(bear.getXPosition() - STEP)
+                                totalDistance -= STEP
 
-                    bearAnimation -= 30
+                    bearAnimation -= STEP
                     background.update(backgroundScrollX, bear.getYPosition())
                     self.deleteAndCreateObjects(totalDistance)
 
@@ -548,7 +593,7 @@ class mainGame:
                 elif (keys[pygame.K_LEFT]
                       and attackingAnimationCounter == 0
                       and attackingLeftAnimtationCounter == 0):
-                    totalDistance -= 30
+                    totalDistance -= STEP
                     bear.setLeftDirection(True)
 
                     if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
@@ -556,31 +601,34 @@ class mainGame:
                         if bear.getXPosition() > self.leftBoundary:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() - 30)
+                            bear.setXPosition(bear.getXPosition() - STEP)
                         else:
-                            moveObjects = self.mummys + self.fires + self.witches + self.greenBlobs + self.door + self.keys + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() + 30)
+                                obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
                                 if not block.getIsRightBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                    block.setblockXPosition(block.getBlockXPosition() + 30)
+                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
                                 if block.getIsRightBoundary():
-                                    totalDistance += 30
+                                    totalDistance += STEP
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                    block.setblockXPosition(block.getBlockXPosition() + 30)
+                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
                         for block in self.blocks:
                             if block.getIsRightBoundary():
-                                totalDistance += 30
-                                bear.setXPosition(bear.getXPosition() + 30)
+                                totalDistance += STEP
+                                bear.setXPosition(bear.getXPosition() + STEP)
 
                         if bearAnimation % 188 < 80:
-                            self.screen.blit(self.bearWalkingLeft1, (bear.getXPosition(), bear.getYPosition()))
+                            self.screen.blit(self.bearWalkingLeft1,
+                                             (bear.getXPosition(), bear.getYPosition()))
                         else:
-                            self.screen.blit(self.bearWalkingLeft2, (bear.getXPosition(), bear.getYPosition()))
+                            self.screen.blit(self.bearWalkingLeft2,
+                                             (bear.getXPosition(), bear.getYPosition()))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -592,45 +640,48 @@ class mainGame:
                                 bear.displayDamageOnBear(monster.getDamageAttack())
                                 bear.setHp(bear.getHp() - monster.getDamageAttack())
                                 hurtTimer = 0
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
-                                bear.setXPosition(bear.getXPosition() + 30)
-                                totalDistance += 30
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                                totalDistance += STEP
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                             elif 0 < monster.getHurtTimer() < 15:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                                 bear.displayDamageOnBear(monster.getDamageAttack())
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
                             else:
                                 monster.setHurtTimer(0)
 
                     elif bear.getJumpStatus() or bear.getLeftJumpStatus():
                         jumpTimer = 0
                         if bear.getXPosition() > self.leftBoundary:
-                            backgroundScrollX = bear.getXPosition() + 30
+                            backgroundScrollX = bear.getXPosition() + STEP
                             background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() - 30)
+                            bear.setXPosition(bear.getXPosition() - STEP)
                         else:
-                            moveObjects = self.mummys + self.fires + self.greenBlobs + self.witches + self.door + self.keys + self.spikes
+                            moveObjects = (self.mummys + self.fires + self.greenBlobs +
+                                           self.witches + self.door + self.keys + self.spikes)
                             for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() + 30)
+                                obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() + 30)
+                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
                                     backgroundScrollX = bear.getXPosition()
                                     background.setXPosition(backgroundScrollX)
                                 elif block.getIsRightBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() + 30)
-                                    totalDistance += 30
+                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
+                                    totalDistance += STEP
                                     backgroundScrollX = bear.getXPosition()
                                     background.setXPosition(backgroundScrollX)
                         for block in self.blocks:
                             block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                             if block.getIsRightBoundary():
-                                bear.setXPosition(bear.getXPosition() + 30)
-                                totalDistance += 30
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                                totalDistance += STEP
 
-                    bearAnimation -= 30
+                    bearAnimation -= STEP
                     background.update(backgroundScrollX, bear.getYPosition())
 
                 # ---- A only: attack (no direction) -----------------------
@@ -646,7 +697,7 @@ class mainGame:
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
                             if not self.frankenbear:
-                                monster.setXPosition(monster.getXPosition() + 30)
+                                monster.setXPosition(monster.getXPosition() + STEP)
                             monster.setDamageReceived(bear.getDamageAttack())
                             monster.setStunned(1)
                             monster.setHealth(monster.getHealth() - bear.getDamageAttack())
@@ -663,10 +714,7 @@ class mainGame:
                             and attackingAnimationCounter == 0
                             and attackingLeftAnimtationCounter == 0
                             and isBearHurtAnimation == 0):
-                        if not bear.getLeftDirection():
-                            self.screen.blit(self.standingBear, (bear.getXPosition(), bear.getYPosition()))
-                        else:
-                            self.screen.blit(self.standingBearLeft, (bear.getXPosition(), bear.getYPosition()))
+                        self._draw_idle_bear(bear)
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
@@ -678,30 +726,35 @@ class mainGame:
                             bear.displayDamageOnBear(monster.getDamageAttack())
                             bear.setHp(bear.getHp() - monster.getDamageAttack())
                             hurtTimer = 0
-                            self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
-                            rel = positionRelativeToMonster(bear.getXPosition(), bear.getYPosition(),
-                                                            monster.getXPosition(), monster.getYPosition())
+                            self.screen.blit(self.hurtBear,
+                                             (bear.getXPosition(), bear.getYPosition()))
+                            rel = positionRelativeToMonster(
+                                bear.getXPosition(), bear.getYPosition(),
+                                monster.getXPosition(), monster.getYPosition())
                             if rel == "RIGHT":
-                                backgroundScrollX = bear.getXPosition() + 30
+                                backgroundScrollX = bear.getXPosition() + STEP
                                 background.setXPosition(backgroundScrollX)
-                                bear.setXPosition(bear.getXPosition() + 30)
-                                totalDistance += 30
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                                totalDistance += STEP
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
                             else:
-                                backgroundScrollX = bear.getXPosition() - 60
+                                backgroundScrollX = bear.getXPosition() - STEP * 2
                                 background.setXPosition(backgroundScrollX)
-                                bear.setXPosition(bear.getXPosition() - 60)
-                                totalDistance -= 60
-                                self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                                bear.setXPosition(bear.getXPosition() - STEP * 2)
+                                totalDistance -= STEP * 2
+                                self.screen.blit(self.hurtBear,
+                                                 (bear.getXPosition(), bear.getYPosition()))
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                         elif 0 < monster.getHurtTimer() < 15:
                             monster.setHurtTimer(monster.getHurtTimer() + 1)
                             bear.displayDamageOnBear(monster.getDamageAttack())
-                            self.screen.blit(self.hurtBear, (bear.getXPosition(), bear.getYPosition()))
+                            self.screen.blit(self.hurtBear,
+                                             (bear.getXPosition(), bear.getYPosition()))
                         else:
                             monster.setHurtTimer(0)
 
-            # ---- Attack animation ----------------------------------------
+            # ---- Attack animation (always runs, fixes 1-frame flicker gap) ------
             if 1 <= attackingAnimationCounter < 12:
                 attackingAnimationCounter += 1
                 if bear.getLeftDirection():
@@ -712,12 +765,16 @@ class mainGame:
                                      (bear.getXPosition(), bear.getYPosition()))
             elif attackingAnimationCounter >= 12:
                 attackingAnimationCounter = 0
+                # Draw idle sprite on the reset frame so the bear never vanishes
+                self._draw_idle_bear(bear)
             elif 1 <= attackingLeftAnimtationCounter < 12:
                 attackingLeftAnimtationCounter += 1
                 self.screen.blit(self.bearAttackingLeft,
                                  (bear.getXPosition(), bear.getYPosition()))
             elif attackingLeftAnimtationCounter >= 12:
                 attackingLeftAnimtationCounter = 0
+                # Draw idle sprite on the reset frame so the bear never vanishes
+                self._draw_idle_bear(bear)
             elif bear.getJumpStatus():
                 bear.jump(self.blocks)
             elif bear.getLeftJumpStatus():
@@ -755,10 +812,13 @@ class mainGame:
                     self.greenBlobs.remove(monster)
 
                 if monster.getName() == "greenBlob" and monster.getHeight() == 100:
-                    self.greenBlobs.append(GreenBlob(monster.getXPosition() - 40, 350, 70, 100, self.screen))
-                    self.greenBlobs.append(GreenBlob(monster.getXPosition() + 40, 350, 70, 100, self.screen))
+                    self.greenBlobs.append(
+                        GreenBlob(monster.getXPosition() - 40, 350, 70, 100, self.screen))
+                    self.greenBlobs.append(
+                        GreenBlob(monster.getXPosition() + 40, 350, 70, 100, self.screen))
                 elif monster.getName() == "bigMummy":
-                    self.keys.append(KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
+                    self.keys.append(
+                        KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
 
             # ---- Boss lifecycle ------------------------------------------
             boss_to_remove = []
@@ -773,8 +833,10 @@ class mainGame:
                         monster.setStartDestructionAnimation(False)
                         bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
                         boss_to_remove.append(monster)
-                        bear.setArrayText(['   Thank you for playing!   ', '     ', ' Press "s" to continue  '])
-                        bear.setArrayText([' The screen will close now  ', '      ', ' Press "s" to continue  '])
+                        bear.setArrayText(['   Thank you for playing!   ', '     ',
+                                           ' Press "s" to continue  '])
+                        bear.setArrayText([' The screen will close now  ', '      ',
+                                           ' Press "s" to continue  '])
                         bear.setEndText(False)
                         self.isFinalBossDestroyed = True
             for monster in boss_to_remove:
@@ -794,7 +856,8 @@ class mainGame:
             fires_to_remove = []
             for fire in self.fires:
                 fire.drawFireBall()
-                if fire.getXPosition() < 30 or fire.getXPosition() > 500 or fire.getYPosition() < 0:
+                if (fire.getXPosition() < 30 or fire.getXPosition() > 500
+                        or fire.getYPosition() < 0):
                     self.triggerFire = True
                     fires_to_remove.append(fire)
             for fire in fires_to_remove:
@@ -816,11 +879,13 @@ class mainGame:
 
             hurtTimer += 1
 
-            # ---- Boss trigger zone ---------------------------------------
-            if 66900 < totalDistance < 67000 and not self.createdBoss:
+            # ---- Boss trigger zone (scaled to STEP-based totalDistance) --
+            # Original triggers were designed for 30px steps; scaled to 8px steps
+            # by multiplying by (8/30) ≈ 0.267. Zone triggers ÷ ~3.75.
+            if 17840 < totalDistance < 17870 and not self.createdBoss:
                 self.createdBoss = True
 
-            if totalDistance > 67000 and not self.activeMonsters[9]:
+            if totalDistance > 17870 and not self.activeMonsters[9]:
                 self.spikes = []
                 self.activeMonsters[9] = True
                 self.mummys = []
@@ -830,8 +895,8 @@ class mainGame:
                 self.fires = []
                 self.activeMonsters[1] = True
 
-            if totalDistance > 67000:
-                totalDistance = 700000
+            if totalDistance > 17870:
+                totalDistance = 90000
                 background.setStopBackground(True)
                 self.leftBoundary = 80
                 self.rightBoundary = 700
@@ -890,7 +955,7 @@ class mainGame:
                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                 if block.getDropStatus() and not bear.getComingUp():
                     if bear.getYPosition() + 100 < floorHeight:
-                        bear.setYPosition(bear.getYPosition() + 30)
+                        bear.setYPosition(bear.getYPosition() + JUMP_STEP)
                     elif bear.getYPosition() + 100 == floorHeight:
                         block.setDropStatus(False)
                         block.setOnPlatform(False)
@@ -900,8 +965,8 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
 
-            # ---- Story / trigger text ------------------------------------
-            if totalDistance > 5630 and not self.triggerText1:
+            # ---- Story / trigger text (triggers scaled to 8px steps) ----
+            if totalDistance > 1500 and not self.triggerText1:
                 bear.setEndText(False)
                 self.triggerText1 = True
                 bear.setArrayText(['   The big mummy ahead has   ',
@@ -919,17 +984,19 @@ class mainGame:
                     if (door.getXPosition() - 90 <= bear.getXPosition()
                             and not self.isDoor1Open
                             and not self.triggerText3):
-                        totalDistance -= 30
+                        totalDistance -= STEP
                         if not self.triggerText3 and not self.isDoor1Open:
                             bear.setArrayText(['   Attack the Mummys forhead    ', '     ',
                                                ' Press "s" to continue  '])
-                            bear.setArrayText([' To grab the key  ', ' For the locked door.     ',
+                            bear.setArrayText([' To grab the key  ',
+                                               ' For the locked door.     ',
                                                ' Press "s" to continue  '])
                             self.triggerText3 = True
                             bear.setEndText(False)
 
                 if self.isDoor1Open and not self.triggerText2:
-                    bear.setArrayText(['   Grabbed Key!   ', '     ', ' Press "s" to continue  '])
+                    bear.setArrayText(['   Grabbed Key!   ', '     ',
+                                       ' Press "s" to continue  '])
                     bear.setArrayText(['  You can open the door now.  ', '      ',
                                        '  Press "s" to continue  '])
                     self.triggerText2 = True
@@ -937,10 +1004,11 @@ class mainGame:
                 elif (self.isDoor1Open
                       and door.getXPosition() - 90 <= bear.getXPosition()
                       and not self.triggerText5):
-                    bear.setXPosition(bear.getXPosition() - 30)
-                    totalDistance -= 30
+                    bear.setXPosition(bear.getXPosition() - STEP)
+                    totalDistance -= STEP
                     self.triggerText5 = True
-                    bear.setArrayText(['   You used key!   ', '     ', ' Press "s" to continue  '])
+                    bear.setArrayText(['   You used key!   ', '     ',
+                                       ' Press "s" to continue  '])
                     bear.setArrayText(['  The door is unlocked.  ', '      ',
                                        '  Press "s" to continue  '])
                     bear.setEndText(False)
@@ -951,7 +1019,8 @@ class mainGame:
             if bear.getHealth() <= 0 and not self.triggerText4:
                 bear.setEndText(False)
                 self.triggerText4 = True
-                bear.setArrayText(['   GAME OVER!   ', '     ', ' Press "s" to continue  '])
+                bear.setArrayText(['   GAME OVER!   ', '     ',
+                                   ' Press "s" to continue  '])
                 bear.setArrayText(['  GAME OVER! : Please try again  ', '     ',
                                    '  Press "s" to continue    '])
                 self.escape = True
@@ -964,8 +1033,10 @@ class mainGame:
 
     # -----------------------------------------------------------------------
     def deleteAndCreateObjects(self, backgroundScrollX):
+        # Zone triggers are scaled from original 30px-step values
+        # by factor 8/30 ≈ 0.267  (original / 3.75, rounded)
 
-        if backgroundScrollX > 3850 and not self.activeMonsters[1]:
+        if backgroundScrollX > 1027 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
             self.mummys = []
             self.witches = []
@@ -986,7 +1057,7 @@ class mainGame:
             block9 = Block(4300, 0, 2800, 100, "greyRock", self.screen)
             self.blocks.append(block9)
 
-        elif backgroundScrollX > 12000 and not self.activeMonsters[2]:
+        elif backgroundScrollX > 3200 and not self.activeMonsters[2]:
             self.activeMonsters[2] = True
             self.door = []
             self.mummys = []
@@ -1010,7 +1081,7 @@ class mainGame:
             self.witches.extend([witch, witch2, witch3, witch4, witch5, witch6])
             self.triggerFire = True
 
-        elif backgroundScrollX > 18000 and not self.activeMonsters[3]:
+        elif backgroundScrollX > 4800 and not self.activeMonsters[3]:
             self.activeMonsters[3] = True
             self.mummys = []
             self.witches = []
@@ -1026,7 +1097,8 @@ class mainGame:
             greenBlob3 = GreenBlob(4000, 300, 100, 100, self.screen)
             greenBlob4 = GreenBlob(5800, 300, 100, 100, self.screen)
             greenBlob5 = GreenBlob(6100, 300, 100, 100, self.screen)
-            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3, greenBlob4, greenBlob5])
+            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
+                                    greenBlob4, greenBlob5])
 
             block2 = Block(6000, 220, 2000, 60, "greyRock", self.screen)
             self.blocks.append(block2)
@@ -1037,7 +1109,7 @@ class mainGame:
                 mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                 self.mummys.append(mummy)
 
-        elif backgroundScrollX > 26000 and not self.activeMonsters[4]:
+        elif backgroundScrollX > 6933 and not self.activeMonsters[4]:
             self.activeMonsters[4] = True
 
             block1 = Block(8000, 280, 2000, 60, "greyRock", self.screen)
@@ -1050,7 +1122,7 @@ class mainGame:
                 mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                 self.mummys.append(mummy)
 
-        elif backgroundScrollX > 33000 and not self.activeMonsters[5]:
+        elif backgroundScrollX > 8800 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
             self.mummys = []
             self.witches = []
@@ -1073,7 +1145,7 @@ class mainGame:
             witch2 = Witch(1300, 100, self.witch, self.witch2, self.screen)
             self.witches.extend([witch, witch2])
 
-        elif backgroundScrollX > 39000 and not self.activeMonsters[6]:
+        elif backgroundScrollX > 10400 and not self.activeMonsters[6]:
             self.activeMonsters[6] = True
             self.mummys = []
             self.witches = []
@@ -1091,7 +1163,8 @@ class mainGame:
             greenBlob3 = GreenBlob(1300, 300, 100, 100, self.screen)
             greenBlob4 = GreenBlob(1900, 300, 100, 100, self.screen)
             greenBlob5 = GreenBlob(800,  300, 100, 100, self.screen)
-            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3, greenBlob4, greenBlob5])
+            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
+                                    greenBlob4, greenBlob5])
 
             x = 16000
             for _ in range(3):
@@ -1099,7 +1172,7 @@ class mainGame:
                 mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                 self.mummys.append(mummy)
 
-        elif backgroundScrollX > 48000 and not self.activeMonsters[7]:
+        elif backgroundScrollX > 12800 and not self.activeMonsters[7]:
             self.activeMonsters[7] = True
             self.mummys = []
             self.witches = []
@@ -1118,7 +1191,7 @@ class mainGame:
             witch4 = Witch(5100, 150, self.witch, self.witch2, self.screen)
             self.witches.extend([witch, witch2, witch3, witch4])
 
-        elif backgroundScrollX > 54000 and not self.activeMonsters[8]:
+        elif backgroundScrollX > 14400 and not self.activeMonsters[8]:
             self.activeMonsters[8] = True
             self.mummys = []
             self.witches = []
@@ -1234,27 +1307,32 @@ class Block():
         if self.type == "monster":
             self.monsterBlockTimer += 1
         if self.monsterBlockTimer <= self.maxBlinkTime:
-            self.screen.blit(self.redBlock, (self.getBlockXPosition(), self.getBlockYPosition()))
+            self.screen.blit(self.redBlock,
+                             (self.getBlockXPosition(), self.getBlockYPosition()))
         elif self.monsterBlockTimer < self.maxBlinkTime + 10:
-            self.screen.blit(self.blockClosedEyes, (self.getBlockXPosition(), self.getBlockYPosition()))
+            self.screen.blit(self.blockClosedEyes,
+                             (self.getBlockXPosition(), self.getBlockYPosition()))
         else:
             self.monsterBlockTimer = 1
             self.maxBlinkTime = random.randint(30, 150)
-            self.screen.blit(self.blockClosedEyes, (self.getBlockXPosition(), self.getBlockYPosition()))
+            self.screen.blit(self.blockClosedEyes,
+                             (self.getBlockXPosition(), self.getBlockYPosition()))
 
     def isBoundaryPresent(self, bearX, bearY):
         floorHeight = 400
         self.setIsLeftBoundary(False)
         self.setIsRightBoundary(False)
 
-        bx, by = bearX, bearY
-        bx2, by2 = bearX + 100, bearY + 100
-        blx, brx = self.getBlockXPosition(), self.getBlockXPosition() + self.getWidth()
-        bty, bby = self.getBlockYPosition(), self.getBlockYPosition() + self.getHeight()
+        bx2 = bearX + 100
+        by2 = bearY + 100
+        blx = self.getBlockXPosition()
+        brx = self.getBlockXPosition() + self.getWidth()
+        bty = self.getBlockYPosition()
+        bby = self.getBlockYPosition() + self.getHeight()
 
         # On-platform detection
         if by2 == bty:
-            if bx2 > blx and bx < brx + 30:
+            if bx2 > blx and bearX < brx + 30:
                 self.setOnPlatform(True)
                 self.setDropStatus(False)
 
@@ -1263,45 +1341,34 @@ class Block():
             if bx2 < blx:
                 self.setDropStatus(True)
                 self.setOnPlatform(False)
-            elif bx > brx:
+            elif bearX > brx:
                 self.setDropStatus(True)
                 self.setOnPlatform(False)
 
         if by2 < bty and self.getOnPlatform():
-            if bx2 < blx or bx > brx:
+            if bx2 < blx or bearX > brx:
                 self.setDropStatus(True)
                 self.setOnPlatform(False)
 
         # Inside box
         if (bx2 > blx and bx2 < brx - 30) and (by2 <= bby and by2 > bty):
             self.setIsInsideBox(True)
-        elif (bx > blx and bx < brx) and (by2 == floorHeight) and (bty == floorHeight):
+        elif (bearX > blx and bearX < brx) and (by2 == floorHeight) and (bty == floorHeight):
             self.setIsInsideBox(True)
 
         # Left boundary (bear's right edge hitting block's left side)
-        if (bx2 > blx and bx2 < brx + 30) and (by <= bby and by2 > bty):
+        if (bx2 > blx and bx2 < brx + 30) and (bearY <= bby and by2 > bty):
             self.setIsLeftBoundary(True)
             self.setDropStatus(False)
 
         # Right boundary (bear's left edge hitting block's right side)
-        elif (bx > blx + 30 and bx < brx) and (by2 <= bby and by2 > bty):
+        elif (bearX > blx + 30 and bearX < brx) and (by2 <= bby and by2 > bty):
             self.setIsRightBoundary(True)
             self.setDropStatus(False)
 
         if by2 == floorHeight:
             self.setDropStatus(False)
             self.setOnPlatform(False)
-
-
-# ---------------------------------------------------------------------------
-def _render_damage_text(screen, font, damage, x, y, big=False):
-    """Helper: draw outlined damage number."""
-    black = pygame.Color(0, 0, 0)
-    white = pygame.Color(255, 255, 255)
-    outline = font.render(str(damage), True, black)
-    for dx, dy in ((-2, -2), (2, -2), (2, 2), (-2, 2)):
-        screen.blit(outline, (x + dx, y + dy))
-    screen.blit(font.render(str(damage), True, white), (x, y))
 
 
 # ---------------------------------------------------------------------------
@@ -1324,7 +1391,8 @@ class Background():
         self.bgY2 = 0
         self.bgX2 = self.rectBGimg.width
         self.surface = surface
-        self.moving_speed = 10
+        # Reduced from 10 → 3 to match the slower STEP-based world movement
+        self.moving_speed = 3
         self.totalX = 0
         self.stopBackground = False
         self.isBlackBackground = False
@@ -1360,7 +1428,7 @@ class Background():
 
     def update(self, characterPosition, height):
         if self.getBlackBackground():
-            # Pre-loaded, just switch the reference – no disk I/O
+            # Pre-loaded – only swap reference, no disk I/O
             self.bgimage = self.bgBlack
             self.setBlackBackground(False)
             return
@@ -1369,7 +1437,7 @@ class Background():
             return
 
         if characterPosition >= 290:
-            self.totalX += 30
+            self.totalX += STEP
             self.bgX1 -= self.moving_speed
             self.bgX2 -= self.moving_speed
             if self.bgX1 <= -self.rectBGimg.width:
@@ -1377,7 +1445,7 @@ class Background():
             if self.bgX2 <= -self.rectBGimg.width:
                 self.bgX2 = self.rectBGimg.width + 15
         elif characterPosition <= 180:
-            self.totalX -= 30
+            self.totalX -= STEP
             self.bgX1 += self.moving_speed
             self.bgX2 += self.moving_speed
             if self.bgX1 >= self.rectBGimg.width:
@@ -1513,17 +1581,16 @@ class Mummy():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        x = self.getXPosition() + 60
-        y = self.getYPosition() - 60
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage, x, y)
+        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60)
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
         self.displayDamageOnMonster(damage)
         if self.destructionAnimation < 30 and self.destructionAnimation % 2 == 0:
-            x = self.x + random.randint(-100, 0)
-            y = self.y + random.randint(-100, 0)
-            self.screen.blit(self.fire, (x, y))
+            self.screen.blit(self.fire,
+                             (self.x + random.randint(-100, 0),
+                              self.y + random.randint(-100, 0)))
 
     def drawMonster(self):
         if self.x % 90 < 40 and self.stunned == 0:
@@ -1666,17 +1733,16 @@ class Witch():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        x = self.getXPosition() + 60
-        y = self.getYPosition() - 60
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage, x, y)
+        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60)
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
         self.displayDamageOnMonster(damage)
         if self.destructionAnimation < 30 and self.destructionAnimation % 2 < 10:
-            x = self.x + random.randint(-100, 0)
-            y = self.y + random.randint(-100, 0)
-            self.screen.blit(self.fire, (x, y))
+            self.screen.blit(self.fire,
+                             (self.x + random.randint(-100, 0),
+                              self.y + random.randint(-100, 0)))
 
     def drawMonster(self):
         if self.stunned == 0:
@@ -1765,7 +1831,7 @@ class FireBall():
         return self.stunned
 
     def setHealth(self, health):
-        self.health = health  # Fixed: was incorrectly returning self.health
+        self.health = health
 
     def getHealth(self):
         return self.health
@@ -1902,17 +1968,16 @@ class GreenBlob():
         return self.destructionAnimation
 
     def displayDamageOnMonster(self, damage):
-        x = self.getXPosition() + 60
-        y = self.getYPosition() - 60
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage, x, y)
+        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60)
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
         self.displayDamageOnMonster(damage)
         if self.destructionAnimation < 30 and self.destructionAnimation % 2 == 0:
-            x = self.x + random.randint(-100, 0)
-            y = self.y + random.randint(-100, 0)
-            self.screen.blit(self.fire, (x, y))
+            self.screen.blit(self.fire,
+                             (self.x + random.randint(-100, 0),
+                              self.y + random.randint(-100, 0)))
 
     def drawMonster(self):
         self.timer += 1
@@ -1920,11 +1985,11 @@ class GreenBlob():
         if self.jump:
             if self.y + self.height <= 80 and not self.comingDown:
                 self.comingDown = True
-                self.y += 15
+                self.y += JUMP_STEP
             elif not self.comingDown:
-                self.y -= 15
+                self.y -= JUMP_STEP
             elif self.y + self.height < 400 and self.comingDown:
-                self.y += 15
+                self.y += JUMP_STEP
             elif self.y + self.height >= 400 and self.comingDown:
                 self.jump = False
                 self.timer = 0
@@ -1988,7 +2053,8 @@ class Bear:
         self.text2 = ""
         self.text3 = ""
         self.textArray = [
-            ['To jump press "z"  ', 'To attack press "a"      ', '   Press "s" to continue  '],
+            ['To jump press "z"  ', 'To attack press "a"      ',
+             '   Press "s" to continue  '],
             [' Press "ESC" to end game   ',
              ' Defeat frankenbear at end of castle !!    ',
              '  Press "s" to continue   ']
@@ -2097,10 +2163,10 @@ class Bear:
             self.screen.blit(self.bearJumpingLeft1, (self.getXPosition(), self.y))
 
         if self.y >= (self.initialHeight - 200) and self.comingUp:
-            self.y -= 15
+            self.y -= JUMP_STEP
         elif self.y >= (self.initialHeight - 230):
             self.comingUp = False
-            self.y += 15
+            self.y += JUMP_STEP
             for block in blocks:
                 block.isBoundaryPresent(self.getXPosition(), self.y)
                 if block.getOnPlatform():
@@ -2113,17 +2179,17 @@ class Bear:
             self.setLeftJumpStatus(False)
 
     def leftJump(self, blocks):
-        # Fixed: was using self.blocks (undefined); now uses the blocks parameter
+        # Fixed: was using self.blocks (undefined); uses the blocks parameter
         for block in blocks:
             block.setOnPlatform(False)
 
         if (self.y <= self.initialHeight
                 and self.y >= (self.initialHeight - 200)
                 and self.getComingUp()):
-            self.y -= 15
+            self.y -= JUMP_STEP
             self.screen.blit(self.bearJumpingLeft1, (self.getXPosition(), self.y))
         elif self.y >= (self.initialHeight - 230) and self.y < self.initialHeight:
-            self.y += 15
+            self.y += JUMP_STEP
             self.setComingUpStatus(False)
             for block in blocks:
                 block.isBoundaryPresent(self.getXPosition(), self.y)
@@ -2143,14 +2209,13 @@ class Bear:
 
     def isBearHurt(self, positionRelative, bearXPosition, bearYPosition,
                    objectXPosition, objectYPosition, objectName):
-        """Delegate to module-level AABB helper."""
         return isBearHurt(positionRelative, bearXPosition, bearYPosition,
                           objectXPosition, objectYPosition, objectName)
 
     def boundaryExtraCheck(self):
         floorHeight = 400
         if self.getXPosition() <= 30:
-            self.setXPosition(self.getXPosition() + 30)
+            self.setXPosition(self.getXPosition() + STEP)
         if self.getYPosition() + 100 == floorHeight:
             self.initialHeight = self.getYPosition()
         if self.getYPosition() + 100 > floorHeight:
@@ -2168,9 +2233,8 @@ class Bear:
         return self.displayTimer
 
     def displayDamageOnBear(self, damage):
-        x = self.getXPosition() + 60
-        y = self.getYPosition() - 60
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage, x, y)
+        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60)
 
     def displayBearHp(self):
         pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(10, 10, 300, 40))
@@ -2379,7 +2443,8 @@ class KeyItem:
         self.screen.blit(self.key, (self.x, self.y))
 
     def isKeyGrabbed(self, bearXPosition, bearYPosition, objectXPosition, objectYPosition):
-        bear_rect = pygame.Rect(bearXPosition + 5, bearYPosition + 5, BEAR_W - 10, BEAR_H - 10)
+        bear_rect = pygame.Rect(bearXPosition + 5, bearYPosition + 5,
+                                BEAR_W - 10, BEAR_H - 10)
         key_rect  = pygame.Rect(objectXPosition, objectYPosition, 60, 100)
         if bear_rect.colliderect(key_rect):
             self.isOpen = True
@@ -2389,7 +2454,7 @@ class KeyItem:
     def boundaryExtraCheck(self):
         floorHeight = 400
         if self.getYPosition() + 120 <= floorHeight:
-            self.setYPosition(self.getYPosition() + 30)
+            self.setYPosition(self.getYPosition() + JUMP_STEP)
 
 
 # ---------------------------------------------------------------------------
@@ -2446,7 +2511,7 @@ class SpikeBlock():
         return self.stunned
 
     def setHealth(self, health):
-        self.health = health  # Fixed: was incorrectly returning self.health
+        self.health = health
 
     def getHealth(self):
         return self.health
@@ -2554,9 +2619,6 @@ class FrankenBear():
     def getHealth(self):
         return self.health
 
-    def setDamageReceived(self, v):
-        self.damageReceived = v
-
     def displayDamageOnMonster(self, damage):
         _render_damage_text(self.screen, _FONT_BOSS_DAMAGE, damage, 450, 130)
 
@@ -2612,9 +2674,9 @@ class FrankenBear():
         self.displayDamageOnMonster(damage)
         self.destructionAnimation += 1
         if self.destructionAnimation < 30 and self.destructionAnimation % 2 < 10:
-            x = self.x + random.randint(-300, 0)
-            y = self.y + random.randint(-300, 0)
-            self.screen.blit(self.fire, (x, y))
+            self.screen.blit(self.fire,
+                             (self.x + random.randint(-300, 0),
+                              self.y + random.randint(-300, 0)))
 
     def getDestructionAnimationCount(self):
         return self.destructionAnimation
