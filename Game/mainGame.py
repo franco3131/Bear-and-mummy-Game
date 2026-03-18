@@ -195,14 +195,14 @@ class mainGame:
 
         self.activeMonsters = [False] * 14
 
-        # Initial obstacle platforms – scaled to STEP=8 so all clear before zone 1 fires
-        block1 = Block(380,  340, 100, 60,  "red",     self.screen)
-        block2 = Block(460,  190, 100, 60,  "monster", self.screen)
-        block3 = Block(530,  190, 100, 60,  "red",     self.screen)
-        block5 = Block(600,  190, 100, 60,  "red",     self.screen)
-        block7 = Block(660,  190, 100, 60,  "monster", self.screen)
-        block6 = Block(720,  190, 100, 60,  "monster", self.screen)
-        block8 = Block(700,  100, 250, 250, "monster", self.screen)
+        # Initial obstacle platforms – each clearly separated with ~80 px gaps
+        block1 = Block(370,  340, 100, 60,  "red",     self.screen)
+        block2 = Block(550,  190, 100, 60,  "monster", self.screen)
+        block3 = Block(730,  190, 100, 60,  "red",     self.screen)
+        block5 = Block(910,  190, 100, 60,  "red",     self.screen)
+        block7 = Block(1090, 190, 100, 60,  "monster", self.screen)
+        block6 = Block(1270, 190, 100, 60,  "monster", self.screen)
+        block8 = Block(1200, 100, 250, 250, "monster", self.screen)
 
         self.door = []
         self.keys = []
@@ -995,7 +995,7 @@ class mainGame:
             bear.displayBearExp()
 
             # ---- Story / trigger text (triggers scaled to 8px steps) ----
-            if totalDistance > 1600 and not self.triggerText1:
+            if totalDistance > 2300 and not self.triggerText1:
                 bear.setEndText(False)
                 self.triggerText1 = True
                 bear.setArrayText(['   The big mummy ahead has   ',
@@ -1065,7 +1065,7 @@ class mainGame:
         # All spawn X positions are screen-relative and start just ahead of
         # the player (~400-500 px) so objects appear immediately on zone entry.
 
-        if backgroundScrollX > 1500 and not self.activeMonsters[1]:
+        if backgroundScrollX > 2200 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
             self.mummys = []
             self.witches = []
@@ -1081,7 +1081,7 @@ class mainGame:
             self.blocks.extend([block5, block6, block7, block8])
 
             # Big mummy carrying the key – spawns close so player sees it
-            mummy = Mummy(480, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+            mummy = Mummy(480, 100, 300, 450, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
             self.door1 = Door(self.screen, 1400)
             self.door.append(self.door1)
