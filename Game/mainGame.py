@@ -43,6 +43,18 @@ BEAR_W = 80
 BEAR_H = 100
 
 
+def make_outline_surf(sprite, color=(255, 255, 255, 220)):
+    """Return a surface with a white outline matching the sprite's silhouette."""
+    mask = pygame.mask.from_surface(sprite)
+    w, h = sprite.get_size()
+    out = pygame.Surface((w, h), pygame.SRCALPHA)
+    white_fill = mask.to_surface(setcolor=color, unsetcolor=(0, 0, 0, 0))
+    for dx, dy in ((-2, 0), (2, 0), (0, -2), (0, 2),
+                   (-2, -2), (2, -2), (-2, 2), (2, 2)):
+        out.blit(white_fill, (dx, dy))
+    return out
+
+
 def positionRelativeToMonster(bearXPosition, bearYPosition, mummyXPosition,
                               mummyYPosition):
     if ((bearXPosition > mummyXPosition
@@ -222,7 +234,7 @@ class mainGame:
         block5 = Block(910,  190, 100, 60,  "red",     self.screen)
         block7 = Block(1090, 190, 100, 60,  "monster", self.screen)
         block6 = Block(1270, 190, 100, 60,  "monster", self.screen)
-        block8 = Block(1200, 100, 250, 250, "monster", self.screen)
+        block8 = Block(1200, 100, 250, 300, "monster", self.screen)
 
         self.door = []
         self.keys = []
@@ -874,6 +886,9 @@ class mainGame:
             jumpTimer += 1
 
             # ---- Monster lifecycle ---------------------------------------
+            for mummy in self.mummys:
+                mummy.setBlocks(self.blocks)
+
             monsters = self.mummys + self.witches + self.greenBlobs
             to_remove = []
             for monster in monsters:
@@ -1633,6 +1648,7 @@ class Mummy():
         self.damageAttack = 8
         self.hp = 100
         self.height = height
+        self.width = width
         self.hurtTimer = 0
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
@@ -1640,9 +1656,7 @@ class Mummy():
         self.isHurtAnimationStarted = False
         self.isHurtTimer = 0
         self.startDestructionAnimation = False
-        # Pre-allocated white flash overlay (SRCALPHA so it can blend)
-        self.whiteSurf = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.whiteSurf.fill((255, 255, 255, 160))
+        self.blocks = []   # set each frame by the game loop for wall collision
 
         if self.height > 100:
             self.damageAttack = 10
@@ -1652,12 +1666,21 @@ class Mummy():
             self.mummy1 = pygame.transform.scale(self.mummy1, (width, height))
             self.mummy2 = pygame.image.load("Game/Images/Mummy/mummy2Big.png")
             self.mummy2 = pygame.transform.scale(self.mummy2, (width, height))
+            self.hurtMummy = pygame.transform.scale(self.hurtMummy, (width, height))
+            self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width + 100, height))
+
+        # Outline surfaces built AFTER final hurt sprites are set
+        self.hurtOutline     = make_outline_surf(self.hurtMummy)
+        self.hurtLeftOutline = make_outline_surf(self.hurtLeftMummy)
 
     def setStartDestructionAnimation(self, v):
         self.startDestructionAnimation = v
 
     def getStartDestructionAnimationStatus(self):
         return self.startDestructionAnimation
+
+    def setBlocks(self, blocks):
+        self.blocks = blocks
 
     def setDirection(self, direction):
         self.direction = direction
@@ -1749,6 +1772,26 @@ class Mummy():
                              (self.x + random.randint(-100, 0),
                               self.y + random.randint(-100, 0)))
 
+    def _hits_block(self, new_x):
+        """Return True if moving to new_x would overlap a block horizontally."""
+        _dy = 12
+        m_top    = self.y + _dy
+        m_bottom = self.y + _dy + self.height
+        m_left   = new_x
+        m_right  = new_x + self.width
+        for b in self.blocks:
+            bx = b.getBlockXPosition()
+            by = b.getBlockYPosition()
+            bx2 = bx + b.getWidth()
+            by2 = by + b.getHeight()
+            # Vertical overlap?
+            if m_bottom <= by or m_top >= by2:
+                continue
+            # Horizontal overlap?
+            if m_right > bx and m_left < bx2:
+                return True
+        return False
+
     def drawMonster(self):
         _dy = 12  # push sprite down so feet touch the floor
         if self.x % 90 < 40 and self.stunned == 0:
@@ -1757,13 +1800,20 @@ class Mummy():
             self.screen.blit(self.mummy2, (self.x, self.y + _dy))
 
         if self.stunned == 0:
-            self.x += self.direction * self.rand
+            new_x = self.x + self.direction * self.rand
+            if self._hits_block(new_x):
+                # Reverse direction on block contact
+                self.direction *= -1
+                self.mummy1 = pygame.transform.flip(self.mummy1, True, False)
+                self.mummy2 = pygame.transform.flip(self.mummy2, True, False)
+            else:
+                self.x = new_x
         elif self.stunned > 0 and self.direction > 0:
             self.stunned += 1
             self.displayDamageOnMonster(self.damageReceived)
             self.screen.blit(self.hurtMummy, (self.x, self.y + _dy))
             if self.stunned <= 8:
-                self.screen.blit(self.whiteSurf, (self.x, self.y + _dy))
+                self.screen.blit(self.hurtOutline, (self.x, self.y + _dy))
             if self.stunned == 20:
                 self.stunned = 0
         elif self.stunned > 0 and self.direction < 0:
@@ -1771,7 +1821,7 @@ class Mummy():
             self.screen.blit(self.hurtLeftMummy, (self.x, self.y + _dy))
             self.displayDamageOnMonster(self.damageReceived)
             if self.stunned <= 8:
-                self.screen.blit(self.whiteSurf, (self.x, self.y + _dy))
+                self.screen.blit(self.hurtLeftOutline, (self.x, self.y + _dy))
             if self.stunned == 20:
                 self.stunned = 0
 
