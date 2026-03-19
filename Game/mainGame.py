@@ -109,13 +109,13 @@ class mainGame:
         self.clock = pygame.time.Clock()
 
         self.standingBear = pygame.image.load("Game/Images/Bear/standBear2.png")
-        self.standingBear = pygame.transform.scale(self.standingBear, (80, 100))
+        self.standingBear = pygame.transform.scale(self.standingBear, (105, 100))
         self.standingBearLeft = pygame.transform.flip(self.standingBear, True, False)
 
         self.bearWalking1 = pygame.image.load("Game/Images/Bear/bearWalking1.png")
-        self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (100, 115))
+        self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (120, 115))
         self.bearWalking2 = pygame.image.load("Game/Images/Bear/bearWalking2.png")
-        self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (100, 115))
+        self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (120, 115))
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
@@ -124,13 +124,13 @@ class mainGame:
         self.bearWalkingLeft2 = pygame.transform.flip(self.bearWalking2, True, False)
 
         self.bearAttacking = pygame.image.load("Game/Images/Bear/bearAttacking.png")
-        self.bearAttacking = pygame.transform.scale(self.bearAttacking, (190, 100))
+        self.bearAttacking = pygame.transform.scale(self.bearAttacking, (210, 105))
         self.bearAttackingLeft = pygame.transform.flip(
             pygame.image.load("Game/Images/Bear/bearAttacking.png"), True, False)
-        self.bearAttackingLeft = pygame.transform.scale(self.bearAttackingLeft, (180, 100))
+        self.bearAttackingLeft = pygame.transform.scale(self.bearAttackingLeft, (200, 105))
 
         self.hurtBear = pygame.image.load("Game/Images/Bear/hurtBear.png")
-        self.hurtBear = pygame.transform.scale(self.hurtBear, (130, 100))
+        self.hurtBear = pygame.transform.scale(self.hurtBear, (150, 105))
 
         self.mummy1 = pygame.image.load("Game/Images/Mummy/mummy1.png")
         self.mummy2 = pygame.image.load("Game/Images/Mummy/mummy2.png")
@@ -2096,7 +2096,7 @@ class Bear:
         self.talkingNoBear = pygame.image.load("Game/Images/TalkingNoBear.png")
         self.talkingNoBear = pygame.transform.scale(self.talkingNoBear, (900, 250))
         self.bearJumping1 = pygame.image.load("Game/Images/Bear/bearJump1.png")
-        self.bearJumping1 = pygame.transform.scale(self.bearJumping1, (100, 100))
+        self.bearJumping1 = pygame.transform.scale(self.bearJumping1, (120, 105))
         self.endText = False
         self.maxHp = 100
         self.attack = 10
@@ -2117,13 +2117,13 @@ class Bear:
         # False = no bear face (tutorial msgs), True = show bear face (story msgs)
         self.showBearArray = [False, False]
         self.bearJumping2 = pygame.image.load("Game/Images/Bear/bearJump2.png")
-        self.bearJumping2 = pygame.transform.scale(self.bearJumping2, (100, 100))
+        self.bearJumping2 = pygame.transform.scale(self.bearJumping2, (120, 105))
         self.bearJumpingLeft1 = pygame.transform.flip(
             pygame.image.load("Game/Images/Bear/bearJump1.png"), True, False)
-        self.bearJumpingLeft1 = pygame.transform.scale(self.bearJumpingLeft1, (100, 100))
+        self.bearJumpingLeft1 = pygame.transform.scale(self.bearJumpingLeft1, (120, 105))
         self.bearJumpingLeft2 = pygame.transform.flip(
             pygame.image.load("Game/Images/Bear/bearJump2.png"), True, False)
-        self.bearJumpingLeft2 = pygame.transform.scale(self.bearJumpingLeft2, (100, 100))
+        self.bearJumpingLeft2 = pygame.transform.scale(self.bearJumpingLeft2, (120, 105))
         self.damageAttack = 2
         self.hurtTimer = 0
         self.leftDirection = False
