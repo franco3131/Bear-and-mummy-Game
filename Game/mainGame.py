@@ -14,13 +14,15 @@ JUMP_STEP = 7
 _FONT_DAMAGE = None
 _FONT_HUD = None
 _FONT_BOSS_DAMAGE = None
+_FONT_POPUP = None
 
 
 def _init_fonts():
-    global _FONT_DAMAGE, _FONT_HUD, _FONT_BOSS_DAMAGE
+    global _FONT_DAMAGE, _FONT_HUD, _FONT_BOSS_DAMAGE, _FONT_POPUP
     _FONT_DAMAGE = pygame.font.SysFont("Italic", 40)
     _FONT_HUD = pygame.font.SysFont("Italic", 40)
     _FONT_BOSS_DAMAGE = pygame.font.SysFont("Italic", 60)
+    _FONT_POPUP = pygame.font.SysFont("Italic", 20)
 
 
 # ---------------------------------------------------------------------------
@@ -925,10 +927,10 @@ class mainGame:
                         monster.setStartDestructionAnimation(False)
                         bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
                         boss_to_remove.append(monster)
-                        bear.setArrayText(['   Thank you for playing!   ', '     ',
-                                           ' Press "s" to continue  '])
-                        bear.setArrayText([' The screen will close now  ', '      ',
-                                           ' Press "s" to continue  '])
+                        bear.setArrayText(['Thank you for playing!', '',
+                                           'Press "s" to continue'])
+                        bear.setArrayText(['The screen will close now', '',
+                                           'Press "s" to continue'])
                         bear.setEndText(False)
                         self.isFinalBossDestroyed = True
             for monster in boss_to_remove:
@@ -1061,11 +1063,11 @@ class mainGame:
             if totalDistance > 2300 and not self.triggerText1:
                 bear.setEndText(False)
                 self.triggerText1 = True
-                bear.setArrayText(['   The big mummy ahead has   ',
-                                   ' a red thing on its forhead       ',
-                                   '    Press "s" to continue  '])
-                bear.setArrayText([' Attack It there! ', '  Hes carrying a key. ',
-                                   '   Press "s" to continue  '])
+                bear.setArrayText(['The big mummy ahead has',
+                                   'a red ring on its forehead.',
+                                   'Press "s" to continue'])
+                bear.setArrayText(['Attack it there!', 'It\'s carrying a key.',
+                                   'Press "s" to continue'])
 
             for spike in self.spikes:
                 spike.draw()
@@ -1078,19 +1080,19 @@ class mainGame:
                             and not self.triggerText3):
                         totalDistance -= STEP
                         if not self.triggerText3 and not self.isDoor1Open:
-                            bear.setArrayText(['   Attack the Mummys forhead    ', '     ',
-                                               ' Press "s" to continue  '])
-                            bear.setArrayText([' To grab the key  ',
-                                               ' For the locked door.     ',
-                                               ' Press "s" to continue  '])
+                            bear.setArrayText(['Attack the mummy\'s forehead!', '',
+                                               'Press "s" to continue'])
+                            bear.setArrayText(['Hit it to grab the key',
+                                               'for the locked door.',
+                                               'Press "s" to continue'])
                             self.triggerText3 = True
                             bear.setEndText(False)
 
                 if self.isDoor1Open and not self.triggerText2:
-                    bear.setArrayText(['   Grabbed Key!   ', '     ',
-                                       ' Press "s" to continue  '])
-                    bear.setArrayText(['  You can open the door now.  ', '      ',
-                                       '  Press "s" to continue  '])
+                    bear.setArrayText(['Grabbed the key!', '',
+                                       'Press "s" to continue'])
+                    bear.setArrayText(['You can open the door now.', '',
+                                       'Press "s" to continue'])
                     self.triggerText2 = True
                     bear.setEndText(False)
                 elif (self.isDoor1Open
@@ -1099,10 +1101,10 @@ class mainGame:
                     bear.setXPosition(bear.getXPosition() - STEP)
                     totalDistance -= STEP
                     self.triggerText5 = True
-                    bear.setArrayText(['   You used key!   ', '     ',
-                                       ' Press "s" to continue  '])
-                    bear.setArrayText(['  The door is unlocked.  ', '      ',
-                                       '  Press "s" to continue  '])
+                    bear.setArrayText(['You used the key!', '',
+                                       'Press "s" to continue'])
+                    bear.setArrayText(['The door is unlocked.', '',
+                                       'Press "s" to continue'])
                     bear.setEndText(False)
 
             if not bear.getEndText():
@@ -1111,10 +1113,10 @@ class mainGame:
             if bear.getHealth() <= 0 and not self.triggerText4:
                 bear.setEndText(False)
                 self.triggerText4 = True
-                bear.setArrayText(['   GAME OVER!   ', '     ',
-                                   ' Press "s" to continue  '])
-                bear.setArrayText(['  GAME OVER! : Please try again  ', '     ',
-                                   '  Press "s" to continue    '])
+                bear.setArrayText(['GAME OVER!', '',
+                                   'Press "s" to continue'])
+                bear.setArrayText(['Please try again.', '',
+                                   'Press "s" to continue'])
                 self.escape = True
             elif self.escape and bear.getEndText():
                 pygame.quit()
@@ -2168,11 +2170,11 @@ class Bear:
         self.text2 = ""
         self.text3 = ""
         self.textArray = [
-            ['To jump press "z"  ', 'To attack press "a"      ',
-             '   Press "s" to continue  '],
-            [' Press "ESC" to end game   ',
-             ' Defeat frankenbear at end of castle !!    ',
-             '  Press "s" to continue   ']
+            ['To jump press "z"', 'To attack press "a"',
+             'Press "s" to continue'],
+            ['Press "ESC" to end game',
+             'Defeat Frankenbear at end of castle!',
+             'Press "s" to continue']
         ]
         self.tupleIndex = 0
         # False = no bear face (tutorial msgs), True = show bear face (story msgs)
@@ -2435,8 +2437,11 @@ class Bear:
 
     def displayTextBox(self):
         if not self.getEndText():
+            cur_line_text = (self.textArray[self.tupleIndex][self.line]
+                             if self.line < len(self.textArray[self.tupleIndex]) else None)
             if (self.line != len(self.textArray[self.tupleIndex])
-                    and len(self.textArray[self.tupleIndex][self.line]) == self.indexArray + 1):
+                    and (len(cur_line_text) == 0
+                         or len(cur_line_text) == self.indexArray + 1)):
                 self.indexArray = 0
                 self.line += 1
                 if self.line == 1:
@@ -2456,22 +2461,24 @@ class Bear:
                 self.blinkTimer = 0
 
             self.textTimer += 1
-            text1 = _FONT_HUD.render(self.totalText1, False, (0, 0, 0))
-            self.screen.blit(text1, (380, 60))
-            text2 = _FONT_HUD.render(self.totalText2, False, (0, 0, 0))
-            self.screen.blit(text2, (380, 80 + self.textHeight))
-            text3 = _FONT_HUD.render(self.totalText3, False, (0, 0, 0))
-            self.screen.blit(text3, (380, 110 + self.textHeight))
+            text1 = _FONT_POPUP.render(self.totalText1, False, (0, 0, 0))
+            self.screen.blit(text1, (420, 70))
+            text2 = _FONT_POPUP.render(self.totalText2, False, (0, 0, 0))
+            self.screen.blit(text2, (420, 110))
+            text3 = _FONT_POPUP.render(self.totalText3, False, (0, 0, 0))
+            self.screen.blit(text3, (420, 150))
             self.xText += 5
 
             if self.textTimer % 3 < 2:
-                if self.line == 0:
+                if self.line == 0 and self.indexArray < len(self.text1):
                     self.totalText1 += self.text1[self.indexArray]
-                elif self.line == 1:
+                    self.indexArray += 1
+                elif self.line == 1 and self.indexArray < len(self.text2):
                     self.totalText2 += self.text2[self.indexArray]
-                elif self.line == 2:
+                    self.indexArray += 1
+                elif self.line == 2 and self.indexArray < len(self.text3):
                     self.totalText3 += self.text3[self.indexArray]
-                self.indexArray += 1
+                    self.indexArray += 1
 
                 for ev in pygame.event.get():
                     if ev.type == pygame.QUIT:
@@ -2508,11 +2515,11 @@ class Bear:
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
             self.textArray = []
-            self.textArray.append(['    LEVEL UP !  ', '   ', '   press "s" to continue  '])
+            self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
             self.textArray.append([
-                ' maxHP is now :' + str(self.maxHp) + ' ',
-                ' attack is now : ' + str(self.damageAttack) + ' ',
-                '    "press "s" to continue  '
+                'Max HP is now: ' + str(self.maxHp),
+                'Attack is now: ' + str(self.damageAttack),
+                'Press "s" to continue'
             ])
             self.line = 0
             self.tupleIndex = 0
