@@ -1588,17 +1588,7 @@ class Background():
         self.surface.blit(self.roof, (self.bgX1, self.bgY1))
         self.surface.blit(self.roof, (self.bgX2, self.bgY2))
 
-        # Animate fire frames over each torch position (sconce is baked into bg)
-        fire_img = self.fire_frames[self.fire_frame_idx]
-        for bgx in (self.bgX1, self.bgX2 + 5):
-            for tx in self.torch_offsets:
-                sx = bgx + tx
-                if -60 < sx < 960:
-                    self.surface.blit(fire_img, (sx, self.fire_y))
-        self.fire_timer += 1
-        if self.fire_timer >= 7:
-            self.fire_timer = 0
-            self.fire_frame_idx = (self.fire_frame_idx + 1) % 4
+        # Fire is baked into background A/B images – no sprite overlay needed
 
     def update(self, characterPosition, height):
         if self.getStopBackground() or self.getBlackBackground():
