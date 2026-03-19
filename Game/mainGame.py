@@ -199,7 +199,7 @@ class mainGame:
         self.triggerFire = False
         floorHeight = 400
         continueLoop = True
-        bear = Bear(190, 295, self.screen)
+        bear = Bear(60, 295, self.screen)
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -234,7 +234,7 @@ class mainGame:
         self.isDoor1Open = False
         self.escape = False
         backgroundScrollX = bear.getXPosition()
-        totalDistance = 190
+        totalDistance = 60
         bear.setLeftDirection(False)
         jumpTimer = 0
         attackCounterReady = 0
@@ -841,11 +841,6 @@ class mainGame:
                         else:
                             monster.setHurtTimer(0)
 
-            # ---- Deflect indicator for big mummy body hits -------------------
-            if deflectTimer > 0:
-                self.screen.blit(self.deflectIcon, deflectPos)
-                deflectTimer -= 1
-
             # ---- Attack animation (always runs, fixes 1-frame flicker gap) ------
             if 1 <= attackingAnimationCounter < 12:
                 attackingAnimationCounter += 1
@@ -911,6 +906,11 @@ class mainGame:
                 elif monster.getName() == "bigMummy":
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
+
+            # ---- Deflect indicator for big mummy body hits (drawn on top) ------
+            if deflectTimer > 0:
+                self.screen.blit(self.deflectIcon, deflectPos)
+                deflectTimer -= 1
 
             # ---- Boss lifecycle ------------------------------------------
             boss_to_remove = []
