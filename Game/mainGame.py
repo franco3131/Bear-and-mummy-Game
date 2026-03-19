@@ -538,7 +538,7 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 128 < 64:
+                        if bearAnimation % 90 < 45:
                             self.screen.blit(self.bearWalking1,
                                              (bear.getXPosition(), bear.getYPosition() - 10))
                         else:
@@ -602,7 +602,7 @@ class mainGame:
                                 bear.setXPosition(bear.getXPosition() - STEP)
                                 totalDistance -= STEP
 
-                    bearAnimation -= STEP
+                    bearAnimation += 1
                     if not _wall_blocked:
                         background.update(backgroundScrollX, bear.getYPosition())
                     self.deleteAndCreateObjects(totalDistance)
@@ -655,7 +655,7 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 128 < 64:
+                        if bearAnimation % 90 < 45:
                             self.screen.blit(self.bearWalkingLeft1,
                                              (bear.getXPosition(), bear.getYPosition() - 10))
                         else:
@@ -713,7 +713,7 @@ class mainGame:
                                 bear.setXPosition(bear.getXPosition() + STEP)
                                 totalDistance += STEP
 
-                    bearAnimation -= STEP
+                    bearAnimation += 1
                     background.update(backgroundScrollX, bear.getYPosition())
 
                 # ---- A only: attack (no direction) -----------------------
