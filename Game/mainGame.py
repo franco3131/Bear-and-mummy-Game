@@ -1513,9 +1513,14 @@ class Background():
             self.fire_frames.append(f)
         self.fire_frame_idx = 0
         self.fire_timer = 0
-        # Torch x offsets within one 900px-wide bg copy (measured from background1.png)
+        # Torch sconce image drawn below the flame
+        self.torch_sconce = pygame.image.load('Game/Images/torch.png').convert_alpha()
+        self.torch_sconce = pygame.transform.scale(self.torch_sconce, (52, 44))
+        # Torch x offsets within one 900px-wide bg copy
         self.torch_offsets = [73, 233]
-        self.torch_y = 195   # y in 900x700 where flame sits
+        # Fire y: higher on wall; sconce sits just below
+        self.fire_y = 148     # flame top (52px tall → bottom at y=200)
+        self.sconce_y = 198   # sconce drawn right below flame
 
         self.rectBGimg = self.bgimage.get_rect()
         self.bgY1 = 0
@@ -1568,13 +1573,14 @@ class Background():
         self.surface.blit(self.roof, (self.bgX1, self.bgY1))
         self.surface.blit(self.roof, (self.bgX2, self.bgY2))
 
-        # Animate fire torches over the background torch positions
+        # Animate fire + draw sconce over each torch position
         fire_img = self.fire_frames[self.fire_frame_idx]
         for bgx in (self.bgX1, self.bgX2 + 5):
             for tx in self.torch_offsets:
                 sx = bgx + tx
                 if -60 < sx < 960:
-                    self.surface.blit(fire_img, (sx, self.torch_y))
+                    self.surface.blit(fire_img, (sx, self.fire_y))
+                    self.surface.blit(self.torch_sconce, (sx, self.sconce_y))
         self.fire_timer += 1
         if self.fire_timer >= 7:
             self.fire_timer = 0
