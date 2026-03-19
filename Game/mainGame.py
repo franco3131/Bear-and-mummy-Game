@@ -1503,13 +1503,19 @@ class Block():
 # ---------------------------------------------------------------------------
 class Background():
     def __init__(self, surface):
-        # Load 3 background variants (warm, blue-dungeon, green-crypt)
-        self.bg_images = []
+        # Load 3 background colour themes × 2 sway variants (A and B)
+        # bg_pairs[i] = (frame_A, frame_B) for theme i
+        self.bg_pairs = []
         for i in range(1, 4):
-            img = pygame.image.load(f'Game/Images/background{i}.png')
-            img = pygame.transform.scale(img, (900, 700))
-            self.bg_images.append(img)
-        self.bgimage = self.bg_images[0]
+            a = pygame.image.load(f'Game/Images/background{i}.png')
+            a = pygame.transform.scale(a, (900, 700))
+            b = pygame.image.load(f'Game/Images/background{i}_b.png')
+            b = pygame.transform.scale(b, (900, 700))
+            self.bg_pairs.append((a, b))
+        self.bgimage = self.bg_pairs[0][0]   # start with theme 0, frame A
+        self._sway_timer  = 0                # controls A↔B switching
+        self._sway_frame  = 0               # 0 = A, 1 = B
+        self._sway_period = 18              # frames per half-sway
 
         self.bgBlack  = pygame.image.load('Game/Images/black.png')
         self.bgBlack  = pygame.transform.scale(self.bgBlack, (900, 700))
@@ -1528,14 +1534,9 @@ class Background():
             self.fire_frames.append(f)
         self.fire_frame_idx = 0
         self.fire_timer = 0
-        # Torch sconce image drawn below the flame
-        self.torch_sconce = pygame.image.load('Game/Images/torch.png').convert_alpha()
-        self.torch_sconce = pygame.transform.scale(self.torch_sconce, (52, 44))
-        # Torch x offsets within one 900px-wide bg copy
+        # Torch x offsets and fire position (sconce is now baked into background images)
         self.torch_offsets = [73, 233]
-        # Fire y: higher on wall; sconce sits just below
-        self.fire_y = 148     # flame top (52px tall → bottom at y=200)
-        self.sconce_y = 198   # sconce drawn right below flame
+        self.fire_y = 148     # flame top (52px tall → flame bottom at y=200)
 
         self.rectBGimg = self.bgimage.get_rect()
         self.bgY1 = 0
@@ -1568,15 +1569,18 @@ class Background():
         self.totalX = totalX
 
     def render(self, total_distance=0):
-        # Choose which background based on how far the player has travelled.
-        # If a black-background request is pending, latch it permanently.
+        # Choose theme and sway frame.
         if self.isBlackBackground:
             self.bgimage = self.bgBlack
             self._black_latched = True
             self.isBlackBackground = False
         elif not getattr(self, '_black_latched', False):
             bg_idx = min(2, max(0, int(total_distance)) // 4500)
-            self.bgimage = self.bg_images[bg_idx]
+            self._sway_timer += 1
+            if self._sway_timer >= self._sway_period:
+                self._sway_timer = 0
+                self._sway_frame = 1 - self._sway_frame   # toggle A↔B
+            self.bgimage = self.bg_pairs[bg_idx][self._sway_frame]
 
         self.surface.fill((0, 0, 0))
         self.surface.blit(self.bgimage, (self.bgX1, self.bgY1))
@@ -1588,14 +1592,13 @@ class Background():
         self.surface.blit(self.roof, (self.bgX1, self.bgY1))
         self.surface.blit(self.roof, (self.bgX2, self.bgY2))
 
-        # Animate fire + draw sconce over each torch position
+        # Animate fire frames over each torch position (sconce is baked into bg)
         fire_img = self.fire_frames[self.fire_frame_idx]
         for bgx in (self.bgX1, self.bgX2 + 5):
             for tx in self.torch_offsets:
                 sx = bgx + tx
                 if -60 < sx < 960:
                     self.surface.blit(fire_img, (sx, self.fire_y))
-                    self.surface.blit(self.torch_sconce, (sx, self.sconce_y))
         self.fire_timer += 1
         if self.fire_timer >= 7:
             self.fire_timer = 0
