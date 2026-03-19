@@ -1153,26 +1153,22 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            # Platforms for the big-mummy / key / door room – pushed off-screen
-            # so the player walks forward before they come into view
-            block5 = Block(900,  340, 100, 60, "red",      self.screen)
-            block7 = Block(1100, 340, 100, 60, "monster",  self.screen)
-            block6 = Block(1300, 340, 100, 60, "monster",  self.screen)
-            block8 = Block(1550, 340,  50, 60, "red",      self.screen)
-            self.blocks.extend([block5, block6, block7, block8])
+            # Two flanking blocks, each 120 px wide, reaching the floor (y=100..400)
+            # Left block right-edge = 820, right block left-edge = 1280 → 460 px gap
+            block_left  = Block(700,  100, 120, 300, "monster", self.screen)
+            block_right = Block(1280, 100, 120, 300, "monster", self.screen)
+            self.blocks.extend([block_left, block_right])
 
-            # Big mummy – well off-screen on entry, player walks in before seeing it
-            mummy = Mummy(950, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+            # Big mummy (200 × 300) centred in the 460 px gap → x = 940
+            mummy = Mummy(940, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
-            self.door1 = Door(self.screen, 1900)
-            self.door.append(self.door1)
-            # Ceiling block that runs through this zone
-            block9 = Block(1900, 0, 2000, 100, "greyRock", self.screen)
-            self.blocks.append(block9)
 
-        elif backgroundScrollX > 3200 and not self.activeMonsters[2]:
+            # Door appears just past the right block – reachable before zone 6500
+            self.door1 = Door(self.screen, 1500)
+            self.door.append(self.door1)
+
+        elif backgroundScrollX > 6500 and not self.activeMonsters[2]:
             self.activeMonsters[2] = True
-            self.door = []
             self.mummys = []
             self.witches = []
             self.blocks = []
