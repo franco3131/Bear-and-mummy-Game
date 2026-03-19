@@ -1081,7 +1081,7 @@ class mainGame:
             self.blocks.extend([block5, block6, block7, block8])
 
             # Big mummy carrying the key – spawns close so player sees it
-            mummy = Mummy(480, 100, 300, 450, self.mummy1, self.mummy2, self.screen)
+            mummy = Mummy(480, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
             self.door1 = Door(self.screen, 1400)
             self.door.append(self.door1)
