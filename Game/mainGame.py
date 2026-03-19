@@ -187,9 +187,7 @@ class mainGame:
         attackingLeftAnimtationCounter = 0
         hurtTimer = 0
         background = Background(self.screen)
-        x = 320
-        for _ in range(4):
-            x += 80
+        for x in [500, 750]:
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
 
@@ -1277,7 +1275,7 @@ class Block():
         self.isLeftBoundary = False
         self.isRightBoundary = False
         self.isInsideBox = False
-        self.maxBlinkTime = random.randint(99000, 99999)
+        self.maxBlinkTime = random.randint(80, 180)
         self.type = type
         self.monsterBlockTimer = 0
 
@@ -1516,7 +1514,7 @@ class Mummy():
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
-        self.rand = random.randint(1, 2)
+        self.rand = 1
         randomMax = random.randint(60, 90)
         self.changeDirection = random.randint(30, randomMax)
         self.storeDirection = 1
@@ -1644,22 +1642,23 @@ class Mummy():
                               self.y + random.randint(-100, 0)))
 
     def drawMonster(self):
+        _dy = 12  # push sprite down so feet touch the floor
         if self.x % 90 < 40 and self.stunned == 0:
-            self.screen.blit(self.mummy1, (self.x, self.y))
+            self.screen.blit(self.mummy1, (self.x, self.y + _dy))
         elif self.stunned == 0:
-            self.screen.blit(self.mummy2, (self.x, self.y))
+            self.screen.blit(self.mummy2, (self.x, self.y + _dy))
 
         if self.stunned == 0:
             self.x += self.direction * self.rand
         elif self.stunned > 0 and self.direction > 0:
             self.stunned += 1
             self.displayDamageOnMonster(self.damageReceived)
-            self.screen.blit(self.hurtMummy, (self.x, self.y))
+            self.screen.blit(self.hurtMummy, (self.x, self.y + _dy))
             if self.stunned == 20:
                 self.stunned = 0
         elif self.stunned > 0 and self.direction < 0:
             self.stunned += 1
-            self.screen.blit(self.hurtLeftMummy, (self.x, self.y))
+            self.screen.blit(self.hurtLeftMummy, (self.x, self.y + _dy))
             self.displayDamageOnMonster(self.damageReceived)
             if self.stunned == 20:
                 self.stunned = 0
