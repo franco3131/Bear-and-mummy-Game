@@ -1037,21 +1037,23 @@ class mainGame:
                         frankenbear.drawMonster()
                         if frankenbear.getThrowFireBallLeft() and not self.bossFires:
                             frankenbear.setThrowFireBallLeft(False)
-                            for _ in range(3):
+                            volley = 7 if frankenbear.getHealth() <= 3 else 5
+                            for _ in range(volley):
                                 self.bossFires.append(
                                     FireBall(frankenbear.getXPosition() + 200,
                                              frankenbear.getYPosition() + 100,
-                                             random.randint(-22, -4),
-                                             random.randint(7, 12),
+                                             random.randint(-24, -4),
+                                             random.randint(6, 14),
                                              self.fireBossBall, self.screen))
                         elif frankenbear.getThrowFireBallRight() and not self.bossFires:
                             frankenbear.setThrowFireBallLeft(False)
-                            for _ in range(3):
+                            volley = 7 if frankenbear.getHealth() <= 3 else 5
+                            for _ in range(volley):
                                 self.bossFires.append(
                                     FireBall(frankenbear.getXPosition() + 200,
                                              frankenbear.getYPosition() + 100,
-                                             random.randint(4, 22),
-                                             random.randint(7, 12),
+                                             random.randint(4, 24),
+                                             random.randint(6, 14),
                                              self.fireBossBall, self.screen))
 
                     boss_fires_to_remove = []
@@ -2747,7 +2749,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = 3
+        self.health = 6
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
@@ -2763,13 +2765,13 @@ class FrankenBear():
         self.blinkTimer = 0
         self.attackTimer = 0
         self.randomBlink = random.randint(50, 150)
-        self.randomAttack = random.randint(50, 80)
+        self.randomAttack = random.randint(25, 45)
         self.bossDisplay = self.boss3
         self.blinked = False
         self.attacked = False
         self.throwFireBallLeft = False
         self.throwFireBallRight = False
-        self.damageAttack = 10
+        self.damageAttack = 15
         self.damageReceived = 0
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (100, 100))
@@ -2863,7 +2865,11 @@ class FrankenBear():
                 self.blinked = False
                 self.blinkTimer = 0
             if self.attacked:
-                self.randomAttack = random.randint(20, 70)
+                # Enrage: attack faster when health is low
+                if self.health <= 3:
+                    self.randomAttack = random.randint(5, 18)
+                else:
+                    self.randomAttack = random.randint(12, 30)
                 self.attackTimer = 0
                 self.blinkTimer = 0
                 self.flipped = random.randint(1, 2)
