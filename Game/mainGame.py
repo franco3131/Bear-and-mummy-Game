@@ -2377,12 +2377,8 @@ class Bear:
                 self.text1 = self.textArray[self.tupleIndex][0]
 
             self.blinkTimer += 1
-            if self.blinkTimer < self.randomBlink:
-                self.screen.blit(self.talking, (0, 0))
-            elif self.blinkTimer <= self.randomBlink + 10:
-                self.screen.blit(self.talking2, (0, 0))
-            else:
-                self.screen.blit(self.talking2, (0, 0))
+            self.screen.blit(self.talking, (0, 0))
+            if self.blinkTimer > self.randomBlink:
                 self.randomBlink = random.randint(100, 250)
                 self.blinkTimer = 0
 
