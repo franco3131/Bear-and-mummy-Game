@@ -538,7 +538,7 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 32 < 16:
+                        if bearAnimation % 64 < 32:
                             self.screen.blit(self.bearWalking1,
                                              (bear.getXPosition(), bear.getYPosition() - 10))
                         else:
@@ -655,7 +655,7 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 32 < 16:
+                        if bearAnimation % 64 < 32:
                             self.screen.blit(self.bearWalkingLeft1,
                                              (bear.getXPosition(), bear.getYPosition() - 10))
                         else:
