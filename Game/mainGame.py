@@ -68,10 +68,12 @@ def isBearHurt(positionRelative, bearXPosition, bearYPosition,
 def isMonsterHurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition,
                   facingLeft, monsterType):
     """Return True if the bear's attack hitbox overlaps with the monster."""
-    if monsterType != "frankenbears":
-        m_w, m_h = 100, 100
-    else:
+    if monsterType == "frankenbears":
         m_w, m_h = 300, 300
+    elif monsterType == "bigMummy":
+        m_w, m_h = 200, 300
+    else:
+        m_w, m_h = 100, 100
 
     monster_rect = pygame.Rect(mummyXPosition, mummyYPosition, m_w, m_h)
 
@@ -82,6 +84,19 @@ def isMonsterHurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition,
         attack_rect = pygame.Rect(bearXPosition - 180, bearYPosition + 10,
                                   180, 80)
     return attack_rect.colliderect(monster_rect)
+
+
+def isMonsterForeheadHit(bearXPosition, bearYPosition, mummyXPosition,
+                         mummyYPosition, facingLeft):
+    """Return True only if the attack hits the big mummy's forehead (top 30%)."""
+    # Forehead zone: center 120px wide, top 90px of the 200x300 sprite
+    forehead_rect = pygame.Rect(mummyXPosition + 40, mummyYPosition, 120, 90)
+    if not facingLeft:
+        attack_rect = pygame.Rect(bearXPosition, bearYPosition + 10, 190, 80)
+    else:
+        attack_rect = pygame.Rect(bearXPosition - 180, bearYPosition + 10,
+                                  180, 80)
+    return attack_rect.colliderect(forehead_rect)
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +152,8 @@ class mainGame:
 
         self.mummy1 = pygame.image.load("Game/Images/Mummy/mummy1.png")
         self.mummy2 = pygame.image.load("Game/Images/Mummy/mummy2.png")
+        self.deflectIcon = pygame.image.load("Game/Images/deflect.png")
+        self.deflectIcon = pygame.transform.scale(self.deflectIcon, (60, 60))
         self.witch = pygame.image.load("Game/Images/Bear/witch.png")
         self.witch2 = pygame.image.load("Game/Images/Bear/witch2.png")
         self.pillar = pygame.image.load('Game/Images/cobstone.png')
@@ -221,6 +238,8 @@ class mainGame:
         bear.setLeftDirection(False)
         jumpTimer = 0
         attackCounterReady = 0
+        deflectTimer = 0
+        deflectPos = (0, 0)
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -453,12 +472,24 @@ class mainGame:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
-                            if not self.frankenbear:
-                                monster.setXPosition(monster.getXPosition() + STEP)
-                            monster.setDamageReceived(bear.getDamageAttack())
-                            monster.setStunned(1)
-                            monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                            hurtTimer = 0
+                            if monster.getName() == "bigMummy":
+                                if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
+                                                        monster.getXPosition(), monster.getYPosition(),
+                                                        bear.getLeftDirection()):
+                                    monster.setDamageReceived(bear.getDamageAttack())
+                                    monster.setStunned(1)
+                                    monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                    hurtTimer = 0
+                                else:
+                                    deflectTimer = 40
+                                    deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
+                            else:
+                                if not self.frankenbear:
+                                    monster.setXPosition(monster.getXPosition() + STEP)
+                                monster.setDamageReceived(bear.getDamageAttack())
+                                monster.setStunned(1)
+                                monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
                             bear.setXPosition(bear.getXPosition() - STEP)
@@ -477,12 +508,24 @@ class mainGame:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
-                            if not self.frankenbear:
-                                monster.setXPosition(monster.getXPosition() + STEP)
-                            monster.setDamageReceived(bear.getDamageAttack())
-                            monster.setStunned(1)
-                            monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                            hurtTimer = 0
+                            if monster.getName() == "bigMummy":
+                                if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
+                                                        monster.getXPosition(), monster.getYPosition(),
+                                                        bear.getLeftDirection()):
+                                    monster.setDamageReceived(bear.getDamageAttack())
+                                    monster.setStunned(1)
+                                    monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                    hurtTimer = 0
+                                else:
+                                    deflectTimer = 40
+                                    deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
+                            else:
+                                if not self.frankenbear:
+                                    monster.setXPosition(monster.getXPosition() + STEP)
+                                monster.setDamageReceived(bear.getDamageAttack())
+                                monster.setStunned(1)
+                                monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
                             bear.setXPosition(bear.getXPosition() - STEP)
@@ -727,12 +770,24 @@ class mainGame:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
-                            if not self.frankenbear:
-                                monster.setXPosition(monster.getXPosition() + STEP)
-                            monster.setDamageReceived(bear.getDamageAttack())
-                            monster.setStunned(1)
-                            monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                            hurtTimer = 0
+                            if monster.getName() == "bigMummy":
+                                if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
+                                                        monster.getXPosition(), monster.getYPosition(),
+                                                        bear.getLeftDirection()):
+                                    monster.setDamageReceived(bear.getDamageAttack())
+                                    monster.setStunned(1)
+                                    monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                    hurtTimer = 0
+                                else:
+                                    deflectTimer = 40
+                                    deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
+                            else:
+                                if not self.frankenbear:
+                                    monster.setXPosition(monster.getXPosition() + STEP)
+                                monster.setDamageReceived(bear.getDamageAttack())
+                                monster.setStunned(1)
+                                monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                hurtTimer = 0
 
                 # ---- ESC: quit -------------------------------------------
                 elif keys[pygame.K_ESCAPE]:
@@ -784,6 +839,11 @@ class mainGame:
                                              (bear.getXPosition(), bear.getYPosition()))
                         else:
                             monster.setHurtTimer(0)
+
+            # ---- Deflect indicator for big mummy body hits -------------------
+            if deflectTimer > 0:
+                self.screen.blit(self.deflectIcon, deflectPos)
+                deflectTimer -= 1
 
             # ---- Attack animation (always runs, fixes 1-frame flicker gap) ------
             if 1 <= attackingAnimationCounter < 12:
