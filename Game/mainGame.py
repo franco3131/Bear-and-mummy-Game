@@ -132,6 +132,12 @@ def _render_damage_text(screen, font, damage, x, y):
 class mainGame:
     def __init__(self):
         pygame.init()
+        try:
+            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+            self.thud_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
+            self.thud_sound.set_volume(0.75)
+        except Exception:
+            self.thud_sound = None   # no audio device – run silently
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -481,6 +487,7 @@ class mainGame:
                     attackingAnimationCounter += 1
                     bear.setLeftDirection(False)
                     attackCounterReady = 0
+                    if self.thud_sound: self.thud_sound.play()
                     monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
@@ -517,6 +524,7 @@ class mainGame:
                     attackingAnimationCounter += 1
                     attackCounterReady = 0
                     bear.setLeftDirection(True)
+                    if self.thud_sound: self.thud_sound.play()
                     monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
@@ -780,6 +788,7 @@ class mainGame:
                       and attackCounterReady > 20):
                     attackingAnimationCounter += 1
                     attackCounterReady = 0
+                    if self.thud_sound: self.thud_sound.play()
                     monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
