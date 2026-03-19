@@ -538,12 +538,12 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 16 < 8:
+                        if bearAnimation % 32 < 16:
                             self.screen.blit(self.bearWalking1,
-                                             (bear.getXPosition(), bear.getYPosition()))
+                                             (bear.getXPosition(), bear.getYPosition() - 10))
                         else:
                             self.screen.blit(self.bearWalking2,
-                                             (bear.getXPosition(), bear.getYPosition()))
+                                             (bear.getXPosition(), bear.getYPosition() - 10))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -655,12 +655,12 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 16 < 8:
+                        if bearAnimation % 32 < 16:
                             self.screen.blit(self.bearWalkingLeft1,
-                                             (bear.getXPosition(), bear.getYPosition()))
+                                             (bear.getXPosition(), bear.getYPosition() - 10))
                         else:
                             self.screen.blit(self.bearWalkingLeft2,
-                                             (bear.getXPosition(), bear.getYPosition()))
+                                             (bear.getXPosition(), bear.getYPosition() - 10))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -1360,12 +1360,12 @@ class Block():
         if self.monsterBlockTimer <= self.maxBlinkTime:
             self.screen.blit(self.redBlock,
                              (self.getBlockXPosition(), self.getBlockYPosition()))
-        elif self.monsterBlockTimer < self.maxBlinkTime + 10:
+        elif self.monsterBlockTimer < self.maxBlinkTime + 25:
             self.screen.blit(self.blockClosedEyes,
                              (self.getBlockXPosition(), self.getBlockYPosition()))
         else:
             self.monsterBlockTimer = 1
-            self.maxBlinkTime = random.randint(30, 150)
+            self.maxBlinkTime = random.randint(150, 280)
             self.screen.blit(self.blockClosedEyes,
                              (self.getBlockXPosition(), self.getBlockYPosition()))
 
