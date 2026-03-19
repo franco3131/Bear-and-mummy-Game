@@ -197,7 +197,7 @@ class mainGame:
         self.activeMonsters = [False] * 14
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
-        block1 = Block(370,  340, 100, 60,  "red",     self.screen)
+        block1 = Block(280,  340, 100, 60,  "red",     self.screen)
         block2 = Block(550,  190, 100, 60,  "monster", self.screen)
         block3 = Block(730,  190, 100, 60,  "red",     self.screen)
         block5 = Block(910,  190, 100, 60,  "red",     self.screen)
@@ -1067,7 +1067,7 @@ class mainGame:
         # All spawn X positions are screen-relative and start just ahead of
         # the player (~400-500 px) so objects appear immediately on zone entry.
 
-        if backgroundScrollX > 2200 and not self.activeMonsters[1]:
+        if backgroundScrollX > 2700 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
             self.mummys = []
             self.witches = []
@@ -1075,20 +1075,21 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            # Platforms for the big-mummy / key / door room
-            block5 = Block(450,  340, 100, 60, "red",      self.screen)
-            block7 = Block(640,  340, 100, 60, "monster",  self.screen)
-            block6 = Block(850,  340, 100, 60, "monster",  self.screen)
-            block8 = Block(1100, 340,  50, 60, "red",      self.screen)
+            # Platforms for the big-mummy / key / door room – pushed off-screen
+            # so the player walks forward before they come into view
+            block5 = Block(900,  340, 100, 60, "red",      self.screen)
+            block7 = Block(1100, 340, 100, 60, "monster",  self.screen)
+            block6 = Block(1300, 340, 100, 60, "monster",  self.screen)
+            block8 = Block(1550, 340,  50, 60, "red",      self.screen)
             self.blocks.extend([block5, block6, block7, block8])
 
-            # Big mummy carrying the key – spawns close so player sees it
-            mummy = Mummy(480, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+            # Big mummy – well off-screen on entry, player walks in before seeing it
+            mummy = Mummy(950, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
-            self.door1 = Door(self.screen, 1400)
+            self.door1 = Door(self.screen, 1900)
             self.door.append(self.door1)
             # Ceiling block that runs through this zone
-            block9 = Block(1500, 0, 2000, 100, "greyRock", self.screen)
+            block9 = Block(1900, 0, 2000, 100, "greyRock", self.screen)
             self.blocks.append(block9)
 
         elif backgroundScrollX > 3200 and not self.activeMonsters[2]:
