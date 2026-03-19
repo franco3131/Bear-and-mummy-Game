@@ -116,12 +116,15 @@ class mainGame:
         self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (120, 115))
         self.bearWalking2 = pygame.image.load("Game/Images/Bear/bearWalking2.png")
         self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (120, 115))
+        self.bearWalking3 = pygame.image.load("Game/Images/Bear/bearWalking3.png")
+        self.bearWalking3 = pygame.transform.scale(self.bearWalking3, (120, 115))
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
 
         self.bearWalkingLeft1 = pygame.transform.flip(self.bearWalking1, True, False)
         self.bearWalkingLeft2 = pygame.transform.flip(self.bearWalking2, True, False)
+        self.bearWalkingLeft3 = pygame.transform.flip(self.bearWalking3, True, False)
 
         self.bearAttacking = pygame.image.load("Game/Images/Bear/bearAttacking.png")
         self.bearAttacking = pygame.transform.scale(self.bearAttacking, (210, 105))
@@ -538,12 +541,10 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 22 < 11:
-                            self.screen.blit(self.bearWalking1,
-                                             (bear.getXPosition(), bear.getYPosition() - 10))
-                        else:
-                            self.screen.blit(self.bearWalking2,
-                                             (bear.getXPosition(), bear.getYPosition() - 10))
+                        _walkFrame = (bearAnimation // 11) % 3
+                        _walkImgs = [self.bearWalking1, self.bearWalking2, self.bearWalking3]
+                        self.screen.blit(_walkImgs[_walkFrame],
+                                         (bear.getXPosition(), bear.getYPosition() - 10))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -655,12 +656,10 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 22 < 11:
-                            self.screen.blit(self.bearWalkingLeft1,
-                                             (bear.getXPosition(), bear.getYPosition() - 10))
-                        else:
-                            self.screen.blit(self.bearWalkingLeft2,
-                                             (bear.getXPosition(), bear.getYPosition() - 10))
+                        _walkFrame = (bearAnimation // 11) % 3
+                        _walkLeftImgs = [self.bearWalkingLeft1, self.bearWalkingLeft2, self.bearWalkingLeft3]
+                        self.screen.blit(_walkLeftImgs[_walkFrame],
+                                         (bear.getXPosition(), bear.getYPosition() - 10))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
