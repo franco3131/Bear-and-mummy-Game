@@ -113,9 +113,9 @@ class mainGame:
         self.standingBearLeft = pygame.transform.flip(self.standingBear, True, False)
 
         self.bearWalking1 = pygame.image.load("Game/Images/Bear/bearWalking1.png")
-        self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (100, 100))
+        self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (80, 100))
         self.bearWalking2 = pygame.image.load("Game/Images/Bear/bearWalking2.png")
-        self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (100, 100))
+        self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (80, 100))
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
