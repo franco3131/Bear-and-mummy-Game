@@ -2462,11 +2462,11 @@ class Bear:
 
             self.textTimer += 1
             text1 = _FONT_POPUP.render(self.totalText1, False, (0, 0, 0))
-            self.screen.blit(text1, (420, 70))
+            self.screen.blit(text1, (430, 130))
             text2 = _FONT_POPUP.render(self.totalText2, False, (0, 0, 0))
-            self.screen.blit(text2, (420, 110))
+            self.screen.blit(text2, (430, 155))
             text3 = _FONT_POPUP.render(self.totalText3, False, (0, 0, 0))
-            self.screen.blit(text3, (420, 150))
+            self.screen.blit(text3, (430, 180))
             self.xText += 5
 
             if self.textTimer % 3 < 2:
