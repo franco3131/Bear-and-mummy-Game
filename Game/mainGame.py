@@ -179,7 +179,7 @@ class mainGame:
         self.triggerFire = False
         floorHeight = 400
         continueLoop = True
-        bear = Bear(190, 300, self.screen)
+        bear = Bear(190, 295, self.screen)
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -538,7 +538,7 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 120 < 40:
+                        if bearAnimation % 16 < 8:
                             self.screen.blit(self.bearWalking1,
                                              (bear.getXPosition(), bear.getYPosition()))
                         else:
@@ -655,7 +655,7 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        if bearAnimation % 188 < 80:
+                        if bearAnimation % 16 < 8:
                             self.screen.blit(self.bearWalkingLeft1,
                                              (bear.getXPosition(), bear.getYPosition()))
                         else:
@@ -986,9 +986,9 @@ class mainGame:
                 block.drawRectangle()
                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                 if block.getDropStatus() and not bear.getComingUp():
-                    if bear.getYPosition() + 100 < floorHeight:
+                    if bear.getYPosition() + 105 < floorHeight:
                         bear.setYPosition(bear.getYPosition() + JUMP_STEP)
-                    elif bear.getYPosition() + 100 == floorHeight:
+                    elif bear.getYPosition() + 105 == floorHeight:
                         block.setDropStatus(False)
                         block.setOnPlatform(False)
                         bear.setJumpStatus(False)
@@ -2241,14 +2241,14 @@ class Bear:
                     break
                 block.isBoundaryPresent(self.getXPosition(), self.y)
                 if block.getOnPlatform():
-                    self.y = block.getBlockYPosition() - 100
+                    self.y = block.getBlockYPosition() - 105
                     self.setJumpStatus(False)
                     self.setLeftJumpStatus(False)
                     self.initialHeight = self.y
 
         # Floor landing – >= catches steps that overshoot the exact floor pixel
-        if self.y + 100 >= 400:
-            self.y = 300
+        if self.y + 105 >= 400:
+            self.y = 295
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
 
@@ -2281,7 +2281,7 @@ class Bear:
                     break
                 block.isBoundaryPresent(self.getXPosition(), self.y)
                 if block.getOnPlatform():
-                    self.y = block.getBlockYPosition() - 100
+                    self.y = block.getBlockYPosition() - 105
                     self.setJumpStatus(False)
                     self.setLeftJumpStatus(False)
                     self.initialHeight = self.y
@@ -2292,8 +2292,8 @@ class Bear:
             self.screen.blit(self.bearJumpingLeft2, (self.getXPosition(), self.getYPosition()))
 
         # Floor landing – >= catches steps that overshoot the exact floor pixel
-        if self.getYPosition() + 100 >= 400:
-            self.setYPosition(300)
+        if self.getYPosition() + 105 >= 400:
+            self.setYPosition(295)
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
 
@@ -2306,10 +2306,10 @@ class Bear:
         floorHeight = 400
         if self.getXPosition() <= 30:
             self.setXPosition(self.getXPosition() + STEP)
-        if self.getYPosition() + 100 == floorHeight:
+        if self.getYPosition() + 105 == floorHeight:
             self.initialHeight = self.getYPosition()
-        if self.getYPosition() + 100 > floorHeight:
-            self.setYPosition(floorHeight - 100)
+        if self.getYPosition() + 105 > floorHeight:
+            self.setYPosition(floorHeight - 105)
             self.initialHeight = floorHeight
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
