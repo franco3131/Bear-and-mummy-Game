@@ -188,7 +188,7 @@ class mainGame:
         hurtTimer = 0
         background = Background(self.screen)
         x = 320
-        for _ in range(10):
+        for _ in range(4):
             x += 80
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
@@ -498,6 +498,7 @@ class mainGame:
                     if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
                             and attackingAnimationCounter == 0):
                         _right_scrolled = False
+                        _wall_blocked = False
                         if bear.getXPosition() < self.rightBoundary:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
@@ -526,6 +527,7 @@ class mainGame:
 
                         # Undo world scroll when the bear was blocked by a wall
                         if _right_scrolled and any(b.getIsLeftBoundary() for b in self.blocks):
+                            _wall_blocked = True
                             for obj in (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.door + self.keys +
                                         self.spikes):
@@ -601,7 +603,8 @@ class mainGame:
                                 totalDistance -= STEP
 
                     bearAnimation -= STEP
-                    background.update(backgroundScrollX, bear.getYPosition())
+                    if not _wall_blocked:
+                        background.update(backgroundScrollX, bear.getYPosition())
                     self.deleteAndCreateObjects(totalDistance)
 
                 # ---- LEFT: walk left -------------------------------------
@@ -1274,7 +1277,7 @@ class Block():
         self.isLeftBoundary = False
         self.isRightBoundary = False
         self.isInsideBox = False
-        self.maxBlinkTime = random.randint(10, 100)
+        self.maxBlinkTime = random.randint(99000, 99999)
         self.type = type
         self.monsterBlockTimer = 0
 
@@ -2089,6 +2092,8 @@ class Bear:
         self.talking  = pygame.transform.scale(self.talking,  (900, 250))
         self.talking2 = pygame.image.load("Game/Images/Talking2.png")
         self.talking2 = pygame.transform.scale(self.talking2, (900, 250))
+        self.talkingNoBear = pygame.image.load("Game/Images/TalkingNoBear.png")
+        self.talkingNoBear = pygame.transform.scale(self.talkingNoBear, (900, 250))
         self.bearJumping1 = pygame.image.load("Game/Images/Bear/bearJump1.png")
         self.bearJumping1 = pygame.transform.scale(self.bearJumping1, (100, 100))
         self.endText = False
@@ -2108,6 +2113,8 @@ class Bear:
              '  Press "s" to continue   ']
         ]
         self.tupleIndex = 0
+        # False = no bear face (tutorial msgs), True = show bear face (story msgs)
+        self.showBearArray = [False, False]
         self.bearJumping2 = pygame.image.load("Game/Images/Bear/bearJump2.png")
         self.bearJumping2 = pygame.transform.scale(self.bearJumping2, (100, 100))
         self.bearJumpingLeft1 = pygame.transform.flip(
@@ -2123,6 +2130,7 @@ class Bear:
 
     def setArrayText(self, text):
         self.textArray.append(text)
+        self.showBearArray.append(True)
 
     def getArrayText(self):
         return self.textArray
@@ -2377,7 +2385,10 @@ class Bear:
                 self.text1 = self.textArray[self.tupleIndex][0]
 
             self.blinkTimer += 1
-            self.screen.blit(self.talking, (0, 0))
+            _show_bear = (self.tupleIndex < len(self.showBearArray)
+                          and self.showBearArray[self.tupleIndex])
+            popup_img = self.talking if _show_bear else self.talkingNoBear
+            self.screen.blit(popup_img, (0, 0))
             if self.blinkTimer > self.randomBlink:
                 self.randomBlink = random.randint(100, 250)
                 self.blinkTimer = 0
