@@ -113,9 +113,9 @@ class mainGame:
         self.standingBearLeft = pygame.transform.flip(self.standingBear, True, False)
 
         self.bearWalking1 = pygame.image.load("Game/Images/Bear/bearWalking1.png")
-        self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (80, 100))
+        self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (100, 115))
         self.bearWalking2 = pygame.image.load("Game/Images/Bear/bearWalking2.png")
-        self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (80, 100))
+        self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (100, 115))
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
@@ -523,9 +523,11 @@ class mainGame:
                                 bear.setXPosition(bear.getXPosition() - STEP)
                                 totalDistance -= STEP
 
+                        # Detect if any block is blocking movement right
+                        _wall_blocked = any(b.getIsLeftBoundary() for b in self.blocks)
+
                         # Undo world scroll when the bear was blocked by a wall
-                        if _right_scrolled and any(b.getIsLeftBoundary() for b in self.blocks):
-                            _wall_blocked = True
+                        if _right_scrolled and _wall_blocked:
                             for obj in (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.door + self.keys +
                                         self.spikes):
@@ -1515,8 +1517,8 @@ class Mummy():
         self.stunned = 0
         self.screen = screen
         self.rand = 1
-        randomMax = random.randint(60, 90)
-        self.changeDirection = random.randint(30, randomMax)
+        randomMax = random.randint(300, 500)
+        self.changeDirection = random.randint(200, randomMax)
         self.storeDirection = 1
         self.health = random.randint(6, 13)
         self.fire = pygame.image.load("Game/Images/fire.png")
