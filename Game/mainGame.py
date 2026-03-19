@@ -22,7 +22,7 @@ def _init_fonts():
     _FONT_DAMAGE = pygame.font.SysFont("Italic", 40)
     _FONT_HUD = pygame.font.SysFont("Italic", 40)
     _FONT_BOSS_DAMAGE = pygame.font.SysFont("Italic", 60)
-    _FONT_POPUP = pygame.font.SysFont("Italic", 20)
+    _FONT_POPUP = pygame.font.SysFont("Italic", 26)
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +262,7 @@ class mainGame:
                     pygame.quit()
                     return
 
-            background.render()
+            background.render(totalDistance)
 
             if bear.getEndText():
 
@@ -1488,8 +1488,14 @@ class Block():
 # ---------------------------------------------------------------------------
 class Background():
     def __init__(self, surface):
-        self.bgimage = pygame.image.load('Game/Images/background1.png')
-        self.bgimage = pygame.transform.scale(self.bgimage, (900, 700))
+        # Load 3 background variants (warm, blue-dungeon, green-crypt)
+        self.bg_images = []
+        for i in range(1, 4):
+            img = pygame.image.load(f'Game/Images/background{i}.png')
+            img = pygame.transform.scale(img, (900, 700))
+            self.bg_images.append(img)
+        self.bgimage = self.bg_images[0]
+
         self.bgBlack  = pygame.image.load('Game/Images/black.png')
         self.bgBlack  = pygame.transform.scale(self.bgBlack, (900, 700))
         self.floor = pygame.image.load('Game/Images/wood.png')
@@ -1498,6 +1504,18 @@ class Background():
         self.roof  = pygame.transform.scale(self.roof, (900, 20))
         self.water = pygame.image.load('Game/Images/water.png')
         self.water = pygame.transform.scale(self.water, (900, 100))
+
+        # Fire animation frames for torch overlay
+        self.fire_frames = []
+        for fname in ['fire.png', 'fire2.png', 'fire3.png', 'fire4.png']:
+            f = pygame.image.load(f'Game/Images/{fname}').convert_alpha()
+            f = pygame.transform.scale(f, (52, 52))
+            self.fire_frames.append(f)
+        self.fire_frame_idx = 0
+        self.fire_timer = 0
+        # Torch x offsets within one 900px-wide bg copy (measured from background1.png)
+        self.torch_offsets = [73, 233]
+        self.torch_y = 195   # y in 900x700 where flame sits
 
         self.rectBGimg = self.bgimage.get_rect()
         self.bgY1 = 0
@@ -1529,7 +1547,17 @@ class Background():
     def setXPosition(self, totalX):
         self.totalX = totalX
 
-    def render(self):
+    def render(self, total_distance=0):
+        # Choose which background based on how far the player has travelled.
+        # If a black-background request is pending, latch it permanently.
+        if self.isBlackBackground:
+            self.bgimage = self.bgBlack
+            self._black_latched = True
+            self.isBlackBackground = False
+        elif not getattr(self, '_black_latched', False):
+            bg_idx = min(2, max(0, int(total_distance)) // 4500)
+            self.bgimage = self.bg_images[bg_idx]
+
         self.surface.fill((0, 0, 0))
         self.surface.blit(self.bgimage, (self.bgX1, self.bgY1))
         self.surface.blit(self.bgimage, (self.bgX2 + 5, self.bgY2))
@@ -1540,14 +1568,20 @@ class Background():
         self.surface.blit(self.roof, (self.bgX1, self.bgY1))
         self.surface.blit(self.roof, (self.bgX2, self.bgY2))
 
-    def update(self, characterPosition, height):
-        if self.getBlackBackground():
-            # Pre-loaded – only swap reference, no disk I/O
-            self.bgimage = self.bgBlack
-            self.setBlackBackground(False)
-            return
+        # Animate fire torches over the background torch positions
+        fire_img = self.fire_frames[self.fire_frame_idx]
+        for bgx in (self.bgX1, self.bgX2 + 5):
+            for tx in self.torch_offsets:
+                sx = bgx + tx
+                if -60 < sx < 960:
+                    self.surface.blit(fire_img, (sx, self.torch_y))
+        self.fire_timer += 1
+        if self.fire_timer >= 7:
+            self.fire_timer = 0
+            self.fire_frame_idx = (self.fire_frame_idx + 1) % 4
 
-        if self.getStopBackground():
+    def update(self, characterPosition, height):
+        if self.getStopBackground() or self.getBlackBackground():
             return
 
         if characterPosition >= 290:
@@ -1600,6 +1634,9 @@ class Mummy():
         self.isHurtAnimationStarted = False
         self.isHurtTimer = 0
         self.startDestructionAnimation = False
+        # Pre-allocated white flash overlay (SRCALPHA so it can blend)
+        self.whiteSurf = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.whiteSurf.fill((255, 255, 255, 160))
 
         if self.height > 100:
             self.damageAttack = 10
@@ -1719,12 +1756,16 @@ class Mummy():
             self.stunned += 1
             self.displayDamageOnMonster(self.damageReceived)
             self.screen.blit(self.hurtMummy, (self.x, self.y + _dy))
+            if self.stunned <= 8:
+                self.screen.blit(self.whiteSurf, (self.x, self.y + _dy))
             if self.stunned == 20:
                 self.stunned = 0
         elif self.stunned > 0 and self.direction < 0:
             self.stunned += 1
             self.screen.blit(self.hurtLeftMummy, (self.x, self.y + _dy))
             self.displayDamageOnMonster(self.damageReceived)
+            if self.stunned <= 8:
+                self.screen.blit(self.whiteSurf, (self.x, self.y + _dy))
             if self.stunned == 20:
                 self.stunned = 0
 
@@ -2462,11 +2503,11 @@ class Bear:
 
             self.textTimer += 1
             text1 = _FONT_POPUP.render(self.totalText1, False, (0, 0, 0))
-            self.screen.blit(text1, (430, 130))
+            self.screen.blit(text1, (430, 125))
             text2 = _FONT_POPUP.render(self.totalText2, False, (0, 0, 0))
-            self.screen.blit(text2, (430, 155))
+            self.screen.blit(text2, (430, 152))
             text3 = _FONT_POPUP.render(self.totalText3, False, (0, 0, 0))
-            self.screen.blit(text3, (430, 180))
+            self.screen.blit(text3, (430, 179))
             self.xText += 5
 
             if self.textTimer % 3 < 2:
