@@ -539,6 +539,7 @@ class mainGame:
                     self.deleteAndCreateObjects(totalDistance)
                     bear.setLeftDirection(False)
 
+                    _wall_blocked = False
                     if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
                             and attackingAnimationCounter == 0):
                         _right_scrolled = False
