@@ -1153,18 +1153,18 @@ class mainGame:
             self.greenBlobs = []
             self.fires = []
 
-            # Two flanking blocks, each 120 px wide, reaching the floor (y=100..400)
-            # Left block right-edge = 820, right block left-edge = 1280 → 460 px gap
-            block_left  = Block(700,  100, 120, 300, "monster", self.screen)
-            block_right = Block(1280, 100, 120, 300, "monster", self.screen)
+            # Two flanking blocks: shorter (150 px tall) and further apart
+            # Left block right-edge = 780, right block left-edge = 1420 → 640 px gap
+            block_left  = Block(650,  250, 130, 150, "monster", self.screen)
+            block_right = Block(1420, 250, 130, 150, "monster", self.screen)
             self.blocks.extend([block_left, block_right])
 
-            # Big mummy (200 × 300) centred in the 460 px gap → x = 940
-            mummy = Mummy(940, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+            # Big mummy (200 × 300) centred in the 640 px gap → x = 1000
+            mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
 
             # Door appears just past the right block – reachable before zone 6500
-            self.door1 = Door(self.screen, 1500)
+            self.door1 = Door(self.screen, 1650)
             self.door.append(self.door1)
 
         elif backgroundScrollX > 6500 and not self.activeMonsters[2]:
@@ -1511,7 +1511,7 @@ class Background():
         self.bgimage = self.bg_pairs[0][0]   # start with theme 0, frame A
         self._sway_timer  = 0                # controls A↔B switching
         self._sway_frame  = 0               # 0 = A, 1 = B
-        self._sway_period = 18              # frames per half-sway
+        self._sway_period = 10              # frames per half-sway (~6 Hz flicker)
 
         self.bgBlack  = pygame.image.load('Game/Images/black.png')
         self.bgBlack  = pygame.transform.scale(self.bgBlack, (900, 700))
