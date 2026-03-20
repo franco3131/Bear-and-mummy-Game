@@ -203,6 +203,7 @@ class mainGame:
         self.bossFires = []
         self.mummys = []
         self.fires = []
+        self.playerFires = []
         self.greenBlobs = []
         self.witches = []
         self.blocks = []
@@ -286,6 +287,7 @@ class mainGame:
         bear.setLeftDirection(False)
         jumpTimer = 0
         attackCounterReady = 0
+        playerFireCooldown = 0
         deflectTimer = 0
         deflectPos = (0, 0)
 
@@ -314,6 +316,21 @@ class mainGame:
 
                 keys = pygame.key.get_pressed()
 
+                # ---- F: throw fireball at full health --------------------
+                playerFireCooldown = max(0, playerFireCooldown - 1)
+                if (keys[pygame.K_f]
+                        and playerFireCooldown == 0
+                        and bear.getHp() >= bear.maxHp):
+                    playerFireCooldown = 30
+                    vel_x = -10 if bear.getLeftDirection() else 10
+                    fb_x = (bear.getXPosition() - 60
+                            if bear.getLeftDirection()
+                            else bear.getXPosition() + 100)
+                    fb_y = bear.getYPosition() + 30
+                    self.playerFires.append(
+                        FireBall(fb_x, fb_y, vel_x, 0,
+                                 self.fireBossBall, self.screen))
+
                 # ---- Z + RIGHT: jump-right --------------------------------
                 if keys[pygame.K_z] and keys[pygame.K_RIGHT]:
                     airborne = bear.getJumpStatus() or bear.getLeftJumpStatus()
@@ -331,7 +348,8 @@ class mainGame:
                                 totalDistance -= STEP
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                                           self.greenBlobs + self.door + self.keys + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
@@ -355,7 +373,8 @@ class mainGame:
                             bear.setXPosition(bear.getXPosition() + STEP)
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                                           self.greenBlobs + self.door + self.keys + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
@@ -425,7 +444,8 @@ class mainGame:
                                 totalDistance += STEP
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                                           self.greenBlobs + self.door + self.keys + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -454,7 +474,8 @@ class mainGame:
                             totalDistance -= STEP
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.spikes)
+                                           self.greenBlobs + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -612,7 +633,8 @@ class mainGame:
                         else:
                             _right_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                                           self.greenBlobs + self.door + self.keys + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
@@ -691,7 +713,8 @@ class mainGame:
                         else:
                             jumpTimer = 0
                             moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                                           self.greenBlobs + self.door + self.keys + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
@@ -733,7 +756,8 @@ class mainGame:
                         else:
                             _left_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                                           self.greenBlobs + self.door + self.keys + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -806,7 +830,8 @@ class mainGame:
                                 totalDistance += STEP
                         else:
                             moveObjects = (self.mummys + self.fires + self.greenBlobs +
-                                           self.witches + self.door + self.keys + self.spikes)
+                                           self.witches + self.door + self.keys + self.spikes +
+                                           self.playerFires)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -1039,6 +1064,31 @@ class mainGame:
                             FireBall(witch.getXPosition(), witch.getYPosition(),
                                      random.randint(-7, 7), random.randint(1, 12),
                                      self.fireBall, self.screen))
+
+            # ---- Player fireballs -----------------------------------------
+            pf_to_remove = []
+            for pf in self.playerFires:
+                pf.drawFireBall()
+                pf_x = pf.getXPosition()
+                pf_y = pf.getYPosition()
+                if pf_x < -100 or pf_x > 1000 or pf_y < 0 or pf_y > 500:
+                    pf_to_remove.append(pf)
+                    continue
+                pf_rect = pygame.Rect(pf_x, pf_y, 60, 60)
+                monsters = (self.mummys + self.witches +
+                            self.greenBlobs + self.frankenbear)
+                for monster in monsters:
+                    m_rect = pygame.Rect(monster.getXPosition(),
+                                         monster.getYPosition(), 80, 100)
+                    if pf_rect.colliderect(m_rect):
+                        monster.setDamageReceived(15)
+                        monster.setStunned(1)
+                        monster.setHealth(monster.getHealth() - 15)
+                        pf_to_remove.append(pf)
+                        break
+            for pf in pf_to_remove:
+                if pf in self.playerFires:
+                    self.playerFires.remove(pf)
 
             for witch in self.witches:
                 witch.drawMonster()
