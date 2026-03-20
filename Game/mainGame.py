@@ -252,6 +252,13 @@ class mainGame:
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
 
+        # Pre-load Zone 1 assets now so there is no stutter when the player
+        # reaches that area. These objects sit idle until the zone triggers.
+        self._z1_mummy       = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+        self._z1_block_left  = Block(300,  250, 130, 150, "monster", self.screen)
+        self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
+        self._z1_door        = Door(self.screen, 1650)
+
         self.activeMonsters = [False] * 14
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
@@ -1208,14 +1215,10 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block_left  = Block(300,  250, 130, 150, "monster", self.screen)
-            block_right = Block(1800, 250, 130, 150, "monster", self.screen)
-            self.blocks.extend([block_left, block_right])
+            self.blocks.extend([self._z1_block_left, self._z1_block_right])
+            self.mummys.append(self._z1_mummy)
 
-            mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
-            self.mummys.append(mummy)
-
-            self.door1 = Door(self.screen, 1650)
+            self.door1 = self._z1_door
             self.door.append(self.door1)
 
         # ── Zone 2 @ 7 000 – green blobs on a rock platform ──────────────────
