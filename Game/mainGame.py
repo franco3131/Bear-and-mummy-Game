@@ -238,7 +238,7 @@ class mainGame:
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
         block1 = Block(280,  340, 100, 60,  "red",     self.screen)
-        block2 = Block(450,  190, 100, 60,  "monster", self.screen)
+        block2 = Block(475,  190, 100, 60,  "monster", self.screen)
         block3 = Block(780,  190, 100, 60,  "red",     self.screen)
         block5 = Block(1010, 190, 100, 60,  "red",     self.screen)
         block7 = Block(1240, 190, 100, 60,  "monster", self.screen)
@@ -2364,35 +2364,25 @@ class Bear:
 
         self.comingUp = self.jumpVelocity > 0
 
-        # Platform landing – check on downstroke with velocity-sized window
-        # so fast falls never skip through a platform in a single frame.
+        # Platform landing – only on the downstroke
         if self.jumpVelocity <= 0:
-            window = max(12, int(abs(self.jumpVelocity)) + 6)
-            for block in blocks:
-                block.setOnPlatform(False)
+            feet = self.y + 100
             for block in blocks:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                by2 = self.y + 100   # use 100 to match original snap logic
-                bx2 = self.x + 100
-                if bty <= by2 <= bty + window and bx2 > blx and self.x < brx + 30:
-                    self.y = bty - 100   # snap feet flush with platform top
-                    block.setOnPlatform(True)
-                    block.setDropStatus(False)
-                    self.setJumpStatus(False)
-                    self.setLeftJumpStatus(False)
-                    self.initialHeight = self.y
-                    self.jumpVelocity = 0.0
-                    return
-                block.isBoundaryPresent(self.getXPosition(), self.y)
-                if block.getOnPlatform():
-                    self.y = block.getBlockYPosition() - 100
-                    self.setJumpStatus(False)
-                    self.setLeftJumpStatus(False)
-                    self.initialHeight = self.y
-                    self.jumpVelocity = 0.0
-                    return
+                # Horizontal overlap: at least 20 px of bear overlaps block
+                if self.x + 80 > blx and self.x < brx + 10:
+                    # Feet within a fixed 20 px zone below platform top
+                    if bty <= feet <= bty + 20:
+                        self.y = bty - 100
+                        block.setOnPlatform(True)
+                        block.setDropStatus(False)
+                        self.setJumpStatus(False)
+                        self.setLeftJumpStatus(False)
+                        self.initialHeight = self.y
+                        self.jumpVelocity = 0.0
+                        return
 
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
