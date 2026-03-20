@@ -350,7 +350,8 @@ class mainGame:
                 if (keys[pygame.K_x]
                         and playerFireCooldown == 0):
                     playerFireCooldown = 30
-                    vel_x = -10 if bear.getLeftDirection() else 10
+                    _fb_speed = int(10 * (1.1 ** (bear.getLevel() // 5)))
+                    vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
                             if bear.getLeftDirection()
                             else bear.getXPosition() + 100)
@@ -1117,9 +1118,10 @@ class mainGame:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
                     if pf_rect.colliderect(m_rect):
-                        monster.setDamageReceived(1)
+                        _fb_dmg = bear.getLevel()
+                        monster.setDamageReceived(_fb_dmg)
                         monster.setStunned(1)
-                        monster.setHealth(monster.getHealth() - 1)
+                        monster.setHealth(monster.getHealth() - _fb_dmg)
                         pf_to_remove.append(pf)
                         break
             for pf in pf_to_remove:
@@ -1227,6 +1229,12 @@ class mainGame:
                         block.setOnPlatform(False)
                         bear.setJumpStatus(False)
                         bear.setLeftJumpStatus(False)
+
+            # ---- Damage numbers always rendered on top of blocks --------
+            for _m in (self.mummys + self.witches +
+                       self.greenBlobs + self.frankenbear):
+                if getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0:
+                    _m.displayDamageOnMonster(_m.getDamageReceived())
 
             bear.displayBearHp()
             bear.displayBearExp()
