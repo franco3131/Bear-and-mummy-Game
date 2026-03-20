@@ -1670,6 +1670,10 @@ class Mummy():
         self.startDestructionAnimation = False
         self.blocks = []   # set each frame by the game loop for wall collision
 
+        # Walk-frame outlines (only used by the big mummy)
+        self.mummy1Outline = None
+        self.mummy2Outline = None
+
         if self.height > 100:
             self.damageAttack = 10
             self.exp = 20
@@ -1682,6 +1686,8 @@ class Mummy():
             self.hurtMummy = scale_to_box(raw_hurt, width, height)
             self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
             self.changeDirection = random.randint(800, 1200)
+            self.mummy1Outline = make_outline_surf(self.mummy1)
+            self.mummy2Outline = make_outline_surf(self.mummy2)
 
         # Outline surfaces built AFTER final hurt sprites are set
         self.hurtOutline     = make_outline_surf(self.hurtMummy)
@@ -1806,43 +1812,78 @@ class Mummy():
                 return True
         return False
 
+    def _draw_forehead_target(self):
+        """Draw a red bullseye at the big mummy's forehead hit zone."""
+        cx = self.x + 100
+        cy = self.y + 45
+        pygame.draw.circle(self.screen, (200, 0,   0),   (cx, cy), 18)
+        pygame.draw.circle(self.screen, (255, 255, 255), (cx, cy), 11)
+        pygame.draw.circle(self.screen, (180, 0,   0),   (cx, cy),  5)
+
     def drawMonster(self):
         _dy = 12  # push sprite down so feet touch the floor
-        if self.x % 90 < 40 and self.stunned == 0:
-            self.screen.blit(self.mummy1, (self.x, self.y + _dy))
-        elif self.stunned == 0:
-            self.screen.blit(self.mummy2, (self.x, self.y + _dy))
+        is_big = self.height > 100
 
+        # ── Walking frames ────────────────────────────────────────────────────
+        if self.stunned == 0:
+            if self.x % 90 < 40:
+                if is_big and self.mummy1Outline:
+                    self.screen.blit(self.mummy1Outline, (self.x, self.y + _dy))
+                self.screen.blit(self.mummy1, (self.x, self.y + _dy))
+            else:
+                if is_big and self.mummy2Outline:
+                    self.screen.blit(self.mummy2Outline, (self.x, self.y + _dy))
+                self.screen.blit(self.mummy2, (self.x, self.y + _dy))
+            if is_big:
+                self._draw_forehead_target()
+
+        # ── Movement / direction ──────────────────────────────────────────────
         if self.stunned == 0:
             new_x = self.x + self.direction * self.rand
             if self._hits_block(new_x):
-                # Reverse direction on block contact
                 self.direction *= -1
                 self.mummy1 = pygame.transform.flip(self.mummy1, True, False)
                 self.mummy2 = pygame.transform.flip(self.mummy2, True, False)
+                if is_big and self.mummy1Outline:
+                    self.mummy1Outline = pygame.transform.flip(self.mummy1Outline, True, False)
+                    self.mummy2Outline = pygame.transform.flip(self.mummy2Outline, True, False)
             else:
                 self.x = new_x
+
+        # ── Hurt / stunned frames ─────────────────────────────────────────────
         elif self.stunned > 0 and self.direction > 0:
             self.stunned += 1
             self.displayDamageOnMonster(self.damageReceived)
+            if is_big:
+                self.screen.blit(self.hurtOutline,  (self.x, self.y + _dy))
             self.screen.blit(self.hurtMummy, (self.x, self.y + _dy))
-            if self.stunned <= 8:
+            if is_big:
+                self._draw_forehead_target()
+            elif self.stunned <= 8:
                 self.screen.blit(self.hurtOutline, (self.x, self.y + _dy))
             if self.stunned == 20:
                 self.stunned = 0
         elif self.stunned > 0 and self.direction < 0:
             self.stunned += 1
+            if is_big:
+                self.screen.blit(self.hurtLeftOutline, (self.x, self.y + _dy))
             self.screen.blit(self.hurtLeftMummy, (self.x, self.y + _dy))
             self.displayDamageOnMonster(self.damageReceived)
-            if self.stunned <= 8:
+            if is_big:
+                self._draw_forehead_target()
+            elif self.stunned <= 8:
                 self.screen.blit(self.hurtLeftOutline, (self.x, self.y + _dy))
             if self.stunned == 20:
                 self.stunned = 0
 
+        # ── Auto-reverse direction ────────────────────────────────────────────
         if self.x % self.changeDirection == 0 and self.stunned == 0:
             self.direction *= -1
             self.mummy1 = pygame.transform.flip(self.mummy1, True, False)
             self.mummy2 = pygame.transform.flip(self.mummy2, True, False)
+            if is_big and self.mummy1Outline:
+                self.mummy1Outline = pygame.transform.flip(self.mummy1Outline, True, False)
+                self.mummy2Outline = pygame.transform.flip(self.mummy2Outline, True, False)
 
 
 # ---------------------------------------------------------------------------
