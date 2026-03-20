@@ -238,7 +238,7 @@ class mainGame:
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
         block1 = Block(280,  340, 100, 60,  "red",     self.screen)
-        block2 = Block(475,  190, 100, 60,  "monster", self.screen)
+        block2 = Block(500,  190, 100, 60,  "monster", self.screen)
         block3 = Block(780,  190, 100, 60,  "red",     self.screen)
         block5 = Block(1010, 190, 100, 60,  "red",     self.screen)
         block7 = Block(1240, 190, 100, 60,  "monster", self.screen)
@@ -2371,10 +2371,10 @@ class Bear:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                # Horizontal overlap: at least 20 px of bear overlaps block
-                if self.x + 80 > blx and self.x < brx + 10:
-                    # Feet within a fixed 20 px zone below platform top
-                    if bty <= feet <= bty + 20:
+                # Generous horizontal overlap so timing mismatches don't cause misses
+                if self.x + 60 > blx and self.x < brx + 20:
+                    # 30 px vertical window absorbs per-frame rounding error
+                    if bty <= feet <= bty + 30:
                         self.y = bty - 100
                         block.setOnPlatform(True)
                         block.setDropStatus(False)
