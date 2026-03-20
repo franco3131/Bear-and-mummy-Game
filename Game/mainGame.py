@@ -2455,6 +2455,27 @@ class Bear:
                         self.jumpVelocity = 0.0
                         return
 
+                # ---- Safety-net pass (platform → platform) ------------------
+                # If the primary and secondary checks both missed (high fall speed
+                # can overshoot the 30 px window), do one final scan with a much
+                # wider vertical window so the bear always snaps onto any block it
+                # passed over rather than falling through to the floor.
+                for block in blocks:
+                    bty = block.getBlockYPosition()
+                    if bty == source_bty:
+                        continue
+                    blx = block.getBlockXPosition()
+                    brx = blx + block.getWidth()
+                    if bty <= feet <= bty + 60 and bx2 > blx and self.x < brx + 30:
+                        self.y = bty - 100
+                        block.setOnPlatform(True)
+                        block.setDropStatus(False)
+                        self.setJumpStatus(False)
+                        self.setLeftJumpStatus(False)
+                        self.initialHeight = self.y
+                        self.jumpVelocity = 0.0
+                        return
+
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
             self.y = 300
