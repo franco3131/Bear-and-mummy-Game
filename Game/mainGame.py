@@ -2381,43 +2381,79 @@ class Bear:
 
         # Platform landing – only on the downstroke
         if self.jumpVelocity <= 0:
-            # Reset onPlatform for all blocks so stale state from the previous
-            # surface doesn't cause a false positive landing on a different block.
+            # Clear stale onPlatform flags so only the block we actually
+            # land on ends up marked.
             for block in blocks:
                 block.setOnPlatform(False)
 
             bx2  = self.x + 100   # bear's right edge
             feet = self.y + 100   # bear's feet
 
-            for block in blocks:
-                bty = block.getBlockYPosition()
-                blx = block.getBlockXPosition()
-                brx = blx + block.getWidth()
+            jumped_from_floor = (self.initialHeight == 300)
 
-                # Primary check – generous horizontal window (bear's right edge
-                # past block's left edge; left edge within block's right + 30px)
-                # plus a 30 px vertical window to absorb per-frame rounding.
-                if bty <= feet <= bty + 30 and bx2 > blx and self.x < brx + 30:
-                    self.y = bty - 100
-                    block.setOnPlatform(True)
-                    block.setDropStatus(False)
-                    self.setJumpStatus(False)
-                    self.setLeftJumpStatus(False)
-                    self.initialHeight = self.y
-                    self.jumpVelocity = 0.0
-                    return
+            if jumped_from_floor:
+                # ---- Case 1: launched from the floor -------------------------
+                # Standard detection: primary window + isBoundaryPresent fallback.
+                for block in blocks:
+                    bty = block.getBlockYPosition()
+                    blx = block.getBlockXPosition()
+                    brx = blx + block.getWidth()
 
-                # Secondary fallback – isBoundaryPresent exact-match detection
-                block.isBoundaryPresent(self.x, self.y)
-                if block.getOnPlatform():
-                    self.y = bty - 100
-                    block.setOnPlatform(True)
-                    block.setDropStatus(False)
-                    self.setJumpStatus(False)
-                    self.setLeftJumpStatus(False)
-                    self.initialHeight = self.y
-                    self.jumpVelocity = 0.0
-                    return
+                    if bty <= feet <= bty + 30 and bx2 > blx and self.x < brx + 30:
+                        self.y = bty - 100
+                        block.setOnPlatform(True)
+                        block.setDropStatus(False)
+                        self.setJumpStatus(False)
+                        self.setLeftJumpStatus(False)
+                        self.initialHeight = self.y
+                        self.jumpVelocity = 0.0
+                        return
+
+                    block.isBoundaryPresent(self.x, self.y)
+                    if block.getOnPlatform():
+                        self.y = bty - 100
+                        block.setOnPlatform(True)
+                        block.setDropStatus(False)
+                        self.setJumpStatus(False)
+                        self.setLeftJumpStatus(False)
+                        self.initialHeight = self.y
+                        self.jumpVelocity = 0.0
+                        return
+
+            else:
+                # ---- Case 2: launched from another platform ------------------
+                # Same detection, but skip the source block so the bear cannot
+                # immediately re-land on the platform it just left.
+                source_bty = self.initialHeight + 100   # top-y of departure block
+
+                for block in blocks:
+                    bty = block.getBlockYPosition()
+                    if bty == source_bty:      # this is the block we jumped from
+                        continue
+
+                    blx = block.getBlockXPosition()
+                    brx = blx + block.getWidth()
+
+                    if bty <= feet <= bty + 30 and bx2 > blx and self.x < brx + 30:
+                        self.y = bty - 100
+                        block.setOnPlatform(True)
+                        block.setDropStatus(False)
+                        self.setJumpStatus(False)
+                        self.setLeftJumpStatus(False)
+                        self.initialHeight = self.y
+                        self.jumpVelocity = 0.0
+                        return
+
+                    block.isBoundaryPresent(self.x, self.y)
+                    if block.getOnPlatform():
+                        self.y = bty - 100
+                        block.setOnPlatform(True)
+                        block.setDropStatus(False)
+                        self.setJumpStatus(False)
+                        self.setLeftJumpStatus(False)
+                        self.initialHeight = self.y
+                        self.jumpVelocity = 0.0
+                        return
 
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
