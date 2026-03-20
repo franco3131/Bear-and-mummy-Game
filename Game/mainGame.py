@@ -255,7 +255,7 @@ class mainGame:
         # Pre-load Zone 1 assets now so there is no stutter when the player
         # reaches that area. These objects sit idle until the zone triggers.
         self._z1_mummy       = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
-        self._z1_block_left  = Block(300,  250, 130, 150, "monster", self.screen)
+        self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
         self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
         self._z1_door        = Door(self.screen, 1650)
 
@@ -1674,20 +1674,27 @@ class Mummy():
         self.mummy1Outline = None
         self.mummy2Outline = None
 
+        # White flash surface for hurt highlight (big mummy only)
+        self.hurtFlash = None
+
         if self.height > 100:
             self.damageAttack = 10
             self.exp = 20
             self.health = 20
-            raw1 = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
-            raw2 = pygame.image.load("Game/Images/Mummy/mummy2Big.png")
+            raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
             raw_hurt = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
-            self.mummy1 = scale_to_box(raw1, width, height)
-            self.mummy2 = scale_to_box(raw2, width, height)
-            self.hurtMummy = scale_to_box(raw_hurt, width, height)
+            # Force-scale both walk frames from the same source so they are
+            # pixel-identical in size. Walk frame 2 is just frame 1 mirrored.
+            self.mummy1      = pygame.transform.scale(raw1,     (width, height))
+            self.mummy2      = pygame.transform.flip(self.mummy1, True, False)
+            self.hurtMummy   = pygame.transform.scale(raw_hurt, (width, height))
             self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
             self.changeDirection = random.randint(800, 1200)
             self.mummy1Outline = make_outline_surf(self.mummy1)
             self.mummy2Outline = make_outline_surf(self.mummy2)
+            # Pre-create the white flash overlay (reused every hurt frame)
+            self.hurtFlash = pygame.Surface((width, height), pygame.SRCALPHA)
+            self.hurtFlash.fill((255, 255, 255, 140))
 
         # Outline surfaces built AFTER final hurt sprites are set
         self.hurtOutline     = make_outline_surf(self.hurtMummy)
@@ -1812,14 +1819,6 @@ class Mummy():
                 return True
         return False
 
-    def _draw_forehead_target(self):
-        """Draw a red bullseye at the big mummy's forehead hit zone."""
-        cx = self.x + 100
-        cy = self.y + 45
-        pygame.draw.circle(self.screen, (200, 0,   0),   (cx, cy), 18)
-        pygame.draw.circle(self.screen, (255, 255, 255), (cx, cy), 11)
-        pygame.draw.circle(self.screen, (180, 0,   0),   (cx, cy),  5)
-
     def drawMonster(self):
         _dy = 12  # push sprite down so feet touch the floor
         is_big = self.height > 100
@@ -1834,8 +1833,6 @@ class Mummy():
                 if is_big and self.mummy2Outline:
                     self.screen.blit(self.mummy2Outline, (self.x, self.y + _dy))
                 self.screen.blit(self.mummy2, (self.x, self.y + _dy))
-            if is_big:
-                self._draw_forehead_target()
 
         # ── Movement / direction ──────────────────────────────────────────────
         if self.stunned == 0:
@@ -1855,10 +1852,10 @@ class Mummy():
             self.stunned += 1
             self.displayDamageOnMonster(self.damageReceived)
             if is_big:
-                self.screen.blit(self.hurtOutline,  (self.x, self.y + _dy))
+                self.screen.blit(self.hurtOutline, (self.x, self.y + _dy))
             self.screen.blit(self.hurtMummy, (self.x, self.y + _dy))
-            if is_big:
-                self._draw_forehead_target()
+            if is_big and self.hurtFlash:
+                self.screen.blit(self.hurtFlash, (self.x, self.y + _dy))
             elif self.stunned <= 8:
                 self.screen.blit(self.hurtOutline, (self.x, self.y + _dy))
             if self.stunned == 20:
@@ -1869,8 +1866,8 @@ class Mummy():
                 self.screen.blit(self.hurtLeftOutline, (self.x, self.y + _dy))
             self.screen.blit(self.hurtLeftMummy, (self.x, self.y + _dy))
             self.displayDamageOnMonster(self.damageReceived)
-            if is_big:
-                self._draw_forehead_target()
+            if is_big and self.hurtFlash:
+                self.screen.blit(self.hurtFlash, (self.x, self.y + _dy))
             elif self.stunned <= 8:
                 self.screen.blit(self.hurtLeftOutline, (self.x, self.y + _dy))
             if self.stunned == 20:
