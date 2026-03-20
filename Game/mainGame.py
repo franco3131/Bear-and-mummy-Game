@@ -348,8 +348,7 @@ class mainGame:
                 # ---- X: throw fireball at full health --------------------
                 playerFireCooldown = max(0, playerFireCooldown - 1)
                 if (keys[pygame.K_x]
-                        and playerFireCooldown == 0
-                        and bear.getHp() >= bear.maxHp):
+                        and playerFireCooldown == 0):
                     playerFireCooldown = 30
                     vel_x = -10 if bear.getLeftDirection() else 10
                     fb_x = (bear.getXPosition() - 60
@@ -376,17 +375,21 @@ class mainGame:
                             else:
                                 totalDistance -= STEP
                         else:
-                            moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires)
-                            for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if not block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    backgroundScrollX = bear.getXPosition() + STEP
-                                    background.setXPosition(backgroundScrollX)
+                            if any(b.getIsLeftBoundary() for b in self.blocks):
+                                totalDistance -= STEP
+                            else:
+                                moveObjects = (self.mummys + self.fires + self.witches +
+                                               self.greenBlobs + self.door + self.keys + self.spikes +
+                                               self.playerFires)
+                                for obj in moveObjects:
+                                    obj.setXPosition(obj.getXPosition() - STEP)
+                                for block in self.blocks:
+                                    if not block.getIsLeftBoundary():
+                                        block.setblockXPosition(block.getBlockXPosition() - STEP)
+                                        backgroundScrollX = bear.getXPosition() + STEP
+                                        background.setXPosition(backgroundScrollX)
 
                     elif jumpTimer > 12:
                         # ---- On the ground: start a new jump (cooldown gated) ----
@@ -401,17 +404,21 @@ class mainGame:
                             background.setXPosition(backgroundScrollX)
                             bear.setXPosition(bear.getXPosition() + STEP)
                         else:
-                            moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires)
-                            for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if not block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    backgroundScrollX = bear.getXPosition() + STEP
-                                    background.setXPosition(backgroundScrollX)
+                            if any(b.getIsLeftBoundary() for b in self.blocks):
+                                totalDistance -= STEP
+                            else:
+                                moveObjects = (self.mummys + self.fires + self.witches +
+                                               self.greenBlobs + self.door + self.keys + self.spikes +
+                                               self.playerFires)
+                                for obj in moveObjects:
+                                    obj.setXPosition(obj.getXPosition() - STEP)
+                                for block in self.blocks:
+                                    if not block.getIsLeftBoundary():
+                                        block.setblockXPosition(block.getBlockXPosition() - STEP)
+                                        backgroundScrollX = bear.getXPosition() + STEP
+                                        background.setXPosition(backgroundScrollX)
                         backgroundScrollX -= STEP
                         background.setXPosition(backgroundScrollX)
                         bear.setJumpStatus(True)
@@ -2678,9 +2685,8 @@ class Bear:
         val = str(hp) + "/" + str(maxHp)
         _hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
                            PX + 44, PY + 34, (255, 255, 255))
-        if hp >= maxHp:
-            _hud_text_outlined(self.screen, _FONT_HUD_VAL, "X: FIRE!",
-                               PX + 120, PY + 34, (255, 140, 30))
+        _hud_text_outlined(self.screen, _FONT_HUD_VAL, "X:FIRE",
+                           PX + 124, PY + 34, (255, 140, 30))
 
     def displayBearExp(self):
         self.levelUpCheck()
