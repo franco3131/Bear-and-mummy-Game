@@ -1135,12 +1135,15 @@ class mainGame:
 
             for door in self.door:
                 door.drawRectangle()
-                for mummy in self.mummys:
-                    if (door.getXPosition() - 90 <= bear.getXPosition()
-                            and not self.isDoor1Open
-                            and not self.triggerText3):
+                door_x = door.getXPosition()
+
+                if not self.isDoor1Open:
+                    # Block the bear every frame while door is locked
+                    if door_x - 90 <= bear.getXPosition():
+                        bear.setXPosition(door_x - 91)
                         totalDistance -= STEP
-                        if not self.triggerText3 and not self.isDoor1Open:
+                        # Show hint the first time the bear reaches the door
+                        if not self.triggerText3:
                             bear.setArrayText(['Attack the mummy\'s forehead!', '',
                                                'Press "s" to continue'])
                             bear.setArrayText(['Hit it to grab the key',
@@ -1148,25 +1151,15 @@ class mainGame:
                                                'Press "s" to continue'])
                             self.triggerText3 = True
                             bear.setEndText(False)
-
-                if self.isDoor1Open and not self.triggerText2:
-                    bear.setArrayText(['Grabbed the key!', '',
-                                       'Press "s" to continue'])
-                    bear.setArrayText(['You can open the door now.', '',
-                                       'Press "s" to continue'])
-                    self.triggerText2 = True
-                    bear.setEndText(False)
-                elif (self.isDoor1Open
-                      and door.getXPosition() - 90 <= bear.getXPosition()
-                      and not self.triggerText5):
-                    bear.setXPosition(bear.getXPosition() - STEP)
-                    totalDistance -= STEP
-                    self.triggerText5 = True
-                    bear.setArrayText(['You used the key!', '',
-                                       'Press "s" to continue'])
-                    bear.setArrayText(['The door is unlocked.', '',
-                                       'Press "s" to continue'])
-                    bear.setEndText(False)
+                else:
+                    # Door is now unlocked — show text once
+                    if not self.triggerText2:
+                        bear.setArrayText(['Grabbed the key!', '',
+                                           'Press "s" to continue'])
+                        bear.setArrayText(['You can open the door now.', '',
+                                           'Press "s" to continue'])
+                        self.triggerText2 = True
+                        bear.setEndText(False)
 
             if not bear.getEndText():
                 bear.displayTextBox()
@@ -1197,8 +1190,8 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block_left  = Block(650,  250, 130, 150, "monster", self.screen)
-            block_right = Block(1420, 250, 130, 150, "monster", self.screen)
+            block_left  = Block(300,  250, 130, 150, "monster", self.screen)
+            block_right = Block(1800, 250, 130, 150, "monster", self.screen)
             self.blocks.extend([block_left, block_right])
 
             mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
@@ -1225,7 +1218,7 @@ class mainGame:
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
                                     greenBlob4, greenBlob5])
 
-            x = 500
+            x = 1350
             for _ in range(8):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
@@ -1255,8 +1248,8 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(500, 280, 2000, 60, "greyRock", self.screen)
-            block2 = Block(700, 340, 1000, 60, "greyRock", self.screen)
+            block1 = Block(500, 200, 2000, 60, "greyRock", self.screen)
+            block2 = Block(700, 240, 1000, 60, "greyRock", self.screen)
             self.blocks.extend([block1, block2])
 
             x = 450
@@ -1271,9 +1264,9 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(450, 220, 3000, 60, "striped",     self.screen)
-            block2 = Block(600, 280, 2000, 60, "stripedFlip", self.screen)
-            block3 = Block(800, 340, 1000, 60, "striped",     self.screen)
+            block1 = Block(450, 160, 3000, 60, "striped",     self.screen)
+            block2 = Block(600, 220, 2000, 60, "stripedFlip", self.screen)
+            block3 = Block(800, 240, 1000, 60, "striped",     self.screen)
             self.blocks.extend([block1, block2, block3])
 
             x = 450
@@ -1292,9 +1285,9 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(500, 220, 3500, 60, "checkered", self.screen)
-            block2 = Block(420, 280, 3500, 60, "checkered", self.screen)
-            block3 = Block(350, 340, 3000, 60, "checkered", self.screen)
+            block1 = Block(500, 160, 3500, 60, "checkered", self.screen)
+            block2 = Block(420, 220, 3500, 60, "checkered", self.screen)
+            block3 = Block(350, 240, 3000, 60, "checkered", self.screen)
             block4 = Block(500, 100, 1000, 60, "greyRock",  self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
@@ -1666,6 +1659,7 @@ class Mummy():
             self.mummy2 = pygame.transform.scale(self.mummy2, (width, height))
             self.hurtMummy = pygame.transform.scale(self.hurtMummy, (width, height))
             self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
+            self.changeDirection = random.randint(800, 1200)
 
         # Outline surfaces built AFTER final hurt sprites are set
         self.hurtOutline     = make_outline_surf(self.hurtMummy)
