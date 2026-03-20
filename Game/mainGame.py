@@ -290,7 +290,7 @@ class mainGame:
                 keys = pygame.key.get_pressed()
 
                 # ---- Z + RIGHT: jump-right --------------------------------
-                if keys[pygame.K_z] and keys[pygame.K_RIGHT] and jumpTimer > 20:
+                if keys[pygame.K_z] and keys[pygame.K_RIGHT] and jumpTimer > 12:
                     totalDistance += STEP
                     if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
                         if bear.getXPosition() < self.rightBoundary:
@@ -317,8 +317,8 @@ class mainGame:
                         backgroundScrollX -= STEP
                         background.setXPosition(backgroundScrollX)
                         bear.setJumpStatus(True)
+                        bear.startJump()
                         background.update(bear.getXPosition(), bear.getYPosition())
-                        bear.setComingUpStatus(True)
 
                     else:
                         if bear.getXPosition() < self.rightBoundary:
@@ -378,12 +378,11 @@ class mainGame:
                             monster.setHurtTimer(0)
                         bear.setLeftDirection(False)
                         bear.setLeftJumpStatus(False)
-                        bear.setComingUpStatus(True)
 
                     background.update(bear.getXPosition(), bear.getYPosition())
 
                 # ---- Z + LEFT: jump-left ---------------------------------
-                elif keys[pygame.K_z] and keys[pygame.K_LEFT] and jumpTimer > 10:
+                elif keys[pygame.K_z] and keys[pygame.K_LEFT] and jumpTimer > 12:
                     totalDistance -= STEP
                     if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
                         jumpTimer = 0
@@ -413,7 +412,7 @@ class mainGame:
                             background.setXPosition(backgroundScrollX)
                         background.update(backgroundScrollX, bear.getYPosition())
                         bear.setJumpStatus(True)
-                        bear.setComingUpStatus(True)
+                        bear.startJump()
                     else:
                         if bear.getXPosition() > self.leftBoundary:
                             jumpTimer = 0
@@ -467,7 +466,7 @@ class mainGame:
                                 monster.setHurtTimer(0)
                             bear.setLeftDirection(True)
                             bear.setLeftJumpStatus(True)
-                            bear.setComingUpStatus(True)
+                            bear.startJump()
 
                     background.update(backgroundScrollX, bear.getYPosition())
 
@@ -475,11 +474,11 @@ class mainGame:
                 elif (keys[pygame.K_z]
                       and not bear.getJumpStatus()
                       and not bear.getLeftJumpStatus()
-                      and jumpTimer > 6):
+                      and jumpTimer > 12):
                     jumpTimer = 0
                     bear.setJumpStatus(True)
                     bear.setLeftJumpStatus(True)
-                    bear.setComingUpStatus(True)
+                    bear.startJump()
                     background.update(backgroundScrollX, bear.getYPosition())
 
                 # ---- A + RIGHT: attack right ------------------------------
@@ -2212,6 +2211,7 @@ class Bear:
         self.initialHeight = 300
         self.jumping = False
         self.jumpLeft = False
+        self.jumpVelocity = 0.0      # px/frame upward; positive = rising
         self.level = 1
         self.textHeight = 30
         self.randomBlink = random.randint(15, 30)
@@ -2337,91 +2337,81 @@ class Bear:
     def getLevel(self):
         return self.level
 
-    def jump(self, blocks):
-        for block in blocks:
-            block.setOnPlatform(False)
-        if not self.getLeftDirection():
-            self.screen.blit(self.bearJumping1, (self.getXPosition(), self.y))
-        else:
-            self.screen.blit(self.bearJumpingLeft1, (self.getXPosition(), self.y))
+    def startJump(self):
+        """Kick off a new jump – sets initial upward velocity."""
+        self.jumpVelocity = 15.5   # tuned so peak ≈ 190 px above launch point
+        self.comingUp = True
 
-        if self.y >= (self.initialHeight - 200) and self.comingUp:
-            self.y -= JUMP_STEP
-        elif self.y >= (self.initialHeight - 230):
-            self.comingUp = False
-            self.y += JUMP_STEP
+    def _jumpPhysics(self, blocks):
+        """
+        Velocity-based jump physics shared by jump() and leftJump().
+        • Parabolic arc via variable gravity (lighter rising, heavier falling).
+        • Variable height: releasing Z early caps upward velocity at 3 px/frame.
+        """
+        # Variable jump height – cut ascent when Z is released early
+        if self.jumpVelocity > 3.0 and not pygame.key.get_pressed()[pygame.K_z]:
+            self.jumpVelocity = 3.0
+
+        # Move bear vertically (positive velocity = moving up)
+        self.y -= int(round(self.jumpVelocity))
+
+        # Gravity: gentler on the way up (floaty peak), stronger on the way down
+        if self.jumpVelocity > 0:
+            self.jumpVelocity -= 0.65   # decelerating rise
+        else:
+            self.jumpVelocity -= 0.85   # accelerating fall (snappier landing)
+
+        self.comingUp = self.jumpVelocity > 0
+
+        # Platform landing – only check on the downstroke
+        if self.jumpVelocity <= 0:
             for block in blocks:
-                # Range-check landing: bear feet within one step of platform top
+                block.setOnPlatform(False)
+            for block in blocks:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                by2 = self.y + 100
+                by2 = self.y + 105
                 bx2 = self.x + 100
-                if bty <= by2 <= bty + JUMP_STEP and bx2 > blx and self.x < brx + 30:
-                    self.y = bty - 100   # snap exactly onto platform surface
+                if bty <= by2 <= bty + 12 and bx2 > blx and self.x < brx + 30:
+                    self.y = bty - 105
                     block.setOnPlatform(True)
                     block.setDropStatus(False)
                     self.setJumpStatus(False)
                     self.setLeftJumpStatus(False)
                     self.initialHeight = self.y
-                    break
+                    self.jumpVelocity = 0.0
+                    return
                 block.isBoundaryPresent(self.getXPosition(), self.y)
                 if block.getOnPlatform():
                     self.y = block.getBlockYPosition() - 105
                     self.setJumpStatus(False)
                     self.setLeftJumpStatus(False)
                     self.initialHeight = self.y
+                    self.jumpVelocity = 0.0
+                    return
 
-        # Floor landing – >= catches steps that overshoot the exact floor pixel
+        # Floor landing
         if self.y + 105 >= 400:
             self.y = 295
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
+            self.jumpVelocity = 0.0
+
+    def jump(self, blocks):
+        """Right-facing jump (also handles neutral/vertical jump)."""
+        if self.comingUp:
+            sprite = (self.bearJumpingLeft1 if self.getLeftDirection()
+                      else self.bearJumping1)
+        else:
+            sprite = (self.bearJumpingLeft2 if self.getLeftDirection()
+                      else self.bearJumping2)
+        self.screen.blit(sprite, (self.getXPosition(), self.y))
+        self._jumpPhysics(blocks)
 
     def leftJump(self, blocks):
-        for block in blocks:
-            block.setOnPlatform(False)
-
-        if (self.y <= self.initialHeight
-                and self.y >= (self.initialHeight - 200)
-                and self.getComingUp()):
-            self.y -= JUMP_STEP
-            self.screen.blit(self.bearJumpingLeft1, (self.getXPosition(), self.y))
-        elif self.y >= (self.initialHeight - 230) and self.y < self.initialHeight:
-            self.y += JUMP_STEP
-            self.setComingUpStatus(False)
-            for block in blocks:
-                # Range-check landing: bear feet within one step of platform top
-                bty = block.getBlockYPosition()
-                blx = block.getBlockXPosition()
-                brx = blx + block.getWidth()
-                by2 = self.y + 100
-                bx2 = self.x + 100
-                if bty <= by2 <= bty + JUMP_STEP and bx2 > blx and self.x < brx + 30:
-                    self.y = bty - 100   # snap exactly onto platform surface
-                    block.setOnPlatform(True)
-                    block.setDropStatus(False)
-                    self.setJumpStatus(False)
-                    self.setLeftJumpStatus(False)
-                    self.initialHeight = self.y
-                    break
-                block.isBoundaryPresent(self.getXPosition(), self.y)
-                if block.getOnPlatform():
-                    self.y = block.getBlockYPosition() - 105
-                    self.setJumpStatus(False)
-                    self.setLeftJumpStatus(False)
-                    self.initialHeight = self.y
-
-        if not self.getLeftDirection():
-            self.screen.blit(self.bearJumping2, (self.getXPosition(), self.getYPosition()))
-        else:
-            self.screen.blit(self.bearJumpingLeft2, (self.getXPosition(), self.getYPosition()))
-
-        # Floor landing – >= catches steps that overshoot the exact floor pixel
-        if self.getYPosition() + 105 >= 400:
-            self.setYPosition(295)
-            self.setJumpStatus(False)
-            self.setLeftJumpStatus(False)
+        """Left-facing jump – identical physics, reuses jump()."""
+        self.jump(blocks)
 
     def isBearHurt(self, positionRelative, bearXPosition, bearYPosition,
                    objectXPosition, objectYPosition, objectName):
