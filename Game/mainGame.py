@@ -238,12 +238,12 @@ class mainGame:
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
         block1 = Block(280,  340, 100, 60,  "red",     self.screen)
-        block2 = Block(550,  190, 100, 60,  "monster", self.screen)
-        block3 = Block(730,  190, 100, 60,  "red",     self.screen)
-        block5 = Block(910,  190, 100, 60,  "red",     self.screen)
-        block7 = Block(1090, 190, 100, 60,  "monster", self.screen)
-        block6 = Block(1270, 190, 100, 60,  "monster", self.screen)
-        block8 = Block(1200, 100, 250, 300, "monster", self.screen)
+        block2 = Block(560,  190, 100, 60,  "monster", self.screen)
+        block3 = Block(780,  190, 100, 60,  "red",     self.screen)
+        block5 = Block(1010, 190, 100, 60,  "red",     self.screen)
+        block7 = Block(1240, 190, 100, 60,  "monster", self.screen)
+        block6 = Block(1470, 190, 100, 60,  "monster", self.screen)
+        block8 = Block(1600, 100, 250, 300, "monster", self.screen)
 
         self.door = []
         self.keys = []
@@ -1158,8 +1158,8 @@ class mainGame:
         # Zones are ordered in ascending scroll distance with ~4 000+ unit gaps
         # so they never overlap or interfere with one another.
 
-        # ── Zone 1 @ 2 700 – big mummy flanked by monster blocks ─────────────
-        if backgroundScrollX > 2700 and not self.activeMonsters[1]:
+        # ── Zone 1 @ 3 800 – big mummy flanked by monster blocks ─────────────
+        if backgroundScrollX > 3800 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -1609,7 +1609,7 @@ class Mummy():
         self.hurtMummy = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
         self.hurtMummy = pygame.transform.scale(self.hurtMummy, (width, height))
         self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
-        self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width + 100, height))
+        self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
         self.damageAttack = 8
         self.hp = 100
         self.height = height
@@ -1632,7 +1632,7 @@ class Mummy():
             self.mummy2 = pygame.image.load("Game/Images/Mummy/mummy2Big.png")
             self.mummy2 = pygame.transform.scale(self.mummy2, (width, height))
             self.hurtMummy = pygame.transform.scale(self.hurtMummy, (width, height))
-            self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width + 100, height))
+            self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
 
         # Outline surfaces built AFTER final hurt sprites are set
         self.hurtOutline     = make_outline_surf(self.hurtMummy)
@@ -2363,18 +2363,20 @@ class Bear:
 
         self.comingUp = self.jumpVelocity > 0
 
-        # Platform landing – only check on the downstroke
+        # Platform landing – check on downstroke with velocity-sized window
+        # so fast falls never skip through a platform in a single frame.
         if self.jumpVelocity <= 0:
+            window = max(12, int(abs(self.jumpVelocity)) + 6)
             for block in blocks:
                 block.setOnPlatform(False)
             for block in blocks:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                by2 = self.y + 105
+                by2 = self.y + 100   # use 100 to match original snap logic
                 bx2 = self.x + 100
-                if bty <= by2 <= bty + 12 and bx2 > blx and self.x < brx + 30:
-                    self.y = bty - 105
+                if bty <= by2 <= bty + window and bx2 > blx and self.x < brx + 30:
+                    self.y = bty - 100   # snap feet flush with platform top
                     block.setOnPlatform(True)
                     block.setDropStatus(False)
                     self.setJumpStatus(False)
@@ -2384,7 +2386,7 @@ class Bear:
                     return
                 block.isBoundaryPresent(self.getXPosition(), self.y)
                 if block.getOnPlatform():
-                    self.y = block.getBlockYPosition() - 105
+                    self.y = block.getBlockYPosition() - 100
                     self.setJumpStatus(False)
                     self.setLeftJumpStatus(False)
                     self.initialHeight = self.y
