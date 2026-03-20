@@ -222,7 +222,7 @@ class mainGame:
         self.triggerFire = False
         floorHeight = 400
         continueLoop = True
-        bear = Bear(60, 295, self.screen)
+        bear = Bear(60, 300, self.screen)
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -238,7 +238,7 @@ class mainGame:
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
         block1 = Block(280,  340, 100, 60,  "red",     self.screen)
-        block2 = Block(560,  190, 100, 60,  "monster", self.screen)
+        block2 = Block(450,  190, 100, 60,  "monster", self.screen)
         block3 = Block(780,  190, 100, 60,  "red",     self.screen)
         block5 = Block(1010, 190, 100, 60,  "red",     self.screen)
         block7 = Block(1240, 190, 100, 60,  "monster", self.screen)
@@ -1076,9 +1076,10 @@ class mainGame:
                 block.drawRectangle()
                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                 if block.getDropStatus() and not bear.getComingUp():
-                    if bear.getYPosition() + 105 < floorHeight:
+                    if bear.getYPosition() + 100 < floorHeight:
                         bear.setYPosition(bear.getYPosition() + JUMP_STEP)
-                    elif bear.getYPosition() + 105 == floorHeight:
+                    elif bear.getYPosition() + 100 >= floorHeight:
+                        bear.setYPosition(floorHeight - 100)
                         block.setDropStatus(False)
                         block.setOnPlatform(False)
                         bear.setJumpStatus(False)
@@ -2339,7 +2340,7 @@ class Bear:
 
     def startJump(self):
         """Kick off a new jump – sets initial upward velocity."""
-        self.jumpVelocity = 15.5   # tuned so peak ≈ 190 px above launch point
+        self.jumpVelocity = 16.8   # tuned so peak ≈ 217 px – clears y=190 blocks
         self.comingUp = True
 
     def _jumpPhysics(self, blocks):
@@ -2393,9 +2394,9 @@ class Bear:
                     self.jumpVelocity = 0.0
                     return
 
-        # Floor landing
-        if self.y + 105 >= 400:
-            self.y = 295
+        # Floor landing – use sprite height (100) so bear sits flush on floor
+        if self.y + 100 >= 400:
+            self.y = 300
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
             self.jumpVelocity = 0.0
@@ -2424,11 +2425,9 @@ class Bear:
         floorHeight = 400
         if self.getXPosition() <= 30:
             self.setXPosition(self.getXPosition() + STEP)
-        if self.getYPosition() + 105 == floorHeight:
+        if self.getYPosition() + 100 >= floorHeight:
+            self.setYPosition(floorHeight - 100)   # snap flush to floor
             self.initialHeight = self.getYPosition()
-        if self.getYPosition() + 105 > floorHeight:
-            self.setYPosition(floorHeight - 105)
-            self.initialHeight = floorHeight
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
         if self.getXPosition() < 60:
