@@ -377,7 +377,6 @@ class mainGame:
                         else:
                             monster.setHurtTimer(0)
                         bear.setLeftDirection(False)
-                        bear.setLeftJumpStatus(False)
 
                     background.update(bear.getXPosition(), bear.getYPosition())
 
@@ -1079,7 +1078,13 @@ class mainGame:
             # ---- Platforms and gravity ----------------------------------
             for block in self.blocks:
                 block.drawRectangle()
-                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                # Only run boundary logic on the ground.  While airborne,
+                # _jumpPhysics() is the sole authority on vertical state;
+                # calling isBoundaryPresent() mid-air can corrupt dropStatus
+                # the instant _jumpPhysics() sets jumpStatus=False, causing the
+                # bear to fall straight through a platform it just landed on.
+                if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
+                    block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                 # Skip drop gravity while jump physics are already controlling
                 # vertical movement – double-falling causes the bear to blow
                 # through landing windows and fall through platforms.
@@ -2381,7 +2386,7 @@ class Bear:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                if self.x + 60 > blx and self.x < brx + 20:
+                if self.x + 60 > blx and self.x < brx:
                     if bty <= feet <= bty + 30:
                         self.y = bty - 100
                         block.setOnPlatform(True)
