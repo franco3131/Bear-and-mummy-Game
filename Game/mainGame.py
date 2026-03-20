@@ -2363,10 +2363,15 @@ class Bear:
         Velocity-based jump physics shared by jump() and leftJump().
         • Parabolic arc via variable gravity (lighter rising, heavier falling).
         • Variable height: releasing Z early caps upward velocity at 3 px/frame.
+        • Landing uses a frame-crossing check: did feet move from above to
+          at/below a block's top surface this frame? Works at any fall speed.
         """
         # Variable jump height – cut ascent when Z is released early
         if self.jumpVelocity > 3.0 and not pygame.key.get_pressed()[pygame.K_z]:
             self.jumpVelocity = 3.0
+
+        # Record feet position BEFORE moving so we can detect surface crossing
+        prev_feet = self.y + 100
 
         # Move bear vertically (positive velocity = moving up)
         self.y -= int(round(self.jumpVelocity))
@@ -2379,65 +2384,59 @@ class Bear:
 
         self.comingUp = self.jumpVelocity > 0
 
-        # Clear stale onPlatform flags every frame so only the block actually
-        # being stood on ends up marked.
+        # Clear stale onPlatform flags every frame
         for block in blocks:
             block.setOnPlatform(False)
 
         bx2  = self.x + 100   # bear's right edge
-        feet = self.y + 100   # bear's feet
+        feet = self.y + 100   # bear's feet (after move)
 
         jumped_from_floor = (self.initialHeight == 300)
 
+        def _land(block, bty):
+            """Snap bear onto block and end the jump."""
+            self.y = bty - 100
+            block.setOnPlatform(True)
+            block.setDropStatus(False)
+            self.setJumpStatus(False)
+            self.setLeftJumpStatus(False)
+            self.initialHeight = self.y
+            self.jumpVelocity = 0.0
+
         # ------------------------------------------------------------------ #
         # Platform landing – downstroke only.                                 #
-        # Uses an intersection check instead of a fixed pixel window:         #
-        #   bear-top (self.y) is above the block surface  AND                 #
-        #   bear-feet are at or below the block surface                       #
-        # This catches any fall speed – the bear cannot skip through a block  #
-        # even if gravity moves it many pixels in one frame.                  #
+        #                                                                     #
+        # Primary check: did bear's feet cross a block's top surface this     #
+        # frame?  prev_feet < bty means feet were above it; feet >= bty means #
+        # they've reached or passed it.  No fixed window – works at any speed.#
+        #                                                                     #
+        # Secondary: isBoundaryPresent fallback for exact-pixel cases.        #
         # ------------------------------------------------------------------ #
         if self.jumpVelocity <= 0:
 
             if jumped_from_floor:
                 # ---- Case 1: launched from the floor -------------------------
-                # Check all blocks for a top-surface intersection.
                 for block in blocks:
                     bty = block.getBlockYPosition()
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
 
-                    # Primary: intersection check (speed-independent)
-                    if self.y <= bty and feet >= bty and bx2 > blx and self.x < brx + 30:
-                        self.y = bty - 100
-                        block.setOnPlatform(True)
-                        block.setDropStatus(False)
-                        self.setJumpStatus(False)
-                        self.setLeftJumpStatus(False)
-                        self.initialHeight = self.y
-                        self.jumpVelocity = 0.0
+                    if prev_feet <= bty and feet >= bty and bx2 > blx and self.x < brx + 30:
+                        _land(block, bty)
                         return
 
-                # Secondary: isBoundaryPresent exact-match fallback
+                # Secondary fallback
                 for block in blocks:
                     block.isBoundaryPresent(self.x, self.y)
                     if block.getOnPlatform():
                         bty = block.getBlockYPosition()
-                        self.y = bty - 100
-                        block.setDropStatus(False)
-                        self.setJumpStatus(False)
-                        self.setLeftJumpStatus(False)
-                        self.initialHeight = self.y
-                        self.jumpVelocity = 0.0
+                        _land(block, bty)
                         return
 
             else:
                 # ---- Case 2: launched from another platform ------------------
-                # Skip the source block so the bear cannot snap back onto the
-                # platform it just left.
-                source_bty = self.initialHeight + 100   # top-y of departure block
+                source_bty = self.initialHeight + 100
 
-                # Primary: intersection check across all non-source blocks
                 for block in blocks:
                     bty = block.getBlockYPosition()
                     if bty == source_bty:
@@ -2445,30 +2444,19 @@ class Bear:
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
 
-                    if self.y <= bty and feet >= bty and bx2 > blx and self.x < brx + 30:
-                        self.y = bty - 100
-                        block.setOnPlatform(True)
-                        block.setDropStatus(False)
-                        self.setJumpStatus(False)
-                        self.setLeftJumpStatus(False)
-                        self.initialHeight = self.y
-                        self.jumpVelocity = 0.0
+                    if prev_feet <= bty and feet >= bty and bx2 > blx and self.x < brx + 30:
+                        _land(block, bty)
                         return
 
-                # Secondary: isBoundaryPresent fallback (skip source block)
+                # Secondary fallback (skip source block)
                 for block in blocks:
                     bty = block.getBlockYPosition()
                     if bty == source_bty:
                         continue
                     block.isBoundaryPresent(self.x, self.y)
                     if block.getOnPlatform():
-                        self.y = bty - 100
-                        block.setOnPlatform(True)
-                        block.setDropStatus(False)
-                        self.setJumpStatus(False)
-                        self.setLeftJumpStatus(False)
-                        self.initialHeight = self.y
-                        self.jumpVelocity = 0.0
+                        bty = block.getBlockYPosition()
+                        _land(block, bty)
                         return
 
         # Floor landing – use sprite height (100) so bear sits flush on floor
