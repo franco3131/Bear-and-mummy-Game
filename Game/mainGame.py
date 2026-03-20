@@ -325,9 +325,9 @@ class mainGame:
                             jumpTimer = 0
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if block.getIsLeftBoundary():
-                                    bear.setXPosition(bear.getXPosition() - STEP)
-                                    totalDistance -= STEP
+                                # No left-boundary pushback while airborne – landing is
+                                # handled by jump physics; pushing back mid-arc blocks
+                                # block-to-block jumps.
                             bear.setXPosition(bear.getXPosition() + STEP)
                             totalDistance += STEP
                             backgroundScrollX = bear.getXPosition() - STEP
@@ -345,10 +345,12 @@ class mainGame:
                                     backgroundScrollX = bear.getXPosition() + STEP
                                     background.setXPosition(backgroundScrollX)
 
-                    for block in self.blocks:
-                        if block.getIsLeftBoundary():
-                            bear.setXPosition(bear.getXPosition() - STEP)
-                            totalDistance += STEP
+                    # Only enforce side-wall collision on the ground, not mid-arc
+                    if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
+                        for block in self.blocks:
+                            if block.getIsLeftBoundary():
+                                bear.setXPosition(bear.getXPosition() - STEP)
+                                totalDistance += STEP
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
@@ -434,10 +436,12 @@ class mainGame:
                                     background.setXPosition(backgroundScrollX)
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
-                        for block in self.blocks:
-                            if block.getIsRightBoundary():
-                                bear.setXPosition(bear.getXPosition() + STEP)
-                                totalDistance += STEP
+                        # Only enforce side-wall collision on the ground, not mid-arc
+                        if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
+                            for block in self.blocks:
+                                if block.getIsRightBoundary():
+                                    bear.setXPosition(bear.getXPosition() + STEP)
+                                    totalDistance += STEP
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
