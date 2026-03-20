@@ -345,9 +345,9 @@ class mainGame:
 
                 keys = pygame.key.get_pressed()
 
-                # ---- F: throw fireball at full health --------------------
+                # ---- X: throw fireball at full health --------------------
                 playerFireCooldown = max(0, playerFireCooldown - 1)
-                if (keys[pygame.K_f]
+                if (keys[pygame.K_x]
                         and playerFireCooldown == 0
                         and bear.getHp() >= bear.maxHp):
                     playerFireCooldown = 30
@@ -1110,9 +1110,9 @@ class mainGame:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
                     if pf_rect.colliderect(m_rect):
-                        monster.setDamageReceived(15)
+                        monster.setDamageReceived(9)
                         monster.setStunned(1)
-                        monster.setHealth(monster.getHealth() - 15)
+                        monster.setHealth(monster.getHealth() - 9)
                         pf_to_remove.append(pf)
                         break
             for pf in pf_to_remove:
@@ -1729,7 +1729,7 @@ class Mummy():
         randomMax = random.randint(300, 500)
         self.changeDirection = random.randint(200, randomMax)
         self.storeDirection = 1
-        self.health = random.randint(6, 13)
+        self.health = random.randint(7, 16)
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.hurtMummy = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
@@ -1737,7 +1737,7 @@ class Mummy():
         self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
         self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
         self.damageAttack = 8
-        self.hp = 100
+        self.hp = 120
         self.height = height
         self.width = width
         self.hurtTimer = 0
@@ -1759,7 +1759,7 @@ class Mummy():
         if self.height > 100:
             self.damageAttack = 10
             self.exp = 20
-            self.health = 20
+            self.health = 24
             raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
             raw_hurt = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
             # Force-scale both walk frames from the same source so they are
@@ -1976,7 +1976,7 @@ class Witch():
         self.stunned = 0
         self.screen = screen
         self.rand = 1
-        self.health = random.randint(20, 35)
+        self.health = random.randint(24, 42)
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.changeDirectionX = random.randint(100, 300)
@@ -1986,7 +1986,7 @@ class Witch():
         self.setThrowsFireBall = False
         self.fireBallAnimationCounter = 0
         self.damageAttack = 5
-        self.hp = 100
+        self.hp = 120
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
         self.exp = 12
@@ -2200,7 +2200,7 @@ class GreenBlob():
         self.direction = -1 * random.randint(1, 2)
         self.x = x
         self.y = y
-        self.health = 22
+        self.health = 26
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
@@ -2216,7 +2216,7 @@ class GreenBlob():
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.damageAttack = 12
-        self.hp = 22
+        self.hp = 26
         self.hurtTimer = 0
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
@@ -2228,7 +2228,7 @@ class GreenBlob():
         if self.height >= 200:
             self.height = 500
             self.width = 300
-            self.health = 50
+            self.health = 60
             self.exp = 40
             self.damageAttack = 25
 
@@ -2679,7 +2679,7 @@ class Bear:
         _hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
                            PX + 44, PY + 34, (255, 255, 255))
         if hp >= maxHp:
-            _hud_text_outlined(self.screen, _FONT_HUD_VAL, "F: FIRE!",
+            _hud_text_outlined(self.screen, _FONT_HUD_VAL, "X: FIRE!",
                                PX + 120, PY + 34, (255, 140, 30))
 
     def displayBearExp(self):
@@ -2988,7 +2988,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = 6
+        self.health = 7
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
