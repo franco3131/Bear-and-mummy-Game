@@ -1315,6 +1315,45 @@ class mainGame:
             self.door1 = self._z1_door
             self.door.append(self.door1)
 
+        # ── Zone 1.5 @ 5 500 – "Crumbling Ruins" gauntlet ───────────────────
+        elif backgroundScrollX > 5500 and not self.activeMonsters[10]:
+            self.activeMonsters[10] = True
+            self.mummys = []; self.witches = []; self.blocks = []
+            self.greenBlobs = []; self.fires = []
+
+            # ── Pyramid staircase – all platforms have y+h ≤ 310 so floor
+            #    mummies (m_top = 312) walk straight underneath them. ──────────
+            plat1 = Block(450, 248, 200, 60, "striped",     self.screen)
+            plat2 = Block(640, 188, 180, 60, "greyRock",    self.screen)
+            plat3 = Block(810, 122, 220, 60, "checkered",   self.screen)
+            plat4 = Block(1035, 188, 180, 60, "monster",    self.screen)
+            plat5 = Block(1210, 248, 200, 60, "stripedFlip",self.screen)
+
+            # ── Tall coffin pillars – y = 260 so mummies (m_top=312) hit them
+            #    as turning walls; player must jump over or around. ────────────
+            coffin1 = Block(560, 260, 45, 140, "monster", self.screen)
+            coffin2 = Block(790, 260, 45, 140, "monster", self.screen)
+            coffin3 = Block(1010, 260, 45, 140, "monster", self.screen)
+            coffin4 = Block(1200, 260, 45, 140, "monster", self.screen)
+
+            self.blocks.extend([plat1, plat2, plat3, plat4, plat5,
+                                 coffin1, coffin2, coffin3, coffin4])
+
+            # ── Five floor mummies – coffins act as natural patrol walls ──────
+            for x in [430, 630, 850, 1060, 1260]:
+                self.mummys.append(
+                    Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
+
+            # ── Two green blobs adding chaos in the wider gaps ────────────────
+            self.greenBlobs.append(GreenBlob(710, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1120, 300, 100, 100, self.screen))
+
+            # ── Two witches: one low-and-close, one high-and-far ─────────────
+            witch1 = Witch(920,  80, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1350, 140, self.witch, self.witch2, self.screen)
+            self.witches.extend([witch1, witch2])
+            self.triggerFire = True
+
         # ── Zone 2 @ 7 000 – green blobs on a rock platform ──────────────────
         elif backgroundScrollX > 7000 and not self.activeMonsters[3]:
             self.activeMonsters[3] = True
