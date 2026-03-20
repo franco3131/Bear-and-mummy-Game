@@ -298,9 +298,12 @@ class mainGame:
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            bear.setXPosition(bear.getXPosition() + STEP)
-                            backgroundScrollX = bear.getXPosition() - STEP
-                            background.setXPosition(backgroundScrollX)
+                            if not any(b.getIsLeftBoundary() for b in self.blocks):
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                                backgroundScrollX = bear.getXPosition() - STEP
+                                background.setXPosition(backgroundScrollX)
+                            else:
+                                totalDistance -= STEP
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes)
@@ -387,9 +390,14 @@ class mainGame:
                         # ---- Already in the air: move left every frame ----
                         totalDistance -= STEP
                         if bear.getXPosition() > self.leftBoundary:
-                            bear.setXPosition(bear.getXPosition() - STEP)
-                            backgroundScrollX = bear.getXPosition() + STEP
-                            background.setXPosition(backgroundScrollX)
+                            for block in self.blocks:
+                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            if not any(b.getIsRightBoundary() for b in self.blocks):
+                                bear.setXPosition(bear.getXPosition() - STEP)
+                                backgroundScrollX = bear.getXPosition() + STEP
+                                background.setXPosition(backgroundScrollX)
+                            else:
+                                totalDistance += STEP
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes)
@@ -646,12 +654,13 @@ class mainGame:
                             jumpTimer = 0
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if block.getIsLeftBoundary():
-                                    bear.setXPosition(bear.getXPosition() - STEP)
-                                    totalDistance -= STEP
-                            backgroundScrollX = bear.getXPosition()
-                            background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() + STEP)
+                            _wall_right = any(b.getIsLeftBoundary() for b in self.blocks)
+                            if not _wall_right:
+                                backgroundScrollX = bear.getXPosition()
+                                background.setXPosition(backgroundScrollX)
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                            else:
+                                totalDistance -= STEP
                         else:
                             jumpTimer = 0
                             moveObjects = (self.mummys + self.fires + self.witches +
@@ -759,9 +768,15 @@ class mainGame:
                     elif bear.getJumpStatus() or bear.getLeftJumpStatus():
                         jumpTimer = 0
                         if bear.getXPosition() > self.leftBoundary:
-                            backgroundScrollX = bear.getXPosition() + STEP
-                            background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() - STEP)
+                            for block in self.blocks:
+                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            _wall_left = any(b.getIsRightBoundary() for b in self.blocks)
+                            if not _wall_left:
+                                backgroundScrollX = bear.getXPosition() + STEP
+                                background.setXPosition(backgroundScrollX)
+                                bear.setXPosition(bear.getXPosition() - STEP)
+                            else:
+                                totalDistance += STEP
                         else:
                             moveObjects = (self.mummys + self.fires + self.greenBlobs +
                                            self.witches + self.door + self.keys + self.spikes)
@@ -2225,6 +2240,7 @@ class Bear:
         self.x = x
         self.y = y
         self.initialHeight = 300
+        self.sourceBlock = None
         self.jumping = False
         self.jumpLeft = False
         self.jumpVelocity = 0.0      # px/frame upward; positive = rising
@@ -2401,6 +2417,7 @@ class Bear:
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
             self.initialHeight = self.y
+            self.sourceBlock = block   # remember which block we're on
             self.jumpVelocity = 0.0
 
         # ------------------------------------------------------------------ #
@@ -2435,12 +2452,12 @@ class Bear:
 
             else:
                 # ---- Case 2: launched from another platform ------------------
-                source_bty = self.initialHeight + 100
-
+                # Skip the exact block object we jumped from (not by Y, since
+                # multiple blocks can share the same Y coordinate).
                 for block in blocks:
-                    bty = block.getBlockYPosition()
-                    if bty == source_bty:
+                    if block is self.sourceBlock:
                         continue
+                    bty = block.getBlockYPosition()
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
 
@@ -2450,8 +2467,7 @@ class Bear:
 
                 # Secondary fallback (skip source block)
                 for block in blocks:
-                    bty = block.getBlockYPosition()
-                    if bty == source_bty:
+                    if block is self.sourceBlock:
                         continue
                     block.isBoundaryPresent(self.x, self.y)
                     if block.getOnPlatform():
@@ -2465,6 +2481,7 @@ class Bear:
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
             self.jumpVelocity = 0.0
+            self.sourceBlock = None
 
     def jump(self, blocks):
         """Right-facing jump (also handles neutral/vertical jump)."""
