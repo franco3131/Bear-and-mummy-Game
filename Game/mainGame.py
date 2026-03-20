@@ -601,10 +601,12 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        for block in self.blocks:
-                            if block.getIsLeftBoundary():
-                                bear.setXPosition(bear.getXPosition() - STEP)
-                                totalDistance -= STEP
+                        # Non-scroll case: undo bear position if wall detected
+                        if not _right_scrolled:
+                            for block in self.blocks:
+                                if block.getIsLeftBoundary():
+                                    bear.setXPosition(bear.getXPosition() - STEP)
+                                    totalDistance -= STEP
 
                         # Detect if any block is blocking movement right
                         _wall_blocked = any(b.getIsLeftBoundary() for b in self.blocks)
@@ -617,7 +619,7 @@ class mainGame:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for b in self.blocks:
                                 b.setblockXPosition(b.getBlockXPosition() + STEP)
-                            totalDistance += STEP
+                            totalDistance -= STEP
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
