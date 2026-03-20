@@ -1110,9 +1110,9 @@ class mainGame:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
                     if pf_rect.colliderect(m_rect):
-                        monster.setDamageReceived(9)
+                        monster.setDamageReceived(1)
                         monster.setStunned(1)
-                        monster.setHealth(monster.getHealth() - 9)
+                        monster.setHealth(monster.getHealth() - 1)
                         pf_to_remove.append(pf)
                         break
             for pf in pf_to_remove:
