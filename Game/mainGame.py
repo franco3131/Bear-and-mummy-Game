@@ -15,14 +15,43 @@ _FONT_DAMAGE = None
 _FONT_HUD = None
 _FONT_BOSS_DAMAGE = None
 _FONT_POPUP = None
+_FONT_HUD_LABEL = None
+_FONT_HUD_VAL = None
+_FONT_HUD_LVL = None
 
 
 def _init_fonts():
     global _FONT_DAMAGE, _FONT_HUD, _FONT_BOSS_DAMAGE, _FONT_POPUP
+    global _FONT_HUD_LABEL, _FONT_HUD_VAL, _FONT_HUD_LVL
     _FONT_DAMAGE = pygame.font.SysFont("Italic", 40)
     _FONT_HUD = pygame.font.SysFont("Italic", 40)
     _FONT_BOSS_DAMAGE = pygame.font.SysFont("Italic", 60)
     _FONT_POPUP = pygame.font.SysFont("Italic", 26)
+    _FONT_HUD_LABEL = pygame.font.SysFont(None, 26, bold=True)
+    _FONT_HUD_VAL = pygame.font.SysFont(None, 20, bold=True)
+    _FONT_HUD_LVL = pygame.font.SysFont(None, 38, bold=True)
+
+
+def _hud_panel(screen, x, y, w, h, border_color, border=3):
+    inner = pygame.Rect(x, y, w, h)
+    pygame.draw.rect(screen, (18, 14, 26), inner, border_radius=6)
+    pygame.draw.rect(screen, border_color, inner, border, border_radius=6)
+
+
+def _hud_bar(screen, x, y, w, h, ratio, fill_color):
+    track = pygame.Rect(x, y, w, h)
+    pygame.draw.rect(screen, (40, 30, 40), track, border_radius=4)
+    fill_w = max(0, int(w * ratio))
+    if fill_w > 0:
+        fill = pygame.Rect(x, y, fill_w, h)
+        pygame.draw.rect(screen, fill_color, fill, border_radius=4)
+    pygame.draw.rect(screen, (200, 200, 200), track, 1, border_radius=4)
+
+
+def _hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0)):
+    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+        screen.blit(font.render(text, True, outline), (x + dx, y + dy))
+    screen.blit(font.render(text, True, color), (x, y))
 
 
 # ---------------------------------------------------------------------------
@@ -2632,20 +2661,51 @@ class Bear:
                             self.getXPosition() + 60, self.getYPosition() - 60)
 
     def displayBearHp(self):
-        pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(10, 10, 300, 40))
-        hp_text = "Health : " + str(self.getHp()) + "/" + str(self.getMaxHp())
-        text = _FONT_HUD.render(hp_text, False, (255, 255, 255))
-        self.screen.blit(text, (20, 20))
+        PX, PY, PW, PH = 8, 6, 218, 60
+        hp = self.getHp()
+        maxHp = self.getMaxHp()
+        ratio = max(0.0, hp / maxHp)
+        if ratio > 0.6:
+            bar_color = (80, 210, 80)
+        elif ratio > 0.25:
+            bar_color = (230, 210, 50)
+        else:
+            bar_color = (220, 55, 55)
+        _hud_panel(self.screen, PX, PY, PW, PH, (190, 40, 40))
+        _hud_text_outlined(self.screen, _FONT_HUD_LABEL, "HP",
+                           PX + 9, PY + 9, (255, 230, 50))
+        _hud_bar(self.screen, PX + 44, PY + 11, PW - 54, 18, ratio, bar_color)
+        val = str(hp) + "/" + str(maxHp)
+        _hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
+                           PX + 44, PY + 34, (255, 255, 255))
+        if hp >= maxHp:
+            _hud_text_outlined(self.screen, _FONT_HUD_VAL, "F: FIRE!",
+                               PX + 120, PY + 34, (255, 140, 30))
 
     def displayBearExp(self):
         self.levelUpCheck()
-        pygame.draw.rect(self.screen, (0, 0, 0), pygame.Rect(400, 10, 400, 40))
-        exp_text = _FONT_HUD.render(
-            'Exp: ' + str(self.getCurrentExp()) + "/" + str(self.getMaxExp()),
-            False, (255, 255, 255))
-        self.screen.blit(exp_text, (400, 20))
-        lvl_text = _FONT_HUD.render('Power Level: ' + str(self.level), False, (255, 255, 255))
-        self.screen.blit(lvl_text, (600, 20))
+        EX, EY, EW, EH = 236, 6, 198, 60
+        exp = self.getCurrentExp()
+        maxExp = self.getMaxExp()
+        ratio = max(0.0, min(1.0, exp / maxExp)) if maxExp > 0 else 0.0
+        _hud_panel(self.screen, EX, EY, EW, EH, (60, 100, 220))
+        _hud_text_outlined(self.screen, _FONT_HUD_LABEL, "EXP",
+                           EX + 8, EY + 9, (120, 200, 255))
+        _hud_bar(self.screen, EX + 50, EY + 11, EW - 60, 18,
+                 ratio, (255, 195, 30))
+        val = str(exp) + "/" + str(maxExp)
+        _hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
+                           EX + 50, EY + 34, (255, 255, 255))
+        LX, LY, LW, LH = 444, 6, 170, 60
+        _hud_panel(self.screen, LX, LY, LW, LH, (160, 60, 220))
+        _hud_text_outlined(self.screen, _FONT_HUD_VAL, "POWER LVL",
+                           LX + 8, LY + 9, (200, 160, 255))
+        lvl_surf = _FONT_HUD_LVL.render(str(self.level), True, (255, 230, 50))
+        lvl_x = LX + (LW - lvl_surf.get_width()) // 2
+        lvl_outline = _FONT_HUD_LVL.render(str(self.level), True, (0, 0, 0))
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            self.screen.blit(lvl_outline, (lvl_x + dx, LY + 28 + dy))
+        self.screen.blit(lvl_surf, (lvl_x, LY + 28))
 
     def setMaxHp(self, maxHp):
         self.maxHp = maxHp
