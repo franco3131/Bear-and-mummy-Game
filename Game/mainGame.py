@@ -2380,18 +2380,19 @@ class Bear:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                # Generous horizontal overlap so timing mismatches don't cause misses
-                if self.x + 60 > blx and self.x < brx + 20:
-                    # 30 px vertical window absorbs per-frame rounding error
-                    if bty <= feet <= bty + 30:
-                        self.y = bty - 100
-                        block.setOnPlatform(True)
-                        block.setDropStatus(False)
-                        self.setJumpStatus(False)
-                        self.setLeftJumpStatus(False)
-                        self.initialHeight = self.y
-                        self.jumpVelocity = 0.0
-                        return
+                h_ok = self.x + 60 > blx and self.x < brx + 20
+                v_ok = bty <= feet <= bty + 30
+                if bty < 350:  # only log non-floor blocks
+                    print(f"LAND? bear=({self.x},{self.y}) feet={feet} blk=({blx},{bty}-{brx}) h={h_ok} v={v_ok} vel={self.jumpVelocity:.1f}")
+                if h_ok and v_ok:
+                    self.y = bty - 100
+                    block.setOnPlatform(True)
+                    block.setDropStatus(False)
+                    self.setJumpStatus(False)
+                    self.setLeftJumpStatus(False)
+                    self.initialHeight = self.y
+                    self.jumpVelocity = 0.0
+                    return
 
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
