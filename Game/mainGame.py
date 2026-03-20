@@ -43,6 +43,24 @@ BEAR_W = 80
 BEAR_H = 100
 
 
+def scale_to_box(img, target_w, target_h):
+    """Scale img so height == target_h preserving aspect ratio,
+    then crop (centred) or pad width to target_w.
+    Returns a surface of exactly (target_w, target_h)."""
+    iw, ih = img.get_size()
+    scale = target_h / ih
+    nw = max(1, int(iw * scale))
+    scaled = pygame.transform.scale(img, (nw, target_h))
+    surf = pygame.Surface((target_w, target_h), pygame.SRCALPHA)
+    if nw >= target_w:
+        ox = (nw - target_w) // 2
+        surf.blit(scaled, (0, 0), (ox, 0, target_w, target_h))
+    else:
+        ox = (target_w - nw) // 2
+        surf.blit(scaled, (ox, 0))
+    return surf
+
+
 def make_outline_surf(sprite, color=(255, 255, 255, 220)):
     """Return a surface with a white outline matching the sprite's silhouette."""
     mask = pygame.mask.from_surface(sprite)
@@ -1653,12 +1671,13 @@ class Mummy():
             self.damageAttack = 10
             self.exp = 20
             self.health = 20
-            self.mummy1 = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
-            self.mummy1 = pygame.transform.scale(self.mummy1, (width, height))
-            self.mummy2 = pygame.image.load("Game/Images/Mummy/mummy2Big.png")
-            self.mummy2 = pygame.transform.scale(self.mummy2, (width, height))
-            self.hurtMummy = pygame.transform.scale(self.hurtMummy, (width, height))
-            self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
+            raw1 = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
+            raw2 = pygame.image.load("Game/Images/Mummy/mummy2Big.png")
+            raw_hurt = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
+            self.mummy1 = scale_to_box(raw1, width, height)
+            self.mummy2 = scale_to_box(raw2, width, height)
+            self.hurtMummy = scale_to_box(raw_hurt, width, height)
+            self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
             self.changeDirection = random.randint(800, 1200)
 
         # Outline surfaces built AFTER final hurt sprites are set
