@@ -290,9 +290,32 @@ class mainGame:
                 keys = pygame.key.get_pressed()
 
                 # ---- Z + RIGHT: jump-right --------------------------------
-                if keys[pygame.K_z] and keys[pygame.K_RIGHT] and jumpTimer > 12:
-                    totalDistance += STEP
-                    if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
+                if keys[pygame.K_z] and keys[pygame.K_RIGHT]:
+                    airborne = bear.getJumpStatus() or bear.getLeftJumpStatus()
+                    if airborne:
+                        # ---- Already in the air: move right every frame ----
+                        totalDistance += STEP
+                        if bear.getXPosition() < self.rightBoundary:
+                            for block in self.blocks:
+                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            bear.setXPosition(bear.getXPosition() + STEP)
+                            backgroundScrollX = bear.getXPosition() - STEP
+                            background.setXPosition(backgroundScrollX)
+                        else:
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                            for obj in moveObjects:
+                                obj.setXPosition(obj.getXPosition() - STEP)
+                            for block in self.blocks:
+                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                                if not block.getIsLeftBoundary():
+                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
+                                    backgroundScrollX = bear.getXPosition() + STEP
+                                    background.setXPosition(backgroundScrollX)
+
+                    elif jumpTimer > 12:
+                        # ---- On the ground: start a new jump (cooldown gated) ----
+                        totalDistance += STEP
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -313,37 +336,12 @@ class mainGame:
                                     block.setblockXPosition(block.getBlockXPosition() - STEP)
                                     backgroundScrollX = bear.getXPosition() + STEP
                                     background.setXPosition(backgroundScrollX)
-
                         backgroundScrollX -= STEP
                         background.setXPosition(backgroundScrollX)
                         bear.setJumpStatus(True)
                         bear.startJump()
+                        jumpTimer = 0
                         background.update(bear.getXPosition(), bear.getYPosition())
-
-                    else:
-                        if bear.getXPosition() < self.rightBoundary:
-                            jumpTimer = 0
-                            for block in self.blocks:
-                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                # No left-boundary pushback while airborne – landing is
-                                # handled by jump physics; pushing back mid-arc blocks
-                                # block-to-block jumps.
-                            bear.setXPosition(bear.getXPosition() + STEP)
-                            totalDistance += STEP
-                            backgroundScrollX = bear.getXPosition() - STEP
-                            background.setXPosition(backgroundScrollX)
-                        else:
-                            jumpTimer = 0
-                            moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
-                            for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() - STEP)
-                            for block in self.blocks:
-                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if not block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    backgroundScrollX = bear.getXPosition() + STEP
-                                    background.setXPosition(backgroundScrollX)
 
                     # Only enforce side-wall collision on the ground, not mid-arc
                     if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
@@ -384,9 +382,32 @@ class mainGame:
                     background.update(bear.getXPosition(), bear.getYPosition())
 
                 # ---- Z + LEFT: jump-left ---------------------------------
-                elif keys[pygame.K_z] and keys[pygame.K_LEFT] and jumpTimer > 12:
-                    totalDistance -= STEP
-                    if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
+                elif keys[pygame.K_z] and keys[pygame.K_LEFT]:
+                    airborne = bear.getJumpStatus() or bear.getLeftJumpStatus()
+                    if airborne:
+                        # ---- Already in the air: move left every frame ----
+                        totalDistance -= STEP
+                        if bear.getXPosition() > self.leftBoundary:
+                            bear.setXPosition(bear.getXPosition() - STEP)
+                            backgroundScrollX = bear.getXPosition() + STEP
+                            background.setXPosition(backgroundScrollX)
+                        else:
+                            moveObjects = (self.mummys + self.fires + self.witches +
+                                           self.greenBlobs + self.door + self.keys + self.spikes)
+                            for obj in moveObjects:
+                                obj.setXPosition(obj.getXPosition() + STEP)
+                            for block in self.blocks:
+                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                                if not block.getIsRightBoundary():
+                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
+                                    backgroundScrollX = bear.getXPosition() - STEP
+                                    background.setXPosition(backgroundScrollX)
+                            backgroundScrollX = bear.getXPosition()
+                            background.setXPosition(backgroundScrollX)
+
+                    elif jumpTimer > 12:
+                        # ---- On the ground: start a new jump (cooldown gated) ----
+                        totalDistance -= STEP
                         jumpTimer = 0
                         if bear.getXPosition() > self.leftBoundary:
                             for block in self.blocks:
@@ -415,33 +436,13 @@ class mainGame:
                         background.update(backgroundScrollX, bear.getYPosition())
                         bear.setJumpStatus(True)
                         bear.startJump()
-                    else:
-                        if bear.getXPosition() > self.leftBoundary:
-                            jumpTimer = 0
-                            bear.setXPosition(bear.getXPosition() - STEP)
-                            totalDistance -= STEP
-                            backgroundScrollX = bear.getXPosition() + STEP
-                            background.setXPosition(backgroundScrollX)
-                        else:
-                            jumpTimer = 0
-                            moveObjects = (self.mummys + self.fires + self.witches +
-                                           self.greenBlobs + self.door + self.keys + self.spikes)
-                            for obj in moveObjects:
-                                obj.setXPosition(obj.getXPosition() + STEP)
-                            for block in self.blocks:
-                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if not block.getIsRightBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
-                                    backgroundScrollX = bear.getXPosition() - STEP
-                                    background.setXPosition(backgroundScrollX)
-                            backgroundScrollX = bear.getXPosition()
-                            background.setXPosition(backgroundScrollX)
-                        # Only enforce side-wall collision on the ground, not mid-arc
-                        if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
-                            for block in self.blocks:
-                                if block.getIsRightBoundary():
-                                    bear.setXPosition(bear.getXPosition() + STEP)
-                                    totalDistance += STEP
+
+                    # Only enforce side-wall collision on the ground, not mid-arc
+                    if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
+                        for block in self.blocks:
+                            if block.getIsRightBoundary():
+                                bear.setXPosition(bear.getXPosition() + STEP)
+                                totalDistance += STEP
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -2380,19 +2381,16 @@ class Bear:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                h_ok = self.x + 60 > blx and self.x < brx + 20
-                v_ok = bty <= feet <= bty + 30
-                if bty < 350:  # only log non-floor blocks
-                    print(f"LAND? bear=({self.x},{self.y}) feet={feet} blk=({blx},{bty}-{brx}) h={h_ok} v={v_ok} vel={self.jumpVelocity:.1f}")
-                if h_ok and v_ok:
-                    self.y = bty - 100
-                    block.setOnPlatform(True)
-                    block.setDropStatus(False)
-                    self.setJumpStatus(False)
-                    self.setLeftJumpStatus(False)
-                    self.initialHeight = self.y
-                    self.jumpVelocity = 0.0
-                    return
+                if self.x + 60 > blx and self.x < brx + 20:
+                    if bty <= feet <= bty + 30:
+                        self.y = bty - 100
+                        block.setOnPlatform(True)
+                        block.setDropStatus(False)
+                        self.setJumpStatus(False)
+                        self.setLeftJumpStatus(False)
+                        self.initialHeight = self.y
+                        self.jumpVelocity = 0.0
+                        return
 
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
