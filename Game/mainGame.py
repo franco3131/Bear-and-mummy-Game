@@ -1079,7 +1079,12 @@ class mainGame:
             for block in self.blocks:
                 block.drawRectangle()
                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                if block.getDropStatus() and not bear.getComingUp():
+                # Skip drop gravity while jump physics are already controlling
+                # vertical movement – double-falling causes the bear to blow
+                # through landing windows and fall through platforms.
+                if (block.getDropStatus() and not bear.getComingUp()
+                        and not bear.getJumpStatus()
+                        and not bear.getLeftJumpStatus()):
                     if bear.getYPosition() + 100 < floorHeight:
                         bear.setYPosition(bear.getYPosition() + JUMP_STEP)
                     elif bear.getYPosition() + 100 >= floorHeight:
