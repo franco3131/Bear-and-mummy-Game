@@ -1737,6 +1737,34 @@ class mainGame:
             self.greenBlobs.append(GreenBlob(1650, 300, 100, 100, self.screen))
             self.triggerFire = True
 
+        # ── Zone 9 @ 36 500 – "Floating Gauntlet" mixed challenge ──────────────
+        elif backgroundScrollX > 36500 and not self.activeMonsters[10]:
+            self.activeMonsters[10] = True
+            self.mummys = []; self.witches = []; self.blocks = []
+            self.greenBlobs = []; self.fires = []; self.spikes = []
+
+            # Floating platforms arranged at varied heights
+            block1 = Block(1000, 200, 120, 50, "striped", self.screen)
+            block2 = Block(1250, 280, 120, 50, "striped", self.screen)
+            block3 = Block(1500, 160, 120, 50, "striped", self.screen)
+            block4 = Block(1750, 240, 120, 50, "striped", self.screen)
+            block5 = Block(2000, 180, 120, 50, "striped", self.screen)
+            self.blocks.extend([block1, block2, block3, block4, block5])
+
+            # Mixed enemy types for a challenging final gauntlet
+            self.mummys.extend([
+                Mummy(1050, 150, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1550, 110, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1800, 190, 100, 100, self.mummy1, self.mummy2, self.screen),
+            ])
+            witch1 = Witch(1300, 230, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1950, 130, self.witch, self.witch2, self.screen)
+            self.witches.extend([witch1, witch2])
+            self.greenBlobs.extend([
+                GreenBlob(1150, 250, 100, 100, self.screen),
+                GreenBlob(1700, 210, 100, 100, self.screen),
+            ])
+
     # -----------------------------------------------------------------------
     def _switch_music(self, track):
         if getattr(self, '_current_music', None) == track:
@@ -2905,10 +2933,12 @@ class Bear:
 
             else:
                 # ---- Case 2: launched from platform -------------------------
-                # Same strict-crossing guard as Case 1: prevents false re-land
-                # on the source block in the first frame after a walk-off, where
-                # prev_feet == bty == feet (no vertical movement yet).
+                # Skip the source block entirely to prevent re-landing on it
+                # during walk-offs (where prev_feet == bty == feet initially).
+                # Once the sourceBlock is cleared in _land(), landing can occur.
                 for block in blocks:
+                    if block == self.sourceBlock:
+                        continue  # Skip the block we just left
                     bty = block.getBlockYPosition()
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
@@ -3320,7 +3350,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = 80
+        self.health = 150
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
