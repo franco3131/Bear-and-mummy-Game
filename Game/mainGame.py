@@ -200,6 +200,9 @@ class mainGame:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
             self.thud_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
             self.thud_sound.set_volume(0.75)
+            pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
+            pygame.mixer.music.set_volume(0.35)
+            pygame.mixer.music.play(-1)   # loop forever
             import array as _arr, random as _rnd
             _RATE = 44100
             _n = int(_RATE * 0.18)
