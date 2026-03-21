@@ -3114,7 +3114,7 @@ class Bear:
             if self.hp < self.maxHp * 0.25:
                 self.hp = min(self.maxHp, int(self.maxHp * 0.90))
             else:
-                self.hp = min(self.maxHp, int(self.maxHp * 0.75))
+                self.hp = min(self.maxHp, int(self.maxHp * 0.85))
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
             self.textArray = []
