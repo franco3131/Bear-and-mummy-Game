@@ -174,6 +174,7 @@ def _render_damage_text(screen, font, damage, x, y):
 
 def _draw_water(screen, offset):
     """Animated scrolling stream drawn just below the floor (y=400)."""
+    pygame.draw.rect(screen, (15, 70, 190), (0, 534, 900, 166))
     bands = [
         (520, (15,  70, 190)),
         (532, (35, 115, 225)),
