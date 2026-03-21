@@ -175,16 +175,16 @@ def _render_damage_text(screen, font, damage, x, y):
 def _draw_water(screen, offset):
     """Animated scrolling stream drawn just below the floor (y=400)."""
     bands = [
-        (400, (15,  70, 190)),
-        (412, (35, 115, 225)),
-        (424, (70, 165, 255)),
-        (436, (110, 190, 255)),
+        (520, (15,  70, 190)),
+        (532, (35, 115, 225)),
+        (544, (70, 165, 255)),
+        (556, (110, 190, 255)),
     ]
     for band_idx, (y_base, color) in enumerate(bands):
         scroll = (offset * (band_idx + 1)) % 60
         for x_start in range(-60 + scroll, 960, 60):
             pygame.draw.ellipse(screen, color, (x_start - 30, y_base, 60, 14))
-    pygame.draw.line(screen, (130, 200, 255), (0, 398), (900, 398), 2)
+    pygame.draw.line(screen, (130, 200, 255), (0, 518), (900, 518), 2)
 
 
 # ---------------------------------------------------------------------------
