@@ -1395,6 +1395,20 @@ class mainGame:
                 # bear to fall straight through a platform it just landed on.
                 if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+
+            # Walk-off-edge detection: if the bear is grounded (not in a jump),
+            # not on the floor, and no platform is supporting it, the bear has
+            # walked off a platform edge.  Activate fall physics with zero initial
+            # velocity so _jumpPhysics() handles gravity and collision detection
+            # with its robust frame-crossing check — the same path used for jumps.
+            if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
+                    and bear.getYPosition() + 100 < floorHeight
+                    and not any(b.getOnPlatform() for b in self.blocks)):
+                bear.jumpVelocity = 0.0
+                bear.setComingUpStatus(False)
+                bear.setJumpStatus(True)
+
+            for block in self.blocks:
                 # Skip drop gravity while jump physics are already controlling
                 # vertical movement – double-falling causes the bear to blow
                 # through landing windows and fall through platforms.
