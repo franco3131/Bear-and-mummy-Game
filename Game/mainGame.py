@@ -579,7 +579,6 @@ class mainGame:
                         bear.setJumpStatus(True)
                         bear.startJump()
                         jumpTimer = 0
-                        background.update(bear.getXPosition(), bear.getYPosition())
 
                     # Only enforce side-wall collision on the ground, not mid-arc
                     if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
