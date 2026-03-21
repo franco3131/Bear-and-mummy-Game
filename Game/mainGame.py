@@ -577,6 +577,11 @@ class mainGame:
                             backgroundScrollX -= STEP
                             background.setXPosition(backgroundScrollX)
                         bear.setJumpStatus(True)
+                        # Capture which block we're jumping from so _jumpPhysics can skip it
+                        for block in self.blocks:
+                            if block.getOnPlatform():
+                                bear.sourceBlock = block
+                                break
                         bear.startJump()
                         jumpTimer = 0
 
@@ -678,6 +683,11 @@ class mainGame:
                             background.setXPosition(backgroundScrollX)
                         background.update(backgroundScrollX, bear.getYPosition())
                         bear.setJumpStatus(True)
+                        # Capture which block we're jumping from so _jumpPhysics can skip it
+                        for block in self.blocks:
+                            if block.getOnPlatform():
+                                bear.sourceBlock = block
+                                break
                         bear.startJump()
 
                     # Only enforce side-wall collision on the ground, not mid-arc
@@ -726,6 +736,11 @@ class mainGame:
                     jumpTimer = 0
                     bear.setJumpStatus(True)
                     bear.setLeftJumpStatus(True)
+                    # Capture which block we're jumping from so _jumpPhysics can skip it
+                    for block in self.blocks:
+                        if block.getOnPlatform():
+                            bear.sourceBlock = block
+                            break
                     bear.startJump()
                     background.update(backgroundScrollX, bear.getYPosition())
 
