@@ -375,6 +375,24 @@ class mainGame:
         deflectTimer = 0
         deflectPos = (0, 0)
         waterOffset = 0
+        _current_music = "normal"   # tracks which track is loaded
+
+        def _switch_music(track):
+            nonlocal _current_music
+            if _current_music == track:
+                return
+            _current_music = track
+            files = {
+                "normal":     "Game/Sounds/music.wav",
+                "boss_mummy": "Game/Sounds/boss_mummy.wav",
+                "boss_final": "Game/Sounds/boss_final.wav",
+            }
+            try:
+                pygame.mixer.music.load(files[track])
+                pygame.mixer.music.set_volume(0.50)
+                pygame.mixer.music.play(-1)
+            except Exception:
+                pass
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -1159,6 +1177,7 @@ class mainGame:
                 elif monster.getName() == "bigMummy":
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
+                    _switch_music("normal")
 
             # ---- Deflect indicator for big mummy body hits (drawn on top) ------
             if deflectTimer > 0:
@@ -1256,6 +1275,7 @@ class mainGame:
             if totalDistance > 38030 and not self.activeMonsters[9]:
                 self.spikes = []
                 self.activeMonsters[9] = True
+                _switch_music("boss_final")
                 self.mummys = []
                 self.witches = []
                 self.blocks = []
@@ -1445,6 +1465,7 @@ class mainGame:
         # ── Zone 1 @ 3 800 – big mummy flanked by monster blocks ─────────────
         if backgroundScrollX > 3800 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
+            _switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
