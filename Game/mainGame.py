@@ -350,7 +350,7 @@ class mainGame:
                 if (keys[pygame.K_x]
                         and playerFireCooldown == 0):
                     playerFireCooldown = 30
-                    _fb_speed = int(10 * (1.1 ** (bear.getLevel() // 5)))
+                    _fb_speed = int(10 * (1.1 ** (bear.getLevel() // 2)))
                     vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
                             if bear.getLeftDirection()
@@ -1369,14 +1369,15 @@ class mainGame:
             greenBlob3 = GreenBlob(850,  300, 100, 100, self.screen)
             greenBlob4 = GreenBlob(1100, 300, 100, 100, self.screen)
             greenBlob5 = GreenBlob(1400, 300, 100, 100, self.screen)
+            greenBlob6 = GreenBlob(1700, 300, 100, 100, self.screen)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
-                                    greenBlob4, greenBlob5])
+                                    greenBlob4, greenBlob5, greenBlob6])
 
             x = 1350
-            for _ in range(8):
+            for _ in range(10):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 350
+                x += 320
 
         # ── Zone 3 @ 11 500 – first witch encounter (3 witches) ──────────────
         elif backgroundScrollX > 11500 and not self.activeMonsters[2]:
@@ -1393,7 +1394,11 @@ class mainGame:
             witch1 = Witch(600,  100, self.witch, self.witch2, self.screen)
             witch2 = Witch(900,  200, self.witch, self.witch2, self.screen)
             witch3 = Witch(1100, 150, self.witch, self.witch2, self.screen)
-            self.witches.extend([witch1, witch2, witch3])
+            witch4 = Witch(1350, 100, self.witch, self.witch2, self.screen)
+            self.witches.extend([witch1, witch2, witch3, witch4])
+            for x in [430, 750, 1200]:
+                self.mummys.append(
+                    Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
             self.triggerFire = True
 
         # ── Zone 4 @ 16 000 – mummy rush on tiered platforms ─────────────────
@@ -1407,10 +1412,12 @@ class mainGame:
             self.blocks.extend([block1, block2])
 
             x = 450
-            for _ in range(8):
+            for _ in range(10):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 200
+            self.greenBlobs.append(GreenBlob(700, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1100, 300, 100, 100, self.screen))
 
         # ── Zone 5 @ 20 500 – striped platforms, mummies + 2 witches ─────────
         elif backgroundScrollX > 20500 and not self.activeMonsters[5]:
@@ -1424,14 +1431,15 @@ class mainGame:
             self.blocks.extend([block1, block2, block3])
 
             x = 450
-            for _ in range(6):
+            for _ in range(8):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 250
+                x += 240
 
             witch1 = Witch(900,  100, self.witch, self.witch2, self.screen)
             witch2 = Witch(1150, 100, self.witch, self.witch2, self.screen)
-            self.witches.extend([witch1, witch2])
+            witch3 = Witch(1400,  80, self.witch, self.witch2, self.screen)
+            self.witches.extend([witch1, witch2, witch3])
 
         # ── Zone 6 @ 25 000 – checkered gauntlet, blobs + mummies ───────────
         elif backgroundScrollX > 25000 and not self.activeMonsters[6]:
@@ -1445,17 +1453,19 @@ class mainGame:
             block4 = Block(500, 100, 1000, 60, "greyRock",  self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            greenBlob  = GreenBlob(430, 300, 100, 100, self.screen)
-            greenBlob2 = GreenBlob(620, 300, 100, 100, self.screen)
-            greenBlob3 = GreenBlob(800, 300, 100, 100, self.screen)
-            greenBlob4 = GreenBlob(1000,300, 100, 100, self.screen)
-            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3, greenBlob4])
+            greenBlob  = GreenBlob(430,  300, 100, 100, self.screen)
+            greenBlob2 = GreenBlob(620,  300, 100, 100, self.screen)
+            greenBlob3 = GreenBlob(800,  300, 100, 100, self.screen)
+            greenBlob4 = GreenBlob(1000, 300, 100, 100, self.screen)
+            greenBlob5 = GreenBlob(1300, 300, 100, 100, self.screen)
+            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
+                                    greenBlob4, greenBlob5])
 
-            x = 900
-            for _ in range(3):
+            x = 750
+            for _ in range(5):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 450
+                x += 380
 
         # ── Zone 7 @ 29 500 – 3 witches, small platforms (no ceiling) ────────
         elif backgroundScrollX > 29500 and not self.activeMonsters[7]:
@@ -1471,7 +1481,11 @@ class mainGame:
             witch1 = Witch(1000, 200, self.witch, self.witch2, self.screen)
             witch2 = Witch(700,  250, self.witch, self.witch2, self.screen)
             witch3 = Witch(1200, 150, self.witch, self.witch2, self.screen)
-            self.witches.extend([witch1, witch2, witch3])
+            witch4 = Witch(500,  120, self.witch, self.witch2, self.screen)
+            self.witches.extend([witch1, witch2, witch3, witch4])
+            for x in [450, 750, 1050, 1350]:
+                self.mummys.append(
+                    Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
         # ── Zone 8 @ 34 000 – spike gauntlet ─────────────────────────────────
         elif backgroundScrollX > 34000 and not self.activeMonsters[8]:
@@ -1490,6 +1504,16 @@ class mainGame:
             self.spikes.append(SpikeBlock(750,  340, self.screen))
             self.spikes.append(SpikeBlock(1000, 340, self.screen))
             self.spikes.append(SpikeBlock(1300, 340, self.screen))
+
+            for x in [400, 650, 900, 1150]:
+                self.mummys.append(
+                    Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
+            witch1 = Witch(800,  180, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1100, 120, self.witch, self.witch2, self.screen)
+            self.witches.extend([witch1, witch2])
+            self.greenBlobs.append(GreenBlob(550, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1050, 300, 100, 100, self.screen))
+            self.triggerFire = True
 
 
 # ---------------------------------------------------------------------------
@@ -2449,7 +2473,7 @@ class Bear:
         self.attack = 10
         self.hp = 100
         self.maxExp = 12
-        self.exp = 0
+        self.exp = 4
         self.text1 = ""
         self.text2 = ""
         self.text3 = ""
