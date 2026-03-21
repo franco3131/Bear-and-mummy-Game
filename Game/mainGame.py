@@ -281,7 +281,7 @@ class mainGame:
         self.triggerFire = False
         floorHeight = 400
         continueLoop = True
-        bear = Bear(60, 300, self.screen)
+        bear = Bear(150, 300, self.screen)
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -387,10 +387,21 @@ class mainGame:
                     if airborne:
                         # ---- Already in the air: move right every frame ----
                         totalDistance += STEP
+                        # Supplementary wall check: x-only overlap for tall blocks
+                        # that extend to the floor – catches walls missed by the
+                        # y-aware isBoundaryPresent when the bear is above block-top.
+                        def _tall_wall_ahead(bx):
+                            for blk in self.blocks:
+                                if ((bx + 100) > blk.getBlockXPosition()
+                                        and bx < blk.getBlockXPosition()
+                                        and (blk.getBlockYPosition() + blk.getHeight()) >= 380):
+                                    return True
+                            return False
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            if not any(b.getIsLeftBoundary() for b in self.blocks):
+                            if (not any(b.getIsLeftBoundary() for b in self.blocks)
+                                    and not _tall_wall_ahead(bear.getXPosition())):
                                 bear.setXPosition(bear.getXPosition() + STEP)
                                 backgroundScrollX = bear.getXPosition() - STEP
                                 background.setXPosition(backgroundScrollX)
@@ -399,7 +410,8 @@ class mainGame:
                         else:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            if any(b.getIsLeftBoundary() for b in self.blocks):
+                            if (any(b.getIsLeftBoundary() for b in self.blocks)
+                                    or _tall_wall_ahead(bear.getXPosition())):
                                 totalDistance -= STEP
                             else:
                                 moveObjects = (self.mummys + self.fires + self.witches +
@@ -1064,7 +1076,7 @@ class mainGame:
                         bear.textArray = [['You opened the door!',
                                            'Proceed to the next area!',
                                            'Press "s" to continue']]
-                        bear.showBearArray = [True]
+                        bear.showBearArray = [False]
                         bear.tupleIndex = 0
                         bear.line = 0
                         bear.indexArray = 0
@@ -1124,6 +1136,20 @@ class mainGame:
                                      key.getXPosition(), key.getYPosition()):
                     self.keys.remove(key)
                     self.isDoor1Open = True
+                    bear.setEndText(False)
+                    bear.textArray = [['The door is unlocked!',
+                                       'Keep moving forward!',
+                                       'Press "s" to continue']]
+                    bear.showBearArray = [False]
+                    bear.tupleIndex = 0
+                    bear.line = 0
+                    bear.indexArray = 0
+                    bear.totalText1 = ""
+                    bear.totalText2 = ""
+                    bear.totalText3 = ""
+                    bear.text1 = ""
+                    bear.text2 = ""
+                    bear.text3 = ""
 
             # ---- Witch fireballs (safe iteration) -----------------------
             fires_to_remove = []
@@ -1381,34 +1407,34 @@ class mainGame:
 
             # ── Pyramid staircase – all platforms have y+h ≤ 310 so floor
             #    mummies (m_top = 312) walk straight underneath them. ──────────
-            plat1 = Block(450, 248, 200, 60, "striped",     self.screen)
-            plat2 = Block(640, 188, 180, 60, "greyRock",    self.screen)
-            plat3 = Block(810, 122, 220, 60, "checkered",   self.screen)
-            plat4 = Block(1035, 188, 180, 60, "monster",    self.screen)
-            plat5 = Block(1210, 248, 200, 60, "stripedFlip",self.screen)
+            plat1 = Block(1050, 248, 200, 60, "striped",     self.screen)
+            plat2 = Block(1240, 188, 180, 60, "greyRock",    self.screen)
+            plat3 = Block(1410, 122, 220, 60, "checkered",   self.screen)
+            plat4 = Block(1635, 188, 180, 60, "monster",     self.screen)
+            plat5 = Block(1810, 248, 200, 60, "stripedFlip", self.screen)
 
             # ── Tall coffin pillars – y = 260 so mummies (m_top=312) hit them
             #    as turning walls; player must jump over or around. ────────────
-            coffin1 = Block(560, 260, 45, 140, "monster", self.screen)
-            coffin2 = Block(790, 260, 45, 140, "monster", self.screen)
-            coffin3 = Block(1010, 260, 45, 140, "monster", self.screen)
-            coffin4 = Block(1200, 260, 45, 140, "monster", self.screen)
+            coffin1 = Block(1160, 260, 45, 140, "monster", self.screen)
+            coffin2 = Block(1390, 260, 45, 140, "monster", self.screen)
+            coffin3 = Block(1610, 260, 45, 140, "monster", self.screen)
+            coffin4 = Block(1800, 260, 45, 140, "monster", self.screen)
 
             self.blocks.extend([plat1, plat2, plat3, plat4, plat5,
                                  coffin1, coffin2, coffin3, coffin4])
 
             # ── Five floor mummies – coffins act as natural patrol walls ──────
-            for x in [430, 630, 850, 1060, 1260]:
+            for x in [1030, 1230, 1450, 1660, 1860]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
             # ── Two green blobs adding chaos in the wider gaps ────────────────
-            self.greenBlobs.append(GreenBlob(710, 300, 100, 100, self.screen))
-            self.greenBlobs.append(GreenBlob(1120, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1310, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1720, 300, 100, 100, self.screen))
 
             # ── Two witches: one low-and-close, one high-and-far ─────────────
-            witch1 = Witch(920,  80, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1350, 140, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1520,  80, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1950, 140, self.witch, self.witch2, self.screen)
             self.witches.extend([witch1, witch2])
             self.triggerFire = True
 
@@ -1418,20 +1444,20 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(400,  340, 900,  60, "greyRock", self.screen)
-            block2 = Block(1300, 220, 2000, 60, "greyRock", self.screen)
+            block1 = Block(1000, 340, 900,  60, "greyRock", self.screen)
+            block2 = Block(1900, 220, 2000, 60, "greyRock", self.screen)
             self.blocks.extend([block1, block2])
 
-            greenBlob  = GreenBlob(450,  300, 100, 100, self.screen)
-            greenBlob2 = GreenBlob(650,  300, 100, 100, self.screen)
-            greenBlob3 = GreenBlob(850,  300, 100, 100, self.screen)
-            greenBlob4 = GreenBlob(1100, 300, 100, 100, self.screen)
-            greenBlob5 = GreenBlob(1400, 300, 100, 100, self.screen)
-            greenBlob6 = GreenBlob(1700, 300, 100, 100, self.screen)
+            greenBlob  = GreenBlob(1050, 300, 100, 100, self.screen)
+            greenBlob2 = GreenBlob(1250, 300, 100, 100, self.screen)
+            greenBlob3 = GreenBlob(1450, 300, 100, 100, self.screen)
+            greenBlob4 = GreenBlob(1700, 300, 100, 100, self.screen)
+            greenBlob5 = GreenBlob(2000, 300, 100, 100, self.screen)
+            greenBlob6 = GreenBlob(2300, 300, 100, 100, self.screen)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
                                     greenBlob4, greenBlob5, greenBlob6])
 
-            x = 1350
+            x = 1950
             for _ in range(10):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
@@ -1443,18 +1469,18 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(500,  340, 100, 60,  "greyRock", self.screen)
-            block2 = Block(820,  100, 150, 300, "monster",  self.screen)
-            block3 = Block(660,  160, 130, 60,  "greyRock", self.screen)
-            block4 = Block(350,  340, 600, 60,  "greyRock", self.screen)
+            block1 = Block(1100, 340, 100, 60,  "greyRock", self.screen)
+            block2 = Block(1420, 100, 150, 300, "monster",  self.screen)
+            block3 = Block(1260, 160, 130, 60,  "greyRock", self.screen)
+            block4 = Block(950,  340, 600, 60,  "greyRock", self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            witch1 = Witch(600,  100, self.witch, self.witch2, self.screen)
-            witch2 = Witch(900,  200, self.witch, self.witch2, self.screen)
-            witch3 = Witch(1100, 150, self.witch, self.witch2, self.screen)
-            witch4 = Witch(1350, 100, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1200, 100, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1500, 200, self.witch, self.witch2, self.screen)
+            witch3 = Witch(1700, 150, self.witch, self.witch2, self.screen)
+            witch4 = Witch(1950, 100, self.witch, self.witch2, self.screen)
             self.witches.extend([witch1, witch2, witch3, witch4])
-            for x in [430, 750, 1200]:
+            for x in [1030, 1350, 1800]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
             self.triggerFire = True
@@ -1465,17 +1491,17 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(500, 200, 2000, 60, "greyRock", self.screen)
-            block2 = Block(700, 240, 1000, 60, "greyRock", self.screen)
+            block1 = Block(1100, 200, 2000, 60, "greyRock", self.screen)
+            block2 = Block(1300, 240, 1000, 60, "greyRock", self.screen)
             self.blocks.extend([block1, block2])
 
-            x = 450
+            x = 1050
             for _ in range(10):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 200
-            self.greenBlobs.append(GreenBlob(700, 300, 100, 100, self.screen))
-            self.greenBlobs.append(GreenBlob(1100, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1700, 300, 100, 100, self.screen))
 
         # ── Zone 5 @ 20 500 – striped platforms, mummies + 2 witches ─────────
         elif backgroundScrollX > 20500 and not self.activeMonsters[5]:
@@ -1483,20 +1509,20 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(450, 160, 3000, 60, "striped",     self.screen)
-            block2 = Block(600, 220, 2000, 60, "stripedFlip", self.screen)
-            block3 = Block(800, 240, 1000, 60, "striped",     self.screen)
+            block1 = Block(1050, 160, 3000, 60, "striped",     self.screen)
+            block2 = Block(1200, 220, 2000, 60, "stripedFlip", self.screen)
+            block3 = Block(1400, 240, 1000, 60, "striped",     self.screen)
             self.blocks.extend([block1, block2, block3])
 
-            x = 450
+            x = 1050
             for _ in range(8):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 240
 
-            witch1 = Witch(900,  100, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1150, 100, self.witch, self.witch2, self.screen)
-            witch3 = Witch(1400,  80, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1500, 100, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1750, 100, self.witch, self.witch2, self.screen)
+            witch3 = Witch(2000,  80, self.witch, self.witch2, self.screen)
             self.witches.extend([witch1, witch2, witch3])
 
         # ── Zone 6 @ 25 000 – checkered gauntlet, blobs + mummies ───────────
@@ -1505,21 +1531,21 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(500, 160, 3500, 60, "checkered", self.screen)
-            block2 = Block(420, 220, 3500, 60, "checkered", self.screen)
-            block3 = Block(350, 240, 3000, 60, "checkered", self.screen)
-            block4 = Block(500, 100, 1000, 60, "greyRock",  self.screen)
+            block1 = Block(1100, 160, 3500, 60, "checkered", self.screen)
+            block2 = Block(1020, 220, 3500, 60, "checkered", self.screen)
+            block3 = Block(950,  240, 3000, 60, "checkered", self.screen)
+            block4 = Block(1100, 100, 1000, 60, "greyRock",  self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            greenBlob  = GreenBlob(430,  300, 100, 100, self.screen)
-            greenBlob2 = GreenBlob(620,  300, 100, 100, self.screen)
-            greenBlob3 = GreenBlob(800,  300, 100, 100, self.screen)
-            greenBlob4 = GreenBlob(1000, 300, 100, 100, self.screen)
-            greenBlob5 = GreenBlob(1300, 300, 100, 100, self.screen)
+            greenBlob  = GreenBlob(1030, 300, 100, 100, self.screen)
+            greenBlob2 = GreenBlob(1220, 300, 100, 100, self.screen)
+            greenBlob3 = GreenBlob(1400, 300, 100, 100, self.screen)
+            greenBlob4 = GreenBlob(1600, 300, 100, 100, self.screen)
+            greenBlob5 = GreenBlob(1900, 300, 100, 100, self.screen)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
                                     greenBlob4, greenBlob5])
 
-            x = 750
+            x = 1350
             for _ in range(5):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
@@ -1531,17 +1557,17 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(420, 340, 100, 60, "checkered", self.screen)
-            block2 = Block(700, 340, 100, 60, "checkered", self.screen)
-            block3 = Block(980, 280, 100, 60, "checkered", self.screen)
+            block1 = Block(1020, 340, 100, 60, "checkered", self.screen)
+            block2 = Block(1300, 340, 100, 60, "checkered", self.screen)
+            block3 = Block(1580, 280, 100, 60, "checkered", self.screen)
             self.blocks.extend([block1, block2, block3])
 
-            witch1 = Witch(1000, 200, self.witch, self.witch2, self.screen)
-            witch2 = Witch(700,  250, self.witch, self.witch2, self.screen)
-            witch3 = Witch(1200, 150, self.witch, self.witch2, self.screen)
-            witch4 = Witch(500,  120, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1600, 200, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1300, 250, self.witch, self.witch2, self.screen)
+            witch3 = Witch(1800, 150, self.witch, self.witch2, self.screen)
+            witch4 = Witch(1100, 120, self.witch, self.witch2, self.screen)
             self.witches.extend([witch1, witch2, witch3, witch4])
-            for x in [450, 750, 1050, 1350]:
+            for x in [1050, 1350, 1650, 1950]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
@@ -1551,26 +1577,26 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(450, 220, 100, 60, "checkered", self.screen)
-            block2 = Block(700, 220, 100, 60, "checkered", self.screen)
-            block3 = Block(950, 280, 100, 60, "checkered", self.screen)
-            block4 = Block(350, 340, 100, 60, "checkered", self.screen)
-            block5 = Block(1200,280, 100, 60, "checkered", self.screen)
+            block1 = Block(1050, 220, 100, 60, "checkered", self.screen)
+            block2 = Block(1300, 220, 100, 60, "checkered", self.screen)
+            block3 = Block(1550, 280, 100, 60, "checkered", self.screen)
+            block4 = Block(950,  340, 100, 60, "checkered", self.screen)
+            block5 = Block(1800, 280, 100, 60, "checkered", self.screen)
             self.blocks.extend([block1, block2, block3, block4, block5])
 
-            self.spikes.append(SpikeBlock(500,  340, self.screen))
-            self.spikes.append(SpikeBlock(750,  340, self.screen))
-            self.spikes.append(SpikeBlock(1000, 340, self.screen))
-            self.spikes.append(SpikeBlock(1300, 340, self.screen))
+            self.spikes.append(SpikeBlock(1100, 340, self.screen))
+            self.spikes.append(SpikeBlock(1350, 340, self.screen))
+            self.spikes.append(SpikeBlock(1600, 340, self.screen))
+            self.spikes.append(SpikeBlock(1900, 340, self.screen))
 
-            for x in [400, 650, 900, 1150]:
+            for x in [1000, 1250, 1500, 1750]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-            witch1 = Witch(800,  180, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1100, 120, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1400, 180, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1700, 120, self.witch, self.witch2, self.screen)
             self.witches.extend([witch1, witch2])
-            self.greenBlobs.append(GreenBlob(550, 300, 100, 100, self.screen))
-            self.greenBlobs.append(GreenBlob(1050, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1150, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1650, 300, 100, 100, self.screen))
             self.triggerFire = True
 
 
@@ -2954,16 +2980,16 @@ class Bear:
             self.textArray = []
             self.showBearArray = []
             self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
-            self.showBearArray.append(True)
+            self.showBearArray.append(False)
             self.textArray.append([
                 'Max HP is now: ' + str(self.maxHp),
                 'Attack is now: ' + str(self.damageAttack),
                 'Press "s" to continue'
             ])
-            self.showBearArray.append(True)
+            self.showBearArray.append(False)
             if self.level % 2 == 0:
                 self.textArray.append(['Firing is faster now!', '', 'Press "s" to continue'])
-                self.showBearArray.append(True)
+                self.showBearArray.append(False)
             self.line = 0
             self.tupleIndex = 0
             self.indexArray = 0
