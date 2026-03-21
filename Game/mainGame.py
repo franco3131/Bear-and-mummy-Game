@@ -350,7 +350,7 @@ class mainGame:
                 if (keys[pygame.K_x]
                         and playerFireCooldown == 0):
                     playerFireCooldown = 30
-                    _fb_speed = int(10 * (1.1 ** (bear.getLevel() // 2)))
+                    _fb_speed = int(10 * (1.15 ** (bear.getLevel() // 2)))
                     vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
                             if bear.getLeftDirection()
@@ -1004,6 +1004,10 @@ class mainGame:
             bear.boundaryExtraCheck()
             jumpTimer += 1
 
+            # ---- Draw blocks first so monsters render in front of them --
+            for block in self.blocks:
+                block.drawRectangle()
+
             # ---- Monster lifecycle ---------------------------------------
             for mummy in self.mummys:
                 mummy.setBlocks(self.blocks)
@@ -1128,9 +1132,6 @@ class mainGame:
                 if pf in self.playerFires:
                     self.playerFires.remove(pf)
 
-            for witch in self.witches:
-                witch.drawMonster()
-
             hurtTimer += 1
 
             # ---- Boss trigger zone (scaled to STEP-based totalDistance) --
@@ -1207,7 +1208,6 @@ class mainGame:
 
             # ---- Platforms and gravity ----------------------------------
             for block in self.blocks:
-                block.drawRectangle()
                 # Only run boundary logic on the ground.  While airborne,
                 # _jumpPhysics() is the sole authority on vertical state;
                 # calling isBoundaryPresent() mid-air can corrupt dropStatus
@@ -2298,7 +2298,7 @@ class GreenBlob():
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
-        self.rand = random.randint(1, 2)
+        self.rand = 1
         randomMax = random.randint(30, 80)
         self.changeDirection = random.randint(30, randomMax)
         self.jump = False
@@ -2906,7 +2906,7 @@ class Bear:
             self.maxExp += 20
             self.exp = 0
             self.maxHp += random.randint(5, 15)
-            self.hp = self.maxHp
+            self.hp = min(self.maxHp, int(self.maxHp * 0.6))
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
             self.textArray = []
