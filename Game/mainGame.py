@@ -202,8 +202,21 @@ class mainGame:
             pygame.mixer.music.load("Game/Sounds/music.wav")
             pygame.mixer.music.set_volume(0.45)
             pygame.mixer.music.play(-1)   # loop forever
+            import array as _arr, random as _rnd
+            _RATE = 44100
+            _n = int(_RATE * 0.18)
+            _buf = _arr.array('h')
+            for _i in range(_n):
+                _env = (1.0 - _i / _n) ** 0.6
+                _val = int(_env * _rnd.randint(-32767, 32767) * 0.55)
+                _val = max(-32767, min(32767, _val))
+                _buf.append(_val)
+                _buf.append(_val)
+            self.fire_sound = pygame.mixer.Sound(buffer=_buf)
+            self.fire_sound.set_volume(0.35)
         except Exception:
             self.thud_sound = None   # no audio device – run silently
+            self.fire_sound = None
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -417,6 +430,8 @@ class mainGame:
                     self.playerFires.append(
                         FireBall(fb_x, fb_y, vel_x, 0,
                                  _fb_img, self.screen))
+                    if self.fire_sound:
+                        self.fire_sound.play()
                     attackingAnimationCounter = 1
 
                 # ---- Z + RIGHT: jump-right --------------------------------
@@ -427,9 +442,10 @@ class mainGame:
                     # Uses STEP look-ahead: would moving right by STEP put the
                     # bear's right edge at or past the block's left edge?
                     def _tall_wall_ahead(bx):
+                        bear_right = bx + 100
                         for blk in self.blocks:
-                            if ((bx + STEP + 100) >= blk.getBlockXPosition()
-                                    and bx < blk.getBlockXPosition()
+                            if ((bear_right + STEP) >= blk.getBlockXPosition()
+                                    and bear_right < blk.getBlockXPosition() + blk.getWidth()
                                     and (blk.getBlockYPosition() + blk.getHeight()) >= 380):
                                 return True
                         return False
