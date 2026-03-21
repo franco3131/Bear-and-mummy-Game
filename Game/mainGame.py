@@ -403,7 +403,7 @@ class mainGame:
         self.activeMonsters = [False] * 14
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
-        block1 = Block(280,  340, 100, 60,  "red",     self.screen)
+        block1 = Block(230,  340, 100, 60,  "red",     self.screen)
         block2 = Block(500,  190, 100, 60,  "monster", self.screen)
         block3 = Block(780,  190, 100, 60,  "red",     self.screen)
         block5 = Block(1010, 190, 100, 60,  "red",     self.screen)
@@ -2886,7 +2886,12 @@ class Bear:
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
 
-                    if prev_feet <= bty and feet >= bty and bx2 > blx and self.x < brx + 30:
+                    # Guard: require at least one side strictly crossing so that
+                    # the degenerate walk-off case (prev_feet == bty == feet)
+                    # doesn't snap the bear back onto the block she just left.
+                    if (prev_feet <= bty and feet >= bty
+                            and (prev_feet < bty or feet > bty)
+                            and bx2 > blx and self.x < brx + 30):
                         _land(block, bty)
                         return
 
@@ -2900,16 +2905,17 @@ class Bear:
 
             else:
                 # ---- Case 2: launched from platform -------------------------
-                # The crossing-feet check (prev_feet <= bty <= feet) already
-                # prevents re-landing on the source block immediately after
-                # jumping, so we no longer need to skip it — allowing the bear
-                # to land back on the same platform on the way down.
+                # Same strict-crossing guard as Case 1: prevents false re-land
+                # on the source block in the first frame after a walk-off, where
+                # prev_feet == bty == feet (no vertical movement yet).
                 for block in blocks:
                     bty = block.getBlockYPosition()
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
 
-                    if prev_feet <= bty and feet >= bty and bx2 > blx and self.x < brx + 30:
+                    if (prev_feet <= bty and feet >= bty
+                            and (prev_feet < bty or feet > bty)
+                            and bx2 > blx and self.x < brx + 30):
                         _land(block, bty)
                         return
 
