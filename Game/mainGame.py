@@ -241,6 +241,16 @@ class mainGame:
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
 
+        # Coloured player-fireball variants (tinted from the base image)
+        def _tint(img, r, g, b):
+            t = img.copy().convert_alpha()
+            t.fill((r, g, b, 255), special_flags=pygame.BLEND_RGB_MULT)
+            return t
+        _base = self.fireBossBall.convert_alpha()
+        self.fireballYellow = _tint(_base, 255, 255,   0)
+        self.fireballGreen  = _tint(_base,   0, 255,   0)
+        self.fireballBlue   = _tint(_base,   0, 140, 255)
+
         self.screen.fill((255, 255, 255))
         pygame.display.update()
 
@@ -350,15 +360,25 @@ class mainGame:
                 if (keys[pygame.K_x]
                         and playerFireCooldown == 0):
                     playerFireCooldown = 30
-                    _fb_speed = int(10 * (1.15 ** (bear.getLevel() // 2)))
+                    _lvl = bear.getLevel()
+                    _boost = 1.2 if _lvl >= 6 else 1.0
+                    _fb_speed = int(10 * (1.15 ** (_lvl // 2)) * _boost)
                     vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
                             if bear.getLeftDirection()
                             else bear.getXPosition() + 100)
                     fb_y = bear.getYPosition() + 30
+                    if _lvl >= 8:
+                        _fb_img = self.fireballBlue
+                    elif _lvl >= 6:
+                        _fb_img = self.fireballGreen
+                    elif _lvl >= 4:
+                        _fb_img = self.fireballYellow
+                    else:
+                        _fb_img = self.fireBossBall
                     self.playerFires.append(
                         FireBall(fb_x, fb_y, vel_x, 0,
-                                 self.fireBossBall, self.screen))
+                                 _fb_img, self.screen))
 
                 # ---- Z + RIGHT: jump-right --------------------------------
                 if keys[pygame.K_z] and keys[pygame.K_RIGHT]:
@@ -1100,7 +1120,7 @@ class mainGame:
                 self.triggerFire = False
                 for witch in self.witches:
                     witch.setThrowsFireBalls(True)
-                    for _ in range(3):
+                    for _ in range(1):
                         self.fires.append(
                             FireBall(witch.getXPosition(), witch.getYPosition(),
                                      random.randint(-7, 7), random.randint(1, 12),
@@ -1137,10 +1157,10 @@ class mainGame:
             # ---- Boss trigger zone (scaled to STEP-based totalDistance) --
             # Original triggers were designed for 30px steps; scaled to 8px steps
             # by multiplying by (8/30) ≈ 0.267. Zone triggers ÷ ~3.75.
-            if 17840 < totalDistance < 17870 and not self.createdBoss:
+            if 38000 < totalDistance < 38030 and not self.createdBoss:
                 self.createdBoss = True
 
-            if totalDistance > 17870 and not self.activeMonsters[9]:
+            if totalDistance > 38030 and not self.activeMonsters[9]:
                 self.spikes = []
                 self.activeMonsters[9] = True
                 self.mummys = []
@@ -1150,7 +1170,7 @@ class mainGame:
                 self.fires = []
                 self.activeMonsters[1] = True
 
-            if totalDistance > 17870:
+            if totalDistance > 38030:
                 totalDistance = 90000
                 background.setStopBackground(True)
                 self.leftBoundary = 80
@@ -1813,7 +1833,7 @@ class Mummy():
     def __init__(self, x, y, width, height, mummy1Image, mummy2Image, screen):
         self.mummy1 = pygame.transform.scale(mummy1Image, (width, height))
         self.mummy2 = pygame.transform.scale(mummy2Image, (width, height))
-        self.direction = -1 * random.randint(1, 2)
+        self.direction = -1
         self.x = x
         self.y = y
         self.destructionAnimation = 0
@@ -2073,7 +2093,7 @@ class Witch():
         self.health = random.randint(24, 42)
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
-        self.changeDirectionX = random.randint(100, 300)
+        self.changeDirectionX = random.randint(400, 700)
         self.changeDirectionY = 80
         self.storeDirection = 1
         self.directionY = 1
@@ -2299,11 +2319,11 @@ class GreenBlob():
         self.stunned = 0
         self.screen = screen
         self.rand = 1
-        randomMax = random.randint(30, 80)
-        self.changeDirection = random.randint(30, randomMax)
+        randomMax = random.randint(120, 250)
+        self.changeDirection = random.randint(80, randomMax)
         self.jump = False
         self.comingDown = False
-        self.nextJumpTimer = random.randint(20, 90)
+        self.nextJumpTimer = random.randint(80, 200)
         self.timer = 0
         self.hurtGreenBlob = pygame.image.load("Game/Images/greenBlob2.png")
         self.hurtGreenBlob = pygame.transform.scale(self.hurtGreenBlob, (100, 100))
@@ -2437,12 +2457,12 @@ class GreenBlob():
             self.jump = True
 
         if self.stunned == 0:
-            self.screen.blit(self.greenBlob, (self.x, self.y))
+            self.screen.blit(self.greenBlob, (self.x, self.y + 10))
             self.x += self.direction * self.rand
         elif self.stunned > 0:
             self.stunned += 1
             self.displayDamageOnMonster(self.damageReceived)
-            self.screen.blit(self.hurtGreenBlob, (self.x, self.y))
+            self.screen.blit(self.hurtGreenBlob, (self.x, self.y + 10))
             if self.stunned == 20:
                 self.stunned = 0
 
@@ -3081,7 +3101,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = 7
+        self.health = 20
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
