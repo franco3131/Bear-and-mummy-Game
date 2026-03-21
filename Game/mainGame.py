@@ -389,9 +389,11 @@ class mainGame:
                     airborne = bear.getJumpStatus() or bear.getLeftJumpStatus()
                     # x-only wall check for tall blocks (used in both airborne
                     # and ground-start sections below).
+                    # Uses STEP look-ahead: would moving right by STEP put the
+                    # bear's right edge at or past the block's left edge?
                     def _tall_wall_ahead(bx):
                         for blk in self.blocks:
-                            if ((bx + 100) > blk.getBlockXPosition()
+                            if ((bx + STEP + 100) >= blk.getBlockXPosition()
                                     and bx < blk.getBlockXPosition()
                                     and (blk.getBlockYPosition() + blk.getHeight()) >= 380):
                                 return True
@@ -436,7 +438,6 @@ class mainGame:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if block.getIsLeftBoundary():
-                                    bear.setXPosition(bear.getXPosition() - STEP)
                                     totalDistance -= STEP
                                     _jump_moved = False
                             if _jump_moved and _tall_wall_ahead(bear.getXPosition()):
