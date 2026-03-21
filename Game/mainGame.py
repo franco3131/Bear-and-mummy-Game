@@ -2975,7 +2975,7 @@ class Bear:
                              if self.line < len(self.textArray[self.tupleIndex]) else None)
             if (self.line != len(self.textArray[self.tupleIndex])
                     and (len(cur_line_text) == 0
-                         or len(cur_line_text) == self.indexArray + 1)):
+                         or self.indexArray >= len(cur_line_text))):
                 self.indexArray = 0
                 self.line += 1
                 if self.line == 1:
