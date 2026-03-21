@@ -330,9 +330,9 @@ class mainGame:
         def _fireball_surf(outer, mid, core=(255, 255, 255), size=50):
             s = pygame.Surface((size, size), pygame.SRCALPHA)
             c = size // 2
-            pygame.draw.circle(s, (*outer, 240), (c, c), size // 2 - 1)
-            pygame.draw.circle(s, (*mid,  255), (c, c), size // 3)
-            pygame.draw.circle(s, (*core, 220), (c, c), size // 6)
+            pygame.draw.circle(s, outer + (240,), (c, c), size // 2 - 1)
+            pygame.draw.circle(s, mid + (255,), (c, c), size // 3)
+            pygame.draw.circle(s, core + (220,), (c, c), size // 6)
             return s
         self.fireballYellow = _fireball_surf((220, 200,   0), (255, 255,  80))
         self.fireballGreen  = _fireball_surf((  0, 160,  30), ( 80, 255, 100))
