@@ -214,9 +214,64 @@ class mainGame:
                 _buf.append(_val)
             self.fire_sound = pygame.mixer.Sound(buffer=_buf)
             self.fire_sound.set_volume(0.35)
+
+            def _make_snd(samples):
+                _b = _arr.array('h')
+                for _s in samples:
+                    _v = max(-32767, min(32767, int(_s * 32767)))
+                    _b.append(_v); _b.append(_v)
+                return pygame.mixer.Sound(buffer=_b)
+
+            import math as _math
+
+            # ── Attack yell: rising then falling voiced "YAH!" ──────────
+            _n = int(_RATE * 0.21)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = (350 + 200*(_t/0.05)) if _t < 0.05 else (550 - 270*((_t-0.05)/0.16))
+                _s = (_math.sin(2*_math.pi*_f*_t)*0.50
+                      + _math.sin(2*_math.pi*_f*2*_t)*0.20
+                      + _math.sin(2*_math.pi*_f*3*_t)*0.10
+                      + _rnd.gauss(0, 0.12))
+                _env = min(_i/(_RATE*0.018), 1.0, (_n-_i)/(_RATE*0.055))
+                _smp.append(_s * _env * 0.48)
+            self.attack_sound = _make_snd(_smp)
+            self.attack_sound.set_volume(0.60)
+
+            # ── Grunt: descending voiced "UGH!" when player is hit ──────
+            _n = int(_RATE * 0.24)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 310 - 130*(_t/0.24)
+                _s = (_math.sin(2*_math.pi*_f*_t)*0.55
+                      + _math.sin(2*_math.pi*_f*2*_t)*0.28
+                      + _rnd.gauss(0, 0.18))
+                _env = min(_i/(_RATE*0.015), 1.0, (_n-_i)/(_RATE*0.08))
+                _smp.append(_s * _env * 0.45)
+            self.grunt_sound = _make_snd(_smp)
+            self.grunt_sound.set_volume(0.70)
+
+            # ── Hit thwack: sharp percussive impact on enemy ─────────────
+            _n = int(_RATE * 0.11)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = (1.0 - _i/_n)**1.8
+                _s = (_rnd.gauss(0, 1)*0.75
+                      + _math.sin(2*_math.pi*180*_t)*0.35
+                      + _math.sin(2*_math.pi*360*_t)*0.15)
+                _smp.append(_s * _env * 0.65)
+            self.hit_sound = _make_snd(_smp)
+            self.hit_sound.set_volume(0.75)
+
         except Exception:
             self.thud_sound = None   # no audio device – run silently
             self.fire_sound = None
+            self.attack_sound = None
+            self.grunt_sound  = None
+            self.hit_sound    = None
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -326,6 +381,7 @@ class mainGame:
         floorHeight = 400
         continueLoop = True
         bear = Bear(150, 300, self.screen)
+        bear.grunt_sound = self.grunt_sound
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -375,24 +431,7 @@ class mainGame:
         deflectTimer = 0
         deflectPos = (0, 0)
         waterOffset = 0
-        _current_music = "normal"   # tracks which track is loaded
-
-        def _switch_music(track):
-            nonlocal _current_music
-            if _current_music == track:
-                return
-            _current_music = track
-            files = {
-                "normal":     "Game/Sounds/music.wav",
-                "boss_mummy": "Game/Sounds/boss_mummy.wav",
-                "boss_final": "Game/Sounds/boss_final.wav",
-            }
-            try:
-                pygame.mixer.music.load(files[track])
-                pygame.mixer.music.set_volume(0.50)
-                pygame.mixer.music.play(-1)
-            except Exception:
-                pass
+        self._current_music = "normal"
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -700,6 +739,7 @@ class mainGame:
                     bear.setLeftDirection(False)
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
+                    if self.attack_sound: self.attack_sound.play()
                     monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
@@ -712,6 +752,7 @@ class mainGame:
                                     monster.setDamageReceived(bear.getDamageAttack())
                                     monster.setStunned(1)
                                     monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                    if self.hit_sound: self.hit_sound.play()
                                     hurtTimer = 0
                                 else:
                                     deflectTimer = 40
@@ -722,6 +763,7 @@ class mainGame:
                                 monster.setDamageReceived(bear.getDamageAttack())
                                 monster.setStunned(1)
                                 monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                if self.hit_sound: self.hit_sound.play()
                                 hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
@@ -737,6 +779,7 @@ class mainGame:
                     attackCounterReady = 0
                     bear.setLeftDirection(True)
                     if self.thud_sound: self.thud_sound.play()
+                    if self.attack_sound: self.attack_sound.play()
                     monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
@@ -749,6 +792,7 @@ class mainGame:
                                     monster.setDamageReceived(bear.getDamageAttack())
                                     monster.setStunned(1)
                                     monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                    if self.hit_sound: self.hit_sound.play()
                                     hurtTimer = 0
                                 else:
                                     deflectTimer = 40
@@ -759,6 +803,7 @@ class mainGame:
                                 monster.setDamageReceived(bear.getDamageAttack())
                                 monster.setStunned(1)
                                 monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                if self.hit_sound: self.hit_sound.play()
                                 hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
@@ -1014,6 +1059,7 @@ class mainGame:
                     attackingAnimationCounter += 1
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
+                    if self.attack_sound: self.attack_sound.play()
                     monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
@@ -1026,6 +1072,7 @@ class mainGame:
                                     monster.setDamageReceived(bear.getDamageAttack())
                                     monster.setStunned(1)
                                     monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                    if self.hit_sound: self.hit_sound.play()
                                     hurtTimer = 0
                                 else:
                                     deflectTimer = 40
@@ -1036,6 +1083,7 @@ class mainGame:
                                 monster.setDamageReceived(bear.getDamageAttack())
                                 monster.setStunned(1)
                                 monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                if self.hit_sound: self.hit_sound.play()
                                 hurtTimer = 0
 
                 # ---- ESC: quit -------------------------------------------
@@ -1177,7 +1225,7 @@ class mainGame:
                 elif monster.getName() == "bigMummy":
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
-                    _switch_music("normal")
+                    self._switch_music("normal")
 
             # ---- Deflect indicator for big mummy body hits (drawn on top) ------
             if deflectTimer > 0:
@@ -1275,7 +1323,7 @@ class mainGame:
             if totalDistance > 38030 and not self.activeMonsters[9]:
                 self.spikes = []
                 self.activeMonsters[9] = True
-                _switch_music("boss_final")
+                self._switch_music("boss_final")
                 self.mummys = []
                 self.witches = []
                 self.blocks = []
@@ -1465,7 +1513,7 @@ class mainGame:
         # ── Zone 1 @ 3 800 – big mummy flanked by monster blocks ─────────────
         if backgroundScrollX > 3800 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
-            _switch_music("boss_mummy")
+            self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
@@ -1675,6 +1723,23 @@ class mainGame:
             self.greenBlobs.append(GreenBlob(1150, 300, 100, 100, self.screen))
             self.greenBlobs.append(GreenBlob(1650, 300, 100, 100, self.screen))
             self.triggerFire = True
+
+    # -----------------------------------------------------------------------
+    def _switch_music(self, track):
+        if getattr(self, '_current_music', None) == track:
+            return
+        self._current_music = track
+        _files = {
+            "normal":     "Game/Sounds/music.wav",
+            "boss_mummy": "Game/Sounds/boss_mummy.wav",
+            "boss_final": "Game/Sounds/boss_final.wav",
+        }
+        try:
+            pygame.mixer.music.load(_files[track])
+            pygame.mixer.music.set_volume(0.50)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -2892,6 +2957,8 @@ class Bear:
     def displayDamageOnBear(self, damage):
         _render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60)
+        if getattr(self, 'grunt_sound', None):
+            self.grunt_sound.play()
 
     def displayBearHp(self):
         PX, PY, PW, PH = 8, 6, 218, 60
