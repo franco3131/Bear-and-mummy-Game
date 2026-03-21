@@ -1415,7 +1415,7 @@ class mainGame:
                     bear_x = bear.getXPosition()
                     bear_x2 = bear_x + 100
                     # Block must be roughly horizontal to the bear and just below
-                    if (bx2 > blx and bear_x < brx
+                    if (bear_x2 > blx and bear_x < brx
                             and bty >= bear_feet_y - 5 and bty <= bear_feet_y + 20):
                         dist = abs(bty - bear_feet_y)
                         if dist < closest_dist:
