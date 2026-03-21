@@ -261,6 +261,7 @@ class mainGame:
         self.triggerText4 = False
         self.triggerText5 = False
         self.createdBoss = False
+        self.doorPopupTriggered = False
         self.leftBoundary = 180
         self.rightBoundary = 300
         self.isFinalBossDestroyed = False
@@ -415,12 +416,14 @@ class mainGame:
                     elif jumpTimer > 12:
                         # ---- On the ground: start a new jump (cooldown gated) ----
                         totalDistance += STEP
+                        _jump_moved = True
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if block.getIsLeftBoundary():
                                     bear.setXPosition(bear.getXPosition() - STEP)
                                     totalDistance -= STEP
+                                    _jump_moved = False
                             backgroundScrollX = bear.getXPosition() - STEP
                             background.setXPosition(backgroundScrollX)
                             bear.setXPosition(bear.getXPosition() + STEP)
@@ -429,6 +432,7 @@ class mainGame:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                             if any(b.getIsLeftBoundary() for b in self.blocks):
                                 totalDistance -= STEP
+                                _jump_moved = False
                             else:
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
@@ -440,8 +444,9 @@ class mainGame:
                                         block.setblockXPosition(block.getBlockXPosition() - STEP)
                                         backgroundScrollX = bear.getXPosition() + STEP
                                         background.setXPosition(backgroundScrollX)
-                        backgroundScrollX -= STEP
-                        background.setXPosition(backgroundScrollX)
+                        if _jump_moved:
+                            backgroundScrollX -= STEP
+                            background.setXPosition(backgroundScrollX)
                         bear.setJumpStatus(True)
                         bear.startJump()
                         jumpTimer = 0
@@ -1053,6 +1058,22 @@ class mainGame:
             for monster in to_remove:
                 if monster in self.mummys:
                     self.mummys.remove(monster)
+                    if len(self.mummys) == 0 and self.door and not self.doorPopupTriggered:
+                        self.doorPopupTriggered = True
+                        bear.setEndText(False)
+                        bear.textArray = [['You opened the door!',
+                                           'Proceed to the next area!',
+                                           'Press "s" to continue']]
+                        bear.showBearArray = [True]
+                        bear.tupleIndex = 0
+                        bear.line = 0
+                        bear.indexArray = 0
+                        bear.totalText1 = ""
+                        bear.totalText2 = ""
+                        bear.totalText3 = ""
+                        bear.text1 = ""
+                        bear.text2 = ""
+                        bear.text3 = ""
                 elif monster in self.witches:
                     self.witches.remove(monster)
                 elif monster in self.greenBlobs:
@@ -1350,6 +1371,7 @@ class mainGame:
 
             self.door1 = self._z1_door
             self.door = [self.door1]  # replace list to avoid duplicate
+            self.doorPopupTriggered = False
 
         # ── Zone 1.5 @ 5 500 – "Crumbling Ruins" gauntlet ───────────────────
         elif backgroundScrollX > 5500 and not self.activeMonsters[10]:
@@ -1994,7 +2016,7 @@ class Mummy():
 
     def _hits_block(self, new_x):
         """Return True if moving to new_x would overlap a block horizontally."""
-        _dy = 12
+        _dy = 20
         m_top    = self.y + _dy
         m_bottom = self.y + _dy + self.height
         m_left   = new_x
@@ -2013,7 +2035,7 @@ class Mummy():
         return False
 
     def drawMonster(self):
-        _dy = 12  # push sprite down so feet touch the floor
+        _dy = 20  # push sprite down so feet touch the floor
         is_big = self.height > 100
 
         # ── Walking frames ────────────────────────────────────────────────────
@@ -2930,15 +2952,27 @@ class Bear:
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
             self.textArray = []
+            self.showBearArray = []
             self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
+            self.showBearArray.append(True)
             self.textArray.append([
                 'Max HP is now: ' + str(self.maxHp),
                 'Attack is now: ' + str(self.damageAttack),
                 'Press "s" to continue'
             ])
+            self.showBearArray.append(True)
+            if self.level % 2 == 0:
+                self.textArray.append(['Firing is faster now!', '', 'Press "s" to continue'])
+                self.showBearArray.append(True)
             self.line = 0
             self.tupleIndex = 0
             self.indexArray = 0
+            self.totalText1 = ""
+            self.totalText2 = ""
+            self.totalText3 = ""
+            self.text1 = ""
+            self.text2 = ""
+            self.text3 = ""
 
 
 # ---------------------------------------------------------------------------
