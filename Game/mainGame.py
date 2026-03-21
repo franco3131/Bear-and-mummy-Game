@@ -897,13 +897,23 @@ class mainGame:
                     elif bear.getJumpStatus() or bear.getLeftJumpStatus():
                         if bear.getXPosition() < self.rightBoundary:
                             jumpTimer = 0
+                            # Check for wall: does bear's right edge overlap a block's left edge?
+                            bear_right = bear.getXPosition() + 100
+                            _wall_right = False
                             for block in self.blocks:
-                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            _wall_right = any(b.getIsLeftBoundary() for b in self.blocks)
+                                blx = block.getBlockXPosition()
+                                brx = blx + block.getWidth()
+                                bty = block.getBlockYPosition()
+                                bby = bty + block.getHeight()
+                                # Left boundary: bear's right edge in block's horizontal span
+                                if (bear_right > blx and bear.getXPosition() < brx
+                                        and bear.getYPosition() < bby and bear.getYPosition() + 100 > bty):
+                                    _wall_right = True
+                                    break
                             if not _wall_right:
+                                bear.setXPosition(bear.getXPosition() + STEP)
                                 backgroundScrollX = bear.getXPosition()
                                 background.setXPosition(backgroundScrollX)
-                                bear.setXPosition(bear.getXPosition() + STEP)
                             else:
                                 totalDistance -= STEP
                         else:
@@ -914,21 +924,9 @@ class mainGame:
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
-                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if not block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    backgroundScrollX = bear.getXPosition()
-                                    background.setXPosition(backgroundScrollX)
-                                elif block.getIsLeftBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() - STEP)
-                                    backgroundScrollX = bear.getXPosition()
-                                    background.setXPosition(backgroundScrollX)
-
-                        for block in self.blocks:
-                            block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            if block.getIsLeftBoundary():
-                                bear.setXPosition(bear.getXPosition() - STEP)
-                                totalDistance -= STEP
+                                block.setblockXPosition(block.getBlockXPosition() - STEP)
+                            backgroundScrollX = bear.getXPosition()
+                            background.setXPosition(backgroundScrollX)
 
                     bearAnimation += 1
                     if not _wall_blocked:
@@ -1015,13 +1013,23 @@ class mainGame:
                     elif bear.getJumpStatus() or bear.getLeftJumpStatus():
                         jumpTimer = 0
                         if bear.getXPosition() > self.leftBoundary:
+                            # Check for wall: does bear's left edge overlap a block's right edge?
+                            bear_left = bear.getXPosition()
+                            _wall_left = False
                             for block in self.blocks:
-                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            _wall_left = any(b.getIsRightBoundary() for b in self.blocks)
+                                blx = block.getBlockXPosition()
+                                brx = blx + block.getWidth()
+                                bty = block.getBlockYPosition()
+                                bby = bty + block.getHeight()
+                                # Right boundary: bear's left edge in block's horizontal span
+                                if (bear_left < brx and bear_left + 100 > blx
+                                        and bear.getYPosition() < bby and bear.getYPosition() + 100 > bty):
+                                    _wall_left = True
+                                    break
                             if not _wall_left:
+                                bear.setXPosition(bear.getXPosition() - STEP)
                                 backgroundScrollX = bear.getXPosition() + STEP
                                 background.setXPosition(backgroundScrollX)
-                                bear.setXPosition(bear.getXPosition() - STEP)
                             else:
                                 totalDistance += STEP
                         else:
@@ -1031,21 +1039,9 @@ class mainGame:
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
-                                block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if not block.getIsRightBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
-                                    backgroundScrollX = bear.getXPosition()
-                                    background.setXPosition(backgroundScrollX)
-                                elif block.getIsRightBoundary():
-                                    block.setblockXPosition(block.getBlockXPosition() + STEP)
-                                    totalDistance += STEP
-                                    backgroundScrollX = bear.getXPosition()
-                                    background.setXPosition(backgroundScrollX)
-                        for block in self.blocks:
-                            block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            if block.getIsRightBoundary():
-                                bear.setXPosition(bear.getXPosition() + STEP)
-                                totalDistance += STEP
+                                block.setblockXPosition(block.getBlockXPosition() + STEP)
+                            backgroundScrollX = bear.getXPosition() - STEP
+                            background.setXPosition(backgroundScrollX)
 
                     bearAnimation += 1
                     background.update(backgroundScrollX, bear.getYPosition())
@@ -1407,6 +1403,26 @@ class mainGame:
                 bear.jumpVelocity = 0.0
                 bear.setComingUpStatus(False)
                 bear.setJumpStatus(True)
+                # Identify the block the bear just walked off (closest block beneath)
+                # and set it as sourceBlock so _jumpPhysics won't re-land on it.
+                bear_feet_y = bear.getYPosition() + 100
+                closest_block = None
+                closest_dist = float('inf')
+                for block in self.blocks:
+                    bty = block.getBlockYPosition()
+                    blx = block.getBlockXPosition()
+                    brx = blx + block.getWidth()
+                    bear_x = bear.getXPosition()
+                    bear_x2 = bear_x + 100
+                    # Block must be roughly horizontal to the bear and just below
+                    if (bx2 > blx and bear_x < brx
+                            and bty >= bear_feet_y - 5 and bty <= bear_feet_y + 20):
+                        dist = abs(bty - bear_feet_y)
+                        if dist < closest_dist:
+                            closest_dist = dist
+                            closest_block = block
+                if closest_block:
+                    bear.sourceBlock = closest_block
 
             for block in self.blocks:
                 # Skip drop gravity while jump physics are already controlling
@@ -3350,7 +3366,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = 150
+        self.health = 500
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
