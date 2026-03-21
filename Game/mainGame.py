@@ -1303,6 +1303,22 @@ class mainGame:
         # Zones are ordered in ascending scroll distance with ~4 000+ unit gaps
         # so they never overlap or interfere with one another.
 
+        # ── Zone 1 pre-load @ 2 500 – quietly position Zone 1 objects ────────
+        # Objects are given offset positions so they scroll naturally into place
+        # by the time Zone 1 triggers at 3 800, eliminating any pop-in.
+        if backgroundScrollX > 2500 and not self.activeMonsters[11]:
+            self.activeMonsters[11] = True
+            offset = 3800 - 2500  # 1 300 scroll-units of lead time
+            self._z1_block_left.setblockXPosition(0    + offset)
+            self._z1_block_right.setblockXPosition(1800 + offset)
+            self._z1_door.setXPosition(1650 + offset)
+            self._z1_mummy.setXPosition(1000 + offset)
+            self.blocks.append(self._z1_block_left)
+            self.blocks.append(self._z1_block_right)
+            self.mummys.append(self._z1_mummy)
+            self.door.append(self._z1_door)
+            self.door1 = self._z1_door
+
         # ── Zone 1 @ 3 800 – big mummy flanked by monster blocks ─────────────
         if backgroundScrollX > 3800 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
@@ -1313,7 +1329,7 @@ class mainGame:
             self.mummys.append(self._z1_mummy)
 
             self.door1 = self._z1_door
-            self.door.append(self.door1)
+            self.door = [self.door1]  # replace list to avoid duplicate
 
         # ── Zone 1.5 @ 5 500 – "Crumbling Ruins" gauntlet ───────────────────
         elif backgroundScrollX > 5500 and not self.activeMonsters[10]:
@@ -1821,7 +1837,7 @@ class Mummy():
         self.hurtTimer = 0
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
-        self.exp = 10
+        self.exp = 4
         self.isHurtAnimationStarted = False
         self.isHurtTimer = 0
         self.startDestructionAnimation = False
@@ -2473,7 +2489,7 @@ class Bear:
         self.attack = 10
         self.hp = 100
         self.maxExp = 12
-        self.exp = 4
+        self.exp = 0
         self.text1 = ""
         self.text2 = ""
         self.text3 = ""
