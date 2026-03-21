@@ -241,15 +241,17 @@ class mainGame:
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
 
-        # Coloured player-fireball variants (tinted from the base image)
-        def _tint(img, r, g, b):
-            t = img.copy().convert_alpha()
-            t.fill((r, g, b, 255), special_flags=pygame.BLEND_RGB_MULT)
-            return t
-        _base = self.fireBossBall.convert_alpha()
-        self.fireballYellow = _tint(_base, 255, 255,   0)
-        self.fireballGreen  = _tint(_base,   0, 255,   0)
-        self.fireballBlue   = _tint(_base,   0, 140, 255)
+        # Distinct player-fireball surfaces for each level tier
+        def _fireball_surf(outer, mid, core=(255, 255, 255), size=50):
+            s = pygame.Surface((size, size), pygame.SRCALPHA)
+            c = size // 2
+            pygame.draw.circle(s, (*outer, 240), (c, c), size // 2 - 1)
+            pygame.draw.circle(s, (*mid,  255), (c, c), size // 3)
+            pygame.draw.circle(s, (*core, 220), (c, c), size // 6)
+            return s
+        self.fireballYellow = _fireball_surf((220, 200,   0), (255, 255,  80))
+        self.fireballGreen  = _fireball_surf((  0, 160,  30), ( 80, 255, 100))
+        self.fireballBlue   = _fireball_surf((  0,  80, 220), ( 80, 180, 255))
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
@@ -380,23 +382,24 @@ class mainGame:
                     self.playerFires.append(
                         FireBall(fb_x, fb_y, vel_x, 0,
                                  _fb_img, self.screen))
+                    attackingAnimationCounter = 1
 
                 # ---- Z + RIGHT: jump-right --------------------------------
                 if keys[pygame.K_z] and keys[pygame.K_RIGHT]:
                     airborne = bear.getJumpStatus() or bear.getLeftJumpStatus()
+                    # x-only wall check for tall blocks (used in both airborne
+                    # and ground-start sections below).
+                    def _tall_wall_ahead(bx):
+                        for blk in self.blocks:
+                            if ((bx + 100) > blk.getBlockXPosition()
+                                    and bx < blk.getBlockXPosition()
+                                    and (blk.getBlockYPosition() + blk.getHeight()) >= 380):
+                                return True
+                        return False
+
                     if airborne:
                         # ---- Already in the air: move right every frame ----
                         totalDistance += STEP
-                        # Supplementary wall check: x-only overlap for tall blocks
-                        # that extend to the floor – catches walls missed by the
-                        # y-aware isBoundaryPresent when the bear is above block-top.
-                        def _tall_wall_ahead(bx):
-                            for blk in self.blocks:
-                                if ((bx + 100) > blk.getBlockXPosition()
-                                        and bx < blk.getBlockXPosition()
-                                        and (blk.getBlockYPosition() + blk.getHeight()) >= 380):
-                                    return True
-                            return False
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -436,13 +439,18 @@ class mainGame:
                                     bear.setXPosition(bear.getXPosition() - STEP)
                                     totalDistance -= STEP
                                     _jump_moved = False
+                            if _jump_moved and _tall_wall_ahead(bear.getXPosition()):
+                                totalDistance -= STEP
+                                _jump_moved = False
                             backgroundScrollX = bear.getXPosition() - STEP
                             background.setXPosition(backgroundScrollX)
-                            bear.setXPosition(bear.getXPosition() + STEP)
+                            if _jump_moved:
+                                bear.setXPosition(bear.getXPosition() + STEP)
                         else:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                            if any(b.getIsLeftBoundary() for b in self.blocks):
+                            if (any(b.getIsLeftBoundary() for b in self.blocks)
+                                    or _tall_wall_ahead(bear.getXPosition())):
                                 totalDistance -= STEP
                                 _jump_moved = False
                             else:
@@ -1136,20 +1144,6 @@ class mainGame:
                                      key.getXPosition(), key.getYPosition()):
                     self.keys.remove(key)
                     self.isDoor1Open = True
-                    bear.setEndText(False)
-                    bear.textArray = [['The door is unlocked!',
-                                       'Keep moving forward!',
-                                       'Press "s" to continue']]
-                    bear.showBearArray = [False]
-                    bear.tupleIndex = 0
-                    bear.line = 0
-                    bear.indexArray = 0
-                    bear.totalText1 = ""
-                    bear.totalText2 = ""
-                    bear.totalText3 = ""
-                    bear.text1 = ""
-                    bear.text2 = ""
-                    bear.text3 = ""
 
             # ---- Witch fireballs (safe iteration) -----------------------
             fires_to_remove = []
@@ -1338,14 +1332,24 @@ class mainGame:
                             self.triggerText3 = True
                             bear.setEndText(False)
                 else:
-                    # Door is now unlocked — show text once
-                    if not self.triggerText2:
-                        bear.setArrayText(['Grabbed the key!', '',
-                                           'Press "s" to continue'])
-                        bear.setArrayText(['You can open the door now.', '',
-                                           'Press "s" to continue'])
+                    # Door is unlocked — show text only once the bear reaches it
+                    if (not self.triggerText2
+                            and door_x - 150 <= bear.getXPosition()):
                         self.triggerText2 = True
                         bear.setEndText(False)
+                        bear.textArray = [['The door is unlocked!',
+                                           'Keep moving forward!',
+                                           'Press "s" to continue']]
+                        bear.showBearArray = [False]
+                        bear.tupleIndex = 0
+                        bear.line = 0
+                        bear.indexArray = 0
+                        bear.totalText1 = ""
+                        bear.totalText2 = ""
+                        bear.totalText3 = ""
+                        bear.text1 = ""
+                        bear.text2 = ""
+                        bear.text3 = ""
 
             if not bear.getEndText():
                 bear.displayTextBox()
@@ -3084,8 +3088,7 @@ class KeyItem:
         return False
 
     def boundaryExtraCheck(self):
-        floorHeight = 400
-        if self.getYPosition() + 120 <= floorHeight:
+        if self.getYPosition() + 50 < 400:
             self.setYPosition(self.getYPosition() + JUMP_STEP)
 
 
