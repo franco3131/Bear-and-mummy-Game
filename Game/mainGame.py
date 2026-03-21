@@ -172,6 +172,20 @@ def _render_damage_text(screen, font, damage, x, y):
     screen.blit(font.render(str(damage), True, white), (x, y))
 
 
+def _draw_water(screen, offset):
+    """Animated scrolling stream drawn below the floor (y=400+)."""
+    bands = [
+        (405, (15,  70, 190)),
+        (414, (35, 115, 225)),
+        (422, (70, 165, 255)),
+    ]
+    for band_idx, (y_base, color) in enumerate(bands):
+        scroll = (offset * (band_idx + 1)) % 60
+        for x_start in range(-60 + scroll, 960, 60):
+            pygame.draw.ellipse(screen, color, (x_start - 30, y_base, 60, 12))
+    pygame.draw.line(screen, (130, 200, 255), (0, 402), (900, 402), 2)
+
+
 # ---------------------------------------------------------------------------
 # Main game class
 # ---------------------------------------------------------------------------
@@ -252,6 +266,19 @@ class mainGame:
         self.fireballYellow = _fireball_surf((220, 200,   0), (255, 255,  80))
         self.fireballGreen  = _fireball_surf((  0, 160,  30), ( 80, 255, 100))
         self.fireballBlue   = _fireball_surf((  0,  80, 220), ( 80, 180, 255))
+        import math as _math
+        _rb = pygame.Surface((50, 50), pygame.SRCALPHA)
+        _cx, _cy = 25, 25
+        for _ang in range(360):
+            _rad = _math.radians(_ang)
+            _r = int(127.5 * (1 + _math.sin(_rad)))
+            _g = int(127.5 * (1 + _math.sin(_rad + 2.094)))
+            _b = int(127.5 * (1 + _math.sin(_rad + 4.189)))
+            _px = _cx + int(20 * _math.cos(_rad))
+            _py = _cy + int(20 * _math.sin(_rad))
+            pygame.draw.circle(_rb, (_r, _g, _b, 255), (_px, _py), 7)
+        pygame.draw.circle(_rb, (255, 255, 255, 220), (_cx, _cy), 8)
+        self.fireballRainbow = _rb
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
@@ -332,6 +359,7 @@ class mainGame:
         playerFireCooldown = 0
         deflectTimer = 0
         deflectPos = (0, 0)
+        waterOffset = 0
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -353,6 +381,8 @@ class mainGame:
                     return
 
             background.render(totalDistance)
+            _draw_water(self.screen, waterOffset)
+            waterOffset = (waterOffset + 2) % 60
 
             if bear.getEndText():
 
@@ -364,14 +394,17 @@ class mainGame:
                         and playerFireCooldown == 0):
                     playerFireCooldown = 30
                     _lvl = bear.getLevel()
-                    _boost = 1.2 if _lvl >= 6 else 1.0
-                    _fb_speed = int(10 * (1.15 ** (_lvl // 2)) * _boost)
+                    _eff_lvl = min(_lvl, 9)
+                    _boost = 1.2 if _eff_lvl >= 6 else 1.0
+                    _fb_speed = int(10 * (1.15 ** (_eff_lvl // 2)) * _boost)
                     vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
                             if bear.getLeftDirection()
                             else bear.getXPosition() + 100)
                     fb_y = bear.getYPosition() + 30
-                    if _lvl >= 8:
+                    if _lvl >= 10:
+                        _fb_img = self.fireballRainbow
+                    elif _lvl >= 8:
                         _fb_img = self.fireballBlue
                     elif _lvl >= 6:
                         _fb_img = self.fireballGreen
@@ -1233,23 +1266,23 @@ class mainGame:
                         frankenbear.drawMonster()
                         if frankenbear.getThrowFireBallLeft() and not self.bossFires:
                             frankenbear.setThrowFireBallLeft(False)
-                            volley = 7 if frankenbear.getHealth() <= 3 else 5
+                            volley = 7 if frankenbear.getHealth() <= 10 else 5
                             for _ in range(volley):
                                 self.bossFires.append(
                                     FireBall(frankenbear.getXPosition() + 200,
                                              frankenbear.getYPosition() + 100,
-                                             random.randint(-24, -4),
-                                             random.randint(6, 14),
+                                             random.randint(-12, -2),
+                                             random.randint(3, 7),
                                              self.fireBossBall, self.screen))
                         elif frankenbear.getThrowFireBallRight() and not self.bossFires:
                             frankenbear.setThrowFireBallLeft(False)
-                            volley = 7 if frankenbear.getHealth() <= 3 else 5
+                            volley = 7 if frankenbear.getHealth() <= 10 else 5
                             for _ in range(volley):
                                 self.bossFires.append(
                                     FireBall(frankenbear.getXPosition() + 200,
                                              frankenbear.getYPosition() + 100,
-                                             random.randint(4, 24),
-                                             random.randint(6, 14),
+                                             random.randint(2, 12),
+                                             random.randint(3, 7),
                                              self.fireBossBall, self.screen))
 
                     boss_fires_to_remove = []
@@ -1514,9 +1547,9 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(1050, 160, 3000, 60, "striped",     self.screen)
-            block2 = Block(1200, 220, 2000, 60, "stripedFlip", self.screen)
-            block3 = Block(1400, 240, 1000, 60, "striped",     self.screen)
+            block1 = Block(1050, 240, 3000, 60, "striped",     self.screen)
+            block2 = Block(1200, 280, 2000, 60, "stripedFlip", self.screen)
+            block3 = Block(1400, 310, 1000, 60, "striped",     self.screen)
             self.blocks.extend([block1, block2, block3])
 
             x = 1050
@@ -1536,10 +1569,10 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
-            block1 = Block(1100, 160, 3500, 60, "checkered", self.screen)
-            block2 = Block(1020, 220, 3500, 60, "checkered", self.screen)
-            block3 = Block(950,  240, 3000, 60, "checkered", self.screen)
-            block4 = Block(1100, 100, 1000, 60, "greyRock",  self.screen)
+            block1 = Block(1100, 240, 3500, 60, "checkered", self.screen)
+            block2 = Block(1020, 280, 3500, 60, "checkered", self.screen)
+            block3 = Block(950,  310, 3000, 60, "checkered", self.screen)
+            block4 = Block(1100, 200, 1000, 60, "greyRock",  self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
             greenBlob  = GreenBlob(1030, 300, 100, 100, self.screen)
@@ -2096,7 +2129,6 @@ class Mummy():
         # ── Hurt / stunned frames ─────────────────────────────────────────────
         elif self.stunned > 0 and self.direction > 0:
             self.stunned += 1
-            self.displayDamageOnMonster(self.damageReceived)
             if is_big:
                 self.screen.blit(self.hurtOutline, (self.x, self.y + _dy))
             self.screen.blit(self.hurtMummy, (self.x, self.y + _dy))
@@ -2111,7 +2143,6 @@ class Mummy():
             if is_big:
                 self.screen.blit(self.hurtLeftOutline, (self.x, self.y + _dy))
             self.screen.blit(self.hurtLeftMummy, (self.x, self.y + _dy))
-            self.displayDamageOnMonster(self.damageReceived)
             if is_big and self.hurtFlash:
                 self.screen.blit(self.hurtFlash, (self.x, self.y + _dy))
             elif self.stunned <= 8:
@@ -2272,7 +2303,6 @@ class Witch():
         elif self.stunned > 0:
             self.stunned += 1
             self.screen.blit(self.hurtWitch, (self.x, self.y))
-            self.displayDamageOnMonster(self.damageReceived)
             if self.stunned == 20:
                 self.stunned = 0
 
@@ -2514,7 +2544,6 @@ class GreenBlob():
             self.x += self.direction * self.rand
         elif self.stunned > 0:
             self.stunned += 1
-            self.displayDamageOnMonster(self.damageReceived)
             self.screen.blit(self.hurtGreenBlob, (self.x, self.y + 10))
             if self.stunned == 20:
                 self.stunned = 0
@@ -2753,12 +2782,12 @@ class Bear:
                         return
 
             else:
-                # ---- Case 2: launched from another platform ------------------
-                # Skip the exact block object we jumped from (not by Y, since
-                # multiple blocks can share the same Y coordinate).
+                # ---- Case 2: launched from platform -------------------------
+                # The crossing-feet check (prev_feet <= bty <= feet) already
+                # prevents re-landing on the source block immediately after
+                # jumping, so we no longer need to skip it — allowing the bear
+                # to land back on the same platform on the way down.
                 for block in blocks:
-                    if block is self.sourceBlock:
-                        continue
                     bty = block.getBlockYPosition()
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
@@ -2767,10 +2796,8 @@ class Bear:
                         _land(block, bty)
                         return
 
-                # Secondary fallback (skip source block)
+                # Secondary fallback
                 for block in blocks:
-                    if block is self.sourceBlock:
-                        continue
                     block.isBoundaryPresent(self.x, self.y)
                     if block.getOnPlatform():
                         bty = block.getBlockYPosition()
@@ -2979,7 +3006,10 @@ class Bear:
             self.maxExp += 20
             self.exp = 0
             self.maxHp += random.randint(5, 15)
-            self.hp = min(self.maxHp, int(self.maxHp * 0.6))
+            if self.hp < self.maxHp * 0.25:
+                self.hp = min(self.maxHp, int(self.maxHp * 0.90))
+            else:
+                self.hp = min(self.maxHp, int(self.maxHp * 0.75))
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
             self.textArray = []
@@ -3123,7 +3153,7 @@ class SpikeBlock():
         self.damageAttack = v
 
     def getDamageAttack(self):
-        return self.damageAttack
+        return self.damageAttack // 2
 
     def setXPosition(self, x):
         self.x = x
@@ -3165,7 +3195,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = 20
+        self.health = 80
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
