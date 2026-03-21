@@ -2935,7 +2935,7 @@ class Bear:
                     # doesn't snap the bear back onto the block she just left.
                     if (prev_feet <= bty and feet >= bty
                             and (prev_feet < bty or feet > bty)
-                            and bx2 > blx and self.x < brx + 30):
+                            and bx2 > blx and self.x < brx):
                         _land(block, bty)
                         return
 
@@ -2961,7 +2961,7 @@ class Bear:
 
                     if (prev_feet <= bty and feet >= bty
                             and (prev_feet < bty or feet > bty)
-                            and bx2 > blx and self.x < brx + 30):
+                            and bx2 > blx and self.x < brx):
                         _land(block, bty)
                         return
 
