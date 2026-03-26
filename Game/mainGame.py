@@ -1318,7 +1318,7 @@ class mainGame:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
                     if pf_rect.colliderect(m_rect):
-                        _fb_dmg = bear.getLevel()
+                        _fb_dmg = bear.fireballDamage
                         monster.setDamageReceived(_fb_dmg)
                         monster.setStunned(1)
                         monster.setHealth(monster.getHealth() - _fb_dmg)
@@ -2827,6 +2827,7 @@ class Bear:
             pygame.image.load("Game/Images/Bear/bearJump2.png"), True, False)
         self.bearJumpingLeft2 = pygame.transform.scale(self.bearJumpingLeft2, (120, 105))
         self.damageAttack = 2
+        self.fireballDamage = 1
         self.hurtTimer = 0
         self.leftDirection = False
         self.comingUp = False
@@ -3038,6 +3039,27 @@ class Bear:
             self.setLeftJumpStatus(False)
             self.jumpVelocity = 0.0
             self.sourceBlock = None
+        
+        # Fall-through recovery: if bear somehow falls through a platform, snap back up
+        if self.y > 300 and not self.getJumpStatus() and not self.getLeftJumpStatus():
+            bx2 = self.x + 100
+            closest_block = None
+            closest_dist = float('inf')
+            for block in blocks:
+                bty = block.getBlockYPosition()
+                blx = block.getBlockXPosition()
+                brx = blx + block.getWidth()
+                if bx2 > blx and self.x < brx and bty < self.y + 100:
+                    dist = (self.y + 100) - bty
+                    if dist < closest_dist:
+                        closest_block = block
+                        closest_dist = dist
+            if closest_block and closest_dist < 60:
+                self.y = closest_block.getBlockYPosition() - 100
+                self.sourceBlock = closest_block
+                self.setJumpStatus(False)
+                self.setLeftJumpStatus(False)
+                self.jumpVelocity = 0.0
 
     def jump(self, blocks):
         """Right-facing jump (also handles neutral/vertical jump)."""
@@ -3241,6 +3263,7 @@ class Bear:
                 self.hp = min(self.maxHp, int(self.maxHp * 0.85))
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
+            self.fireballDamage = int(self.fireballDamage * 1.20) + 1
             self.textArray = []
             self.showBearArray = []
             self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
