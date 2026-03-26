@@ -327,6 +327,7 @@ class mainGame:
         self.frankenbear = []
         self.miniFrankenBears = []
         self.lasers = []
+        self.waterfalls = []
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -1727,6 +1728,20 @@ class mainGame:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
             self.triggerFire = True
+
+        # ── Zone 3.5 @ 14 000 – waterfall passage ─────────────────────────────
+        elif backgroundScrollX > 14000 and not self.activeMonsters[13]:
+            self.activeMonsters[13] = True
+            self.mummys = []; self.witches = []; self.blocks = []
+            self.greenBlobs = []; self.fires = []; self.shadowShamans = []
+            self.miniFrankenBears = []; self.lasers = []; self.waterfalls = []
+
+            block1 = Block(1000, 300, 900, 60, "greyRock", self.screen)
+            block2 = Block(1950, 240, 800, 60, "greyRock", self.screen)
+            self.blocks.extend([block1, block2])
+
+            waterfall = Waterfall(1300, 80, 120, 150, self.screen)
+            self.waterfalls.append(waterfall)
 
         # ── Zone 4 @ 16 000 – mummy rush on tiered platforms ─────────────────
         elif backgroundScrollX > 16000 and not self.activeMonsters[4]:
@@ -3590,6 +3605,49 @@ class ShadowShaman():
 
     def draw(self):
         self.screen.blit(self.witch, (self.x, self.y))
+
+
+# ---------------------------------------------------------------------------
+class Waterfall():
+    def __init__(self, x, y, width, height, screen):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.screen = screen
+        self.particles = []
+        self.spawn_rate = 2
+        self.frame = 0
+        for _ in range(20):
+            self._spawn_particle()
+    
+    def _spawn_particle(self):
+        px = self.x + random.randint(0, self.width)
+        py = self.y
+        vy = random.uniform(1.5, 3.5)
+        self.particles.append({'x': px, 'y': py, 'vy': vy, 'life': 255})
+    
+    def draw(self):
+        self.frame += 1
+        if self.frame % self.spawn_rate == 0:
+            for _ in range(2):
+                self._spawn_particle()
+        
+        to_remove = []
+        for p in self.particles:
+            p['y'] += p['vy']
+            p['life'] = max(0, p['life'] - 8)
+            
+            if p['y'] > self.y + self.height or p['life'] <= 0:
+                to_remove.append(p)
+            else:
+                alpha = int(p['life'])
+                s = pygame.Surface((4, 8), pygame.SRCALPHA)
+                pygame.draw.line(s, (100, 180, 255, alpha), (2, 0), (2, 8), 2)
+                self.screen.blit(s, (int(p['x']), int(p['y'])))
+        
+        for p in to_remove:
+            self.particles.remove(p)
 
 
 # ---------------------------------------------------------------------------
