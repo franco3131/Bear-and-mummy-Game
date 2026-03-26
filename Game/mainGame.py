@@ -387,7 +387,7 @@ class mainGame:
         self.triggerFire = False
         floorHeight = 400
         continueLoop = True
-        bear = Bear(150, 300, self.screen)
+        bear = Bear(150, 300, self.screen, self.thud_sound)
         bear.grunt_sound = self.grunt_sound
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
@@ -2836,8 +2836,9 @@ class GreenBlob():
 
 # ---------------------------------------------------------------------------
 class Bear:
-    def __init__(self, x, y, screen):
+    def __init__(self, x, y, screen, thud_sound=None):
         self.screen = screen
+        self.thud_sound = thud_sound
         self.textTimer = 0
         self.xText = 200
         self.yText = 100
