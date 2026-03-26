@@ -620,6 +620,8 @@ class mainGame:
                                         self.greenBlobs + self.spikes + self.bossFires +
                                         self.frankenbear + self.shadowShamans + self.miniFrankenBears)
                     for monster in dangerousObjects:
+                        if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                            continue
                         if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
@@ -725,6 +727,8 @@ class mainGame:
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
                         for monster in dangerousObjects:
+                            if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                                continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
@@ -914,6 +918,8 @@ class mainGame:
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
                         for monster in dangerousObjects:
+                            if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                                continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
@@ -1030,6 +1036,8 @@ class mainGame:
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
                         for monster in dangerousObjects:
+                            if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                                continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
@@ -1137,6 +1145,8 @@ class mainGame:
                                         self.greenBlobs + self.spikes + self.bossFires +
                                         self.frankenbear + self.shadowShamans + self.miniFrankenBears)
                     for monster in dangerousObjects:
+                        if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                            continue
                         if (bear.isBearHurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
