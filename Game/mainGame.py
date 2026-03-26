@@ -3091,15 +3091,16 @@ class Bear:
 
             else:
                 # ---- Case 2: launched from platform -------------------------
-                # Skip the source block entirely to prevent re-landing on it
-                # during walk-offs (where prev_feet == bty == feet initially).
-                # Once the sourceBlock is cleared in _land(), landing can occur.
+                # Allow landing on sourceBlock if it's a real jump (prev_feet < bty).
+                # Only skip if it's a walk-off (prev_feet == bty == feet).
                 for block in blocks:
-                    if block == self.sourceBlock:
-                        continue  # Skip the block we just left
                     bty = block.getBlockYPosition()
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
+                    
+                    # Skip sourceBlock ONLY if it's a walk-off (no upward movement)
+                    if block == self.sourceBlock and prev_feet == bty and feet == bty:
+                        continue
 
                     if (prev_feet <= bty and feet >= bty
                             and (prev_feet < bty or feet > bty)
