@@ -3126,7 +3126,6 @@ class Bear:
                 self.thud_sound.play()
         
         # Fall-through recovery: if bear somehow falls through a platform, snap back up
-        # BUT only for genuine fall-throughs (large gaps), not when walking off blocks
         if self.y > 300 and not self.getJumpStatus() and not self.getLeftJumpStatus():
             bx2 = self.x + 100
             closest_block = None
@@ -3140,8 +3139,7 @@ class Bear:
                     if dist < closest_dist:
                         closest_block = block
                         closest_dist = dist
-            # Only snap up if falling through a large gap (> 80px) to avoid intermediate blocks
-            if closest_block and closest_dist > 80 and closest_dist < 200:
+            if closest_block and closest_dist < 60:
                 self.y = closest_block.getBlockYPosition() - 100
                 self.sourceBlock = closest_block
                 self.setJumpStatus(False)
