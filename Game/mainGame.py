@@ -1620,7 +1620,7 @@ class mainGame:
             self.activeMonsters[1] = True
             self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
-            self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []
+            self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
             self.mummys.append(self._z1_mummy)
@@ -3125,6 +3125,18 @@ class Bear:
                         _land(block, bty)
                         return
 
+        # Continuous block check during fall – catch any block in path while falling
+        if self.jumpVelocity <= 0 and (self.getJumpStatus() or self.getLeftJumpStatus()):
+            bx2 = self.x + 100
+            for block in blocks:
+                bty = block.getBlockYPosition()
+                blx = block.getBlockXPosition()
+                brx = blx + block.getWidth()
+                # If bear is falling and horizontally overlaps with block, and feet would pass through top
+                if (bx2 > blx and self.x < brx and feet >= bty and feet <= bty + 20):
+                    _land(block, bty)
+                    return
+        
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
             self.y = 300
