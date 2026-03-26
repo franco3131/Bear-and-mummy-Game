@@ -1625,8 +1625,8 @@ class mainGame:
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
             self.mummys.append(self._z1_mummy)
             
-            # Add 1 mini frankenbear for testing
-            mini_test = MiniFrankenBear(1500, 150, self.screen)
+            # Add 1 mini frankenbear for testing - position on screen
+            mini_test = MiniFrankenBear(450, 150, self.screen)
             self.miniFrankenBears.append(mini_test)
 
             self.door1 = self._z1_door
@@ -3126,6 +3126,7 @@ class Bear:
                         return
 
         # Continuous block check during fall – catch any block in path while falling
+        # Extra edge case checks for blocks while falling
         if self.jumpVelocity <= 0 and (self.getJumpStatus() or self.getLeftJumpStatus()):
             bx2 = self.x + 100
             for block in blocks:
@@ -3134,6 +3135,14 @@ class Bear:
                 brx = blx + block.getWidth()
                 # If bear is falling and horizontally overlaps with block, and feet would pass through top
                 if (bx2 > blx and self.x < brx and feet >= bty and feet <= bty + 20):
+                    _land(block, bty)
+                    return
+                # Edge case: if bear's center is above block but feet are past it, still land
+                if (bx2 > blx and self.x < brx and prev_feet <= bty and feet > bty and feet <= bty + 50):
+                    _land(block, bty)
+                    return
+                # Edge case: if bear is partially on edge of block while falling
+                if (feet >= bty and feet <= bty + 15 and self.x < brx and bx2 > blx):
                     _land(block, bty)
                     return
         
