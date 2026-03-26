@@ -355,6 +355,7 @@ class mainGame:
         self.fireballYellow = _fireball_surf((220, 200,   0), (255, 255,  80))
         self.fireballGreen  = _fireball_surf((  0, 160,  30), ( 80, 255, 100))
         self.fireballBlue   = _fireball_surf((  0,  80, 220), ( 80, 180, 255))
+        self.fireballGold   = _fireball_surf((255, 215,   0), (255, 255, 100))
         import math as _math
         _rb = pygame.Surface((50, 50), pygame.SRCALPHA)
         _cx, _cy = 25, 25
@@ -487,13 +488,17 @@ class mainGame:
                     _lvl = bear.getLevel()
                     _eff_lvl = min(_lvl, 9)
                     _boost = 1.2 if _eff_lvl >= 6 else 1.0
+                    if _lvl >= 12:
+                        _boost *= 1.5
                     _fb_speed = int(10 * (1.15 ** (_eff_lvl // 2)) * _boost)
                     vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
                             if bear.getLeftDirection()
                             else bear.getXPosition() + 100)
                     fb_y = bear.getYPosition() + 30
-                    if _lvl >= 10:
+                    if _lvl >= 12:
+                        _fb_img = self.fireballGold
+                    elif _lvl >= 10:
                         _fb_img = self.fireballRainbow
                     elif _lvl >= 8:
                         _fb_img = self.fireballBlue
@@ -1615,10 +1620,14 @@ class mainGame:
             self.activeMonsters[1] = True
             self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
-            self.greenBlobs = []; self.fires = []
+            self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
             self.mummys.append(self._z1_mummy)
+            
+            # Add 1 mini frankenbear for testing
+            mini_test = MiniFrankenBear(1500, 150, self.screen)
+            self.miniFrankenBears.append(mini_test)
 
             self.door1 = self._z1_door
             self.door = [self.door1]  # replace list to avoid duplicate
@@ -3391,34 +3400,7 @@ class Door:
         return "door"
 
     def drawRectangle(self):
-        # Draw ornate door with decorative frame
-        door_w, door_h = 200, 550
-        door_x, door_y = self.x, 0
-        
-        # Outer frame (stone)
-        pygame.draw.rect(self.screen, (100, 80, 60), (door_x - 10, door_y - 10, door_w + 20, door_h + 20), 8)
-        
-        # Door background (dark wood with gradient effect)
-        pygame.draw.rect(self.screen, (80, 50, 20), (door_x, door_y, door_w, door_h))
-        
-        # Door panels (lighter wood stripes)
-        for i in range(3):
-            y_pos = door_y + i * 180 + 20
-            pygame.draw.rect(self.screen, (120, 70, 30), (door_x + 10, y_pos, door_w - 20, 140), 3)
-        
-        # Door handle (brass circle)
-        handle_x = door_x + door_w // 2 + 40
-        handle_y = door_y + door_h // 2
-        pygame.draw.circle(self.screen, (220, 180, 80), (int(handle_x), int(handle_y)), 12)
-        pygame.draw.circle(self.screen, (180, 140, 40), (int(handle_x), int(handle_y)), 12, 2)
-        
-        # Decorative studs along edges
-        for y in range(door_y + 40, door_y + door_h, 80):
-            pygame.draw.circle(self.screen, (200, 160, 100), (door_x + 15, y), 6)
-            pygame.draw.circle(self.screen, (200, 160, 100), (door_x + door_w - 15, y), 6)
-        
-        # Top decoration (arch-like pattern)
-        pygame.draw.arc(self.screen, (150, 120, 80), (door_x + 40, door_y - 20, door_w - 80, 40), 0, 3.14, 4)
+        self.screen.blit(self.door, (self.x, 0))
 
 
 # ---------------------------------------------------------------------------
