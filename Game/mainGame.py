@@ -1479,6 +1479,8 @@ class mainGame:
                 bear.jumpVelocity = 0.0
                 bear.setComingUpStatus(False)
                 bear.setJumpStatus(True)
+                for b in self.blocks:
+                    b.setDropStatus(False)
                 # Identify the block the bear just walked off (closest block beneath)
                 # and set it as sourceBlock so _jumpPhysics won't re-land on it.
                 bear_feet_y = bear.getYPosition() + 100
@@ -3050,7 +3052,8 @@ class Bear:
             """Snap bear onto block and end the jump."""
             self.y = bty - 100
             block.setOnPlatform(True)
-            block.setDropStatus(False)
+            for b in blocks:
+                b.setDropStatus(False)
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
             self.initialHeight = self.y
