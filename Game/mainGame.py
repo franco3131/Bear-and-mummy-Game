@@ -325,6 +325,8 @@ class mainGame:
         self.shadowShamans = []
         self.blocks = []
         self.frankenbear = []
+        self.miniFrankenBears = []
+        self.lasers = []
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -598,7 +600,7 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear + self.shadowShamans)
+                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears)
                     for monster in dangerousObjects:
                         if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -1115,7 +1117,7 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear + self.shadowShamans)
+                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears)
                     for monster in dangerousObjects:
                         if (bear.isBearHurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -1189,7 +1191,7 @@ class mainGame:
             for mummy in self.mummys:
                 mummy.setBlocks(self.blocks)
 
-            monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans
+            monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans + self.miniFrankenBears
             to_remove = []
             for monster in monsters:
                 if monster.getHealth() > 0:
@@ -1232,6 +1234,8 @@ class mainGame:
                     self.greenBlobs.remove(monster)
                 elif monster in self.shadowShamans:
                     self.shadowShamans.remove(monster)
+                elif monster in self.miniFrankenBears:
+                    self.miniFrankenBears.remove(monster)
 
                 if monster.getName() == "greenBlob" and monster.getHeight() == 100:
                     self.greenBlobs.append(
@@ -1242,6 +1246,39 @@ class mainGame:
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
                     self._switch_music("normal")
+
+            # ---- Mini FrankenBear laser generation and drawing ----------------
+            for minibear in self.miniFrankenBears:
+                if minibear.should_throw_laser():
+                    self.lasers.append(minibear.throw_laser())
+            
+            laser_to_remove = []
+            for laser in self.lasers:
+                if not laser.draw():
+                    laser_to_remove.append(laser)
+                else:
+                    laser_hit = False
+                    laser_rect_top = laser.getYPosition() - 20
+                    laser_rect_bot = laser.getYPosition() + 20
+                    bear_feet = bear.getYPosition() + 100
+                    bear_top = bear.getYPosition()
+                    bear_left = bear.getXPosition()
+                    bear_right = bear.getXPosition() + 100
+                    
+                    if (bear_feet > laser_rect_top and bear_top < laser_rect_bot
+                            and bear_right > laser.getStartX() and bear_left < laser.getEndX()
+                            and hurtTimer > 25):
+                        bear.displayDamageOnBear(6)
+                        bear.setHp(bear.getHp() - 6)
+                        hurtTimer = 0
+                        laser_hit = True
+                    
+                    if laser_hit:
+                        laser_to_remove.append(laser)
+            
+            for laser in laser_to_remove:
+                if laser in self.lasers:
+                    self.lasers.remove(laser)
 
             # ---- Deflect indicator for big mummy body hits (drawn on top) ------
             if deflectTimer > 0:
@@ -1313,7 +1350,7 @@ class mainGame:
                     continue
                 pf_rect = pygame.Rect(pf_x, pf_y, 60, 60)
                 monsters = (self.mummys + self.witches +
-                            self.greenBlobs + self.frankenbear + self.shadowShamans)
+                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears)
                 for monster in monsters:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
@@ -1709,11 +1746,27 @@ class mainGame:
             self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen))
             self.greenBlobs.append(GreenBlob(1700, 300, 100, 100, self.screen))
 
+        # ── Zone 4.2 @ 18 000 – mini frankenbeares with rainbow lasers ────────
+        elif backgroundScrollX > 18000 and not self.activeMonsters[12]:
+            self.activeMonsters[12] = True
+            self.miniFrankenBears = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.greenBlobs = []; self.fires = []
+            self.lasers = []
+
+            block1 = Block(1000, 280, 800, 60, "greyRock", self.screen)
+            block2 = Block(1900, 200, 800, 60, "greyRock", self.screen)
+            self.blocks.extend([block1, block2])
+
+            mini1 = MiniFrankenBear(1200, 200, self.screen)
+            mini2 = MiniFrankenBear(1600, 120, self.screen)
+            mini3 = MiniFrankenBear(2000, 200, self.screen)
+            self.miniFrankenBears.extend([mini1, mini2, mini3])
+
         # ── Zone 5 @ 20 500 – striped platforms, mummies + 2 witches ─────────
         elif backgroundScrollX > 20500 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
             self.mummys = []; self.witches = []; self.blocks = []
-            self.greenBlobs = []; self.fires = []
+            self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             block1 = Block(1050, 240, 3000, 60, "striped",     self.screen)
             block2 = Block(1200, 280, 2000, 60, "stripedFlip", self.screen)
@@ -3537,6 +3590,159 @@ class ShadowShaman():
 
     def draw(self):
         self.screen.blit(self.witch, (self.x, self.y))
+
+
+# ---------------------------------------------------------------------------
+class Laser():
+    def __init__(self, start_x, end_x, y, screen):
+        self.start_x = start_x
+        self.end_x = end_x
+        self.y = y
+        self.screen = screen
+        self.lifetime = 0
+        self.max_lifetime = 20
+        self.width = abs(end_x - start_x)
+        
+    def draw(self):
+        if self.lifetime < self.max_lifetime:
+            self.lifetime += 1
+            alpha = int(255 * (1 - self.lifetime / self.max_lifetime))
+            length = self.width
+            num_colors = 7
+            segment_width = max(1, length // num_colors)
+            colors = [
+                (255, 0, 0),      # Red
+                (255, 127, 0),    # Orange
+                (255, 255, 0),    # Yellow
+                (0, 255, 0),      # Green
+                (0, 0, 255),      # Blue
+                (75, 0, 130),     # Indigo
+                (148, 0, 211)     # Violet
+            ]
+            for i in range(num_colors):
+                x_pos = self.start_x + i * segment_width
+                color = colors[i % len(colors)]
+                pygame.draw.line(self.screen, color, (x_pos, self.y), 
+                               (x_pos + segment_width, self.y), 8)
+            return True
+        return False
+    
+    def getYPosition(self):
+        return self.y
+    
+    def getStartX(self):
+        return min(self.start_x, self.end_x)
+    
+    def getEndX(self):
+        return max(self.start_x, self.end_x)
+    
+    def isActive(self):
+        return self.lifetime < self.max_lifetime
+
+
+class MiniFrankenBear():
+    def __init__(self, x, y, screen):
+        self.x = x
+        self.y = y
+        self.screen = screen
+        self.health = 45
+        self.direction = -1 if random.random() > 0.5 else 1
+        self.walk_speed = 3
+        self.walk_timer = 0
+        self.change_direction_timer = random.randint(80, 150)
+        self.laser_timer = 0
+        self.laser_interval = random.randint(40, 80)
+        self.destructionAnimation = 0
+        self.stunned = 0
+        self.damageAttack = 8
+        self.damageReceived = 0
+        self.exp = 35
+        self.isHurtAnimationStarted = False
+        self.isHurtTimer = 0
+        self.startDestructionAnimation = False
+        self.has_thrown_laser = False
+        
+    def walk(self):
+        self.x += self.direction * self.walk_speed
+        self.walk_timer += 1
+        if self.walk_timer > self.change_direction_timer:
+            self.direction *= -1
+            self.walk_timer = 0
+            self.change_direction_timer = random.randint(80, 150)
+    
+    def update_laser_timer(self):
+        self.laser_timer += 1
+    
+    def should_throw_laser(self):
+        return self.laser_timer >= self.laser_interval and not self.has_thrown_laser
+    
+    def throw_laser(self):
+        self.has_thrown_laser = True
+        self.laser_timer = 0
+        self.laser_interval = random.randint(60, 100)
+        return Laser(self.x - 150, self.x + 150, self.y - 30, self.screen)
+    
+    def draw(self):
+        size = 80
+        color_r = max(100, min(255, self.health * 5))
+        s = pygame.Surface((size, size), pygame.SRCALPHA)
+        pygame.draw.circle(s, (color_r, 50, 50), (size//2, size//2), size//2)
+        pygame.draw.rect(s, (100, 20, 20), (size//4, size//4, size//2, size//2))
+        self.screen.blit(s, (self.x - size//2, self.y - size//2))
+    
+    def drawMonster(self):
+        self.walk()
+        self.update_laser_timer()
+        self.draw()
+    
+    def drawDestruction(self, damage):
+        self.destructionAnimation += 1
+        alpha = int(255 * (1 - self.destructionAnimation / 30))
+        s = pygame.Surface((80, 80), pygame.SRCALPHA)
+        pygame.draw.circle(s, (255, 100, 100, alpha), (40, 40), 40)
+        self.screen.blit(s, (self.x - 40, self.y - 40))
+    
+    def getHealth(self):
+        return self.health
+    
+    def setHealth(self, health):
+        self.health = health
+    
+    def getXPosition(self):
+        return self.x
+    
+    def getYPosition(self):
+        return self.y
+    
+    def setXPosition(self, x):
+        self.x = x
+    
+    def setYPosition(self, y):
+        self.y = y
+    
+    def getDestructionAnimationCount(self):
+        return self.destructionAnimation
+    
+    def getName(self):
+        return "miniFrankenBear"
+    
+    def getDamageAttack(self):
+        return self.damageAttack
+    
+    def getExp(self):
+        return self.exp
+    
+    def setDamageReceived(self, damage):
+        self.damageReceived = damage
+    
+    def setStunned(self, value):
+        self.stunned = value
+    
+    def setStartDestructionAnimation(self, v):
+        self.startDestructionAnimation = v
+    
+    def getStartDestructionAnimationStatus(self):
+        return self.startDestructionAnimation
 
 
 # ---------------------------------------------------------------------------
