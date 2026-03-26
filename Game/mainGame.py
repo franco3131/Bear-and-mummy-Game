@@ -279,6 +279,11 @@ class mainGame:
                 _smp.append(_s * _env * 0.70)
             self.explosion_sound = _make_snd(_smp)
             self.explosion_sound.set_volume(0.60)
+            
+            self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
+            self.fireball_sound.set_volume(0.50)
+            self.blob_jump_sound = pygame.mixer.Sound("Game/Sounds/blob_jump.wav")
+            self.blob_jump_sound.set_volume(0.50)
 
         except Exception:
             self.thud_sound = None   # no audio device – run silently
@@ -287,6 +292,8 @@ class mainGame:
             self.grunt_sound  = None
             self.hit_sound    = None
             self.explosion_sound = None
+            self.fireball_sound = None
+            self.blob_jump_sound = None
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -1268,9 +1275,9 @@ class mainGame:
 
                 if monster.getName() == "greenBlob" and monster.getHeight() == 100:
                     self.greenBlobs.append(
-                        GreenBlob(monster.getXPosition() - 40, 350, 70, 100, self.screen))
+                        GreenBlob(monster.getXPosition() - 40, 350, 70, 100, self.screen, self.blob_jump_sound))
                     self.greenBlobs.append(
-                        GreenBlob(monster.getXPosition() + 40, 350, 70, 100, self.screen))
+                        GreenBlob(monster.getXPosition() + 40, 350, 70, 100, self.screen, self.blob_jump_sound))
                 elif monster.getName() == "bigMummy":
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
@@ -1658,9 +1665,9 @@ class mainGame:
             self.blocks.extend([plat1, plat2, plat3, plat4, plat5])
 
             # Mystical enemies - witches and spellcasters
-            witch1 = Witch(1100, 200, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1500, 190, self.witch, self.witch2, self.screen)
-            witch3 = Witch(1800, 100, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1100, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1500, 190, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(1800, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3])
 
             # Mix of mummies for added challenge
@@ -1699,12 +1706,12 @@ class mainGame:
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
             # ── Two green blobs adding chaos in the wider gaps ────────────────
-            self.greenBlobs.append(GreenBlob(1310, 300, 100, 100, self.screen))
-            self.greenBlobs.append(GreenBlob(1720, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1310, 300, 100, 100, self.screen, self.blob_jump_sound))
+            self.greenBlobs.append(GreenBlob(1720, 300, 100, 100, self.screen, self.blob_jump_sound))
 
             # ── Two witches: one low-and-close, one high-and-far ─────────────
-            witch1 = Witch(1520,  80, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1950, 140, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1520,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1950, 140, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2])
             self.triggerFire = True
 
@@ -1718,12 +1725,12 @@ class mainGame:
             block2 = Block(1900, 220, 2000, 60, "greyRock", self.screen)
             self.blocks.extend([block1, block2])
 
-            greenBlob  = GreenBlob(1050, 300, 100, 100, self.screen)
-            greenBlob2 = GreenBlob(1250, 300, 100, 100, self.screen)
-            greenBlob3 = GreenBlob(1450, 300, 100, 100, self.screen)
-            greenBlob4 = GreenBlob(1700, 300, 100, 100, self.screen)
-            greenBlob5 = GreenBlob(2000, 300, 100, 100, self.screen)
-            greenBlob6 = GreenBlob(2300, 300, 100, 100, self.screen)
+            greenBlob  = GreenBlob(1050, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob2 = GreenBlob(1250, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob3 = GreenBlob(1450, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob4 = GreenBlob(1700, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob5 = GreenBlob(2000, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob6 = GreenBlob(2300, 300, 100, 100, self.screen, self.blob_jump_sound)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
                                     greenBlob4, greenBlob5, greenBlob6])
 
@@ -1745,10 +1752,10 @@ class mainGame:
             block4 = Block(950,  340, 600, 60,  "greyRock", self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            witch1 = Witch(1200, 100, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1500, 200, self.witch, self.witch2, self.screen)
-            witch3 = Witch(1700, 150, self.witch, self.witch2, self.screen)
-            witch4 = Witch(1950, 100, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1200, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1500, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(1700, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch4 = Witch(1950, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3, witch4])
             
             shaman = ShadowShaman(1400, 60, self.witch, self.witch2, self.screen)
@@ -1788,8 +1795,8 @@ class mainGame:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 200
-            self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen))
-            self.greenBlobs.append(GreenBlob(1700, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen, self.blob_jump_sound))
+            self.greenBlobs.append(GreenBlob(1700, 300, 100, 100, self.screen, self.blob_jump_sound))
 
         # ── Zone 4.2 @ 18 000 – mini frankenbeares with rainbow lasers ────────
         elif backgroundScrollX > 18000 and not self.activeMonsters[12]:
@@ -1824,9 +1831,9 @@ class mainGame:
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 240
 
-            witch1 = Witch(1500, 100, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1750, 100, self.witch, self.witch2, self.screen)
-            witch3 = Witch(2000,  80, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1500, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1750, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(2000,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3])
 
         # ── Zone 6 @ 25 000 – checkered gauntlet, blobs + mummies ───────────
@@ -1841,11 +1848,11 @@ class mainGame:
             block4 = Block(1100, 200, 1000, 60, "greyRock",  self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            greenBlob  = GreenBlob(1030, 300, 100, 100, self.screen)
-            greenBlob2 = GreenBlob(1220, 300, 100, 100, self.screen)
-            greenBlob3 = GreenBlob(1400, 300, 100, 100, self.screen)
-            greenBlob4 = GreenBlob(1600, 300, 100, 100, self.screen)
-            greenBlob5 = GreenBlob(1900, 300, 100, 100, self.screen)
+            greenBlob  = GreenBlob(1030, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob2 = GreenBlob(1220, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob3 = GreenBlob(1400, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob4 = GreenBlob(1600, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob5 = GreenBlob(1900, 300, 100, 100, self.screen, self.blob_jump_sound)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
                                     greenBlob4, greenBlob5])
 
@@ -1866,10 +1873,10 @@ class mainGame:
             block3 = Block(1580, 280, 100, 60, "checkered", self.screen)
             self.blocks.extend([block1, block2, block3])
 
-            witch1 = Witch(1600, 200, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1300, 250, self.witch, self.witch2, self.screen)
-            witch3 = Witch(1800, 150, self.witch, self.witch2, self.screen)
-            witch4 = Witch(1100, 120, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1600, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1300, 250, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(1800, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch4 = Witch(1100, 120, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3, witch4])
             for x in [1050, 1350, 1650, 1950]:
                 self.mummys.append(
@@ -1896,11 +1903,11 @@ class mainGame:
             for x in [1000, 1250, 1500, 1750]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-            witch1 = Witch(1400, 180, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1700, 120, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1400, 180, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1700, 120, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2])
-            self.greenBlobs.append(GreenBlob(1150, 300, 100, 100, self.screen))
-            self.greenBlobs.append(GreenBlob(1650, 300, 100, 100, self.screen))
+            self.greenBlobs.append(GreenBlob(1150, 300, 100, 100, self.screen, self.blob_jump_sound))
+            self.greenBlobs.append(GreenBlob(1650, 300, 100, 100, self.screen, self.blob_jump_sound))
             self.triggerFire = True
 
         # ── Zone 9 @ 36 500 – "Floating Gauntlet" mixed challenge ──────────────
@@ -1923,12 +1930,12 @@ class mainGame:
                 Mummy(1550, 110, 100, 100, self.mummy1, self.mummy2, self.screen),
                 Mummy(1800, 190, 100, 100, self.mummy1, self.mummy2, self.screen),
             ])
-            witch1 = Witch(1300, 230, self.witch, self.witch2, self.screen)
-            witch2 = Witch(1950, 130, self.witch, self.witch2, self.screen)
+            witch1 = Witch(1300, 230, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1950, 130, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2])
             self.greenBlobs.extend([
-                GreenBlob(1150, 250, 100, 100, self.screen),
-                GreenBlob(1700, 210, 100, 100, self.screen),
+                GreenBlob(1150, 250, 100, 100, self.screen, self.blob_jump_sound),
+                GreenBlob(1700, 210, 100, 100, self.screen, self.blob_jump_sound),
             ])
 
     # -----------------------------------------------------------------------
@@ -2473,7 +2480,7 @@ class Mummy():
 
 # ---------------------------------------------------------------------------
 class Witch():
-    def __init__(self, x, y, witch1Image, witch2Image, screen):
+    def __init__(self, x, y, witch1Image, witch2Image, screen, fireball_sound=None):
         self.witch = pygame.transform.scale(witch1Image, (100, 100))
         self.witch2 = pygame.transform.scale(witch2Image, (100, 100))
         self.hurtWitch = pygame.image.load("Game/Images/Bear/hurtWitch.png")
@@ -2484,6 +2491,7 @@ class Witch():
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
+        self.fireball_sound = fireball_sound
         self.rand = 1
         self.health = int(random.randint(24, 42) * 1.20)
         self.fire = pygame.image.load("Game/Images/fire2.png")
@@ -2602,6 +2610,8 @@ class Witch():
                 self.screen.blit(self.witch, (self.x, self.y))
             else:
                 self.fireBallAnimationCounter += 1
+                if self.fireBallAnimationCounter == 1 and self.fireball_sound:
+                    self.fireball_sound.play()
                 self.screen.blit(self.witch2, (self.x, self.y))
 
         if self.fireBallAnimationCounter > 50:
@@ -2699,7 +2709,7 @@ class FireBall():
 
 # ---------------------------------------------------------------------------
 class GreenBlob():
-    def __init__(self, x, y, height, width, screen):
+    def __init__(self, x, y, height, width, screen, blob_jump_sound=None):
         self.height = height
         self.width = width
         self.greenBlob = pygame.image.load("Game/Images/greenBlob.png")
@@ -2712,6 +2722,7 @@ class GreenBlob():
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
+        self.blob_jump_sound = blob_jump_sound
         self.rand = 1
         randomMax = random.randint(120, 250)
         self.changeDirection = random.randint(80, randomMax)
@@ -2849,6 +2860,8 @@ class GreenBlob():
 
         if self.timer == self.nextJumpTimer:
             self.jump = True
+            if self.blob_jump_sound:
+                self.blob_jump_sound.play()
 
         if self.stunned == 0:
             self.screen.blit(self.greenBlob, (self.x, self.y + 10))
