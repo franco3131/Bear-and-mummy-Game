@@ -3081,7 +3081,7 @@ class Bear:
                         _land(block, bty)
                         return
 
-                # Secondary fallback
+                # Secondary fallback - also check isBoundaryPresent for fall-off-ledge cases
                 for block in blocks:
                     block.isBoundaryPresent(self.x, self.y)
                     if block.getOnPlatform():
@@ -3328,7 +3328,7 @@ class Bear:
                 self.hp = min(self.maxHp, int(self.maxHp * 0.85))
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
-            self.fireballDamage = round(self.fireballDamage * 1.40 + 1)
+            self.fireballDamage = int(self.fireballDamage * 1.20) + 1
             self.textArray = []
             self.showBearArray = []
             self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
