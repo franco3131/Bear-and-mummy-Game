@@ -1366,9 +1366,9 @@ class mainGame:
                         self.showBoss = False
                     for frankenbear in self.frankenbear:
                         frankenbear.drawMonster()
-                        if frankenbear.getThrowFireBallLeft() and not self.bossFires:
+                        if frankenbear.getThrowFireBallLeft():
                             frankenbear.setThrowFireBallLeft(False)
-                            volley = 7 if frankenbear.getHealth() <= 10 else 5
+                            volley = 6 if frankenbear.getHealth() <= 10 else 4
                             for _ in range(volley):
                                 self.bossFires.append(
                                     FireBall(frankenbear.getXPosition() + 200,
@@ -1376,9 +1376,9 @@ class mainGame:
                                              random.randint(-12, -2),
                                              random.randint(3, 7),
                                              self.fireBossBall, self.screen))
-                        elif frankenbear.getThrowFireBallRight() and not self.bossFires:
-                            frankenbear.setThrowFireBallLeft(False)
-                            volley = 7 if frankenbear.getHealth() <= 10 else 5
+                        elif frankenbear.getThrowFireBallRight():
+                            frankenbear.setThrowFireBallRight(False)
+                            volley = 6 if frankenbear.getHealth() <= 10 else 4
                             for _ in range(volley):
                                 self.bossFires.append(
                                     FireBall(frankenbear.getXPosition() + 200,
@@ -3563,7 +3563,7 @@ class FrankenBear():
         self.blinkTimer = 0
         self.attackTimer = 0
         self.randomBlink = random.randint(50, 150)
-        self.randomAttack = random.randint(25, 45)
+        self.randomAttack = random.randint(6, 15)
         self.bossDisplay = self.boss3
         self.blinked = False
         self.attacked = False
@@ -3665,9 +3665,9 @@ class FrankenBear():
             if self.attacked:
                 # Enrage: attack faster when health is low
                 if self.health <= 3:
-                    self.randomAttack = random.randint(5, 18)
+                    self.randomAttack = random.randint(4, 10)
                 else:
-                    self.randomAttack = random.randint(12, 30)
+                    self.randomAttack = random.randint(6, 15)
                 self.attackTimer = 0
                 self.blinkTimer = 0
                 self.flipped = random.randint(1, 2)
