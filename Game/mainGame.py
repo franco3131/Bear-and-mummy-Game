@@ -269,12 +269,24 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
+            # ── Explosion: short burst for monster death ────────────────────
+            _n = int(_RATE * 0.35)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = (1.0 - _i/_n)**0.8
+                _s = (_rnd.gauss(0, 1.5) + _math.sin(2*_math.pi*120*_t)*0.4)
+                _smp.append(_s * _env * 0.70)
+            self.explosion_sound = _make_snd(_smp)
+            self.explosion_sound.set_volume(0.60)
+
         except Exception:
             self.thud_sound = None   # no audio device – run silently
             self.fire_sound = None
             self.attack_sound = None
             self.grunt_sound  = None
             self.hit_sound    = None
+            self.explosion_sound = None
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -1206,9 +1218,9 @@ class mainGame:
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
                         bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
+                        if self.explosion_sound:
+                            self.explosion_sound.play()
                         to_remove.append(monster)
-                else:
-                    to_remove.append(monster)
 
             for monster in to_remove:
                 if monster in self.mummys:
@@ -2210,7 +2222,7 @@ class Mummy():
         randomMax = random.randint(300, 500)
         self.changeDirection = random.randint(200, randomMax)
         self.storeDirection = 1
-        self.health = random.randint(7, 16)
+        self.health = int(random.randint(7, 16) * 1.20)
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.hurtMummy = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
@@ -2240,7 +2252,7 @@ class Mummy():
         if self.height > 100:
             self.damageAttack = 10
             self.exp = 20
-            self.health = 24
+            self.health = int(24 * 1.20)
             raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
             raw_hurt = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
             # Force-scale both walk frames from the same source so they are
@@ -2455,7 +2467,7 @@ class Witch():
         self.stunned = 0
         self.screen = screen
         self.rand = 1
-        self.health = random.randint(24, 42)
+        self.health = int(random.randint(24, 42) * 1.20)
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.changeDirectionX = random.randint(400, 700)
@@ -2678,7 +2690,7 @@ class GreenBlob():
         self.direction = -1 * random.randint(1, 2)
         self.x = x
         self.y = y
-        self.health = 26
+        self.health = int(26 * 1.20)
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
@@ -2694,7 +2706,7 @@ class GreenBlob():
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.damageAttack = 12
-        self.hp = 26
+        self.hp = int(26 * 1.20)
         self.hurtTimer = 0
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
@@ -2706,7 +2718,7 @@ class GreenBlob():
         if self.height >= 200:
             self.height = 500
             self.width = 300
-            self.health = 60
+            self.health = int(60 * 1.20)
             self.exp = 40
             self.damageAttack = 25
 
@@ -3526,7 +3538,7 @@ class ShadowShaman():
         self.stunned = 0
         self.screen = screen
         self.rand = 1
-        self.health = random.randint(40, 60)
+        self.health = int(random.randint(40, 60) * 1.20)
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.changeDirectionX = random.randint(200, 400)
@@ -3708,7 +3720,7 @@ class MiniFrankenBear():
         self.x = x
         self.y = y
         self.screen = screen
-        self.health = 45
+        self.health = int(45 * 1.20)
         self.direction = -1 if random.random() > 0.5 else 1
         self.walk_speed = 3
         self.walk_timer = 0
@@ -3806,6 +3818,12 @@ class MiniFrankenBear():
     
     def getStartDestructionAnimationStatus(self):
         return self.startDestructionAnimation
+    
+    def setHurtTimer(self, timer):
+        self.isHurtTimer = timer
+    
+    def getHurtTimer(self):
+        return self.isHurtTimer
 
 
 # ---------------------------------------------------------------------------
@@ -3816,7 +3834,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = 1000
+        self.health = int(1000 * 1.20)
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
