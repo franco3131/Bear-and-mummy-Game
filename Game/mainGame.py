@@ -3124,6 +3124,29 @@ class Bear:
             self.sourceBlock = None
             if self.thud_sound:
                 self.thud_sound.play()
+        
+        # Fall-through recovery: if bear somehow falls through a platform, snap back up
+        # BUT only for genuine fall-throughs (large gaps), not when walking off blocks
+        if self.y > 300 and not self.getJumpStatus() and not self.getLeftJumpStatus():
+            bx2 = self.x + 100
+            closest_block = None
+            closest_dist = float('inf')
+            for block in blocks:
+                bty = block.getBlockYPosition()
+                blx = block.getBlockXPosition()
+                brx = blx + block.getWidth()
+                if bx2 > blx and self.x < brx and bty < self.y + 100:
+                    dist = (self.y + 100) - bty
+                    if dist < closest_dist:
+                        closest_block = block
+                        closest_dist = dist
+            # Only snap up if falling through a large gap (> 80px) to avoid intermediate blocks
+            if closest_block and closest_dist > 80 and closest_dist < 200:
+                self.y = closest_block.getBlockYPosition() - 100
+                self.sourceBlock = closest_block
+                self.setJumpStatus(False)
+                self.setLeftJumpStatus(False)
+                self.jumpVelocity = 0.0
 
     def jump(self, blocks):
         """Right-facing jump (also handles neutral/vertical jump)."""
