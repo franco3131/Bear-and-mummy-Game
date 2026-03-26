@@ -200,6 +200,8 @@ class mainGame:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
             self.thud_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
             self.thud_sound.set_volume(0.75)
+            self.jump_scream_sound = pygame.mixer.Sound("Game/Sounds/jump_scream.wav")
+            self.jump_scream_sound.set_volume(0.50)
             pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
             pygame.mixer.music.set_volume(0.35)
             pygame.mixer.music.play(-1)   # loop forever
@@ -1569,6 +1571,33 @@ class mainGame:
             self.door = [self.door1]  # replace list to avoid duplicate
             self.doorPopupTriggered = False
 
+        # ── Zone 1.2 @ 4 500 – "Enchanted Tomb" mystical gauntlet ──────────────
+        elif backgroundScrollX > 4500 and not self.activeMonsters[11]:
+            self.activeMonsters[11] = True
+            self._switch_music("normal")
+            self.mummys = []; self.witches = []; self.blocks = []
+            self.greenBlobs = []; self.fires = []
+
+            # Mystical floating platforms at varied heights
+            plat1 = Block(1050, 250, 110, 50, "checkered", self.screen)
+            plat2 = Block(1250, 180, 110, 50, "striped",   self.screen)
+            plat3 = Block(1450, 240, 110, 50, "checkered", self.screen)
+            plat4 = Block(1650, 150, 110, 50, "monster",   self.screen)
+            plat5 = Block(1850, 220, 110, 50, "striped",   self.screen)
+            self.blocks.extend([plat1, plat2, plat3, plat4, plat5])
+
+            # Mystical enemies - witches and spellcasters
+            witch1 = Witch(1100, 200, self.witch, self.witch2, self.screen)
+            witch2 = Witch(1500, 190, self.witch, self.witch2, self.screen)
+            witch3 = Witch(1800, 100, self.witch, self.witch2, self.screen)
+            self.witches.extend([witch1, witch2, witch3])
+
+            # Mix of mummies for added challenge
+            self.mummys.extend([
+                Mummy(1300, 200, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1700, 200, 100, 100, self.mummy1, self.mummy2, self.screen),
+            ])
+
         # ── Zone 1.5 @ 5 500 – "Crumbling Ruins" gauntlet ───────────────────
         elif backgroundScrollX > 5500 and not self.activeMonsters[10]:
             self.activeMonsters[10] = True
@@ -1803,13 +1832,13 @@ class mainGame:
             return
         self._current_music = track
         _files = {
-            "normal":     "Game/Sounds/music.wav",
-            "boss_mummy": "Game/Sounds/boss_mummy.wav",
-            "boss_final": "Game/Sounds/boss_final.wav",
+            "normal":     "Game/Sounds/spooky_peaceful.wav",
+            "boss_mummy": "Game/Sounds/boss_spooky.wav",
+            "boss_final": "Game/Sounds/boss_spooky.wav",
         }
         try:
             pygame.mixer.music.load(_files[track])
-            pygame.mixer.music.set_volume(0.50)
+            pygame.mixer.music.set_volume(0.35 if track == "normal" else 0.50)
             pygame.mixer.music.play(-1)
         except Exception:
             pass
@@ -2881,6 +2910,12 @@ class Bear:
         """Kick off a new jump – sets initial upward velocity."""
         self.jumpVelocity = 16.8   # tuned so peak ≈ 217 px – clears y=190 blocks
         self.comingUp = True
+        # Play jump scream
+        try:
+            if hasattr(self, 'jump_scream_sound') and self.jump_scream_sound:
+                self.jump_scream_sound.play()
+        except:
+            pass
 
     def _jumpPhysics(self, blocks):
         """
