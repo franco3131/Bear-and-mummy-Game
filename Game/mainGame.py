@@ -322,6 +322,7 @@ class mainGame:
         self.playerFires = []
         self.greenBlobs = []
         self.witches = []
+        self.shadowShamans = []
         self.blocks = []
         self.frankenbear = []
 
@@ -597,7 +598,7 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear)
+                                        self.frankenbear + self.shadowShamans)
                     for monster in dangerousObjects:
                         if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -1114,7 +1115,7 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear)
+                                        self.frankenbear + self.shadowShamans)
                     for monster in dangerousObjects:
                         if (bear.isBearHurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -1188,17 +1189,17 @@ class mainGame:
             for mummy in self.mummys:
                 mummy.setBlocks(self.blocks)
 
-            monsters = self.mummys + self.witches + self.greenBlobs
+            monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans
             to_remove = []
             for monster in monsters:
                 if monster.getHealth() > 0:
-                    monster.drawMonster()
+                    monster.drawMonster() if hasattr(monster, 'drawMonster') else monster.draw()
                 elif (monster.getHealth() <= 0
                       and monster.getDestructionAnimationCount() < 20
                       and not monster.getStartDestructionAnimationStatus()):
                     monster.setStartDestructionAnimation(True)
                 elif monster.getStartDestructionAnimationStatus():
-                    monster.drawDestruction(bear.getDamageAttack())
+                    monster.drawDestruction(bear.getDamageAttack()) if hasattr(monster, 'drawDestruction') else None
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
                         bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
@@ -1229,6 +1230,8 @@ class mainGame:
                     self.witches.remove(monster)
                 elif monster in self.greenBlobs:
                     self.greenBlobs.remove(monster)
+                elif monster in self.shadowShamans:
+                    self.shadowShamans.remove(monster)
 
                 if monster.getName() == "greenBlob" and monster.getHeight() == 100:
                     self.greenBlobs.append(
@@ -1310,7 +1313,7 @@ class mainGame:
                     continue
                 pf_rect = pygame.Rect(pf_x, pf_y, 60, 60)
                 monsters = (self.mummys + self.witches +
-                            self.greenBlobs + self.frankenbear)
+                            self.greenBlobs + self.frankenbear + self.shadowShamans)
                 for monster in monsters:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
@@ -1666,7 +1669,7 @@ class mainGame:
         elif backgroundScrollX > 11500 and not self.activeMonsters[2]:
             self.activeMonsters[2] = True
             self.mummys = []; self.witches = []; self.blocks = []
-            self.greenBlobs = []; self.fires = []
+            self.greenBlobs = []; self.fires = []; self.shadowShamans = []
 
             block1 = Block(1100, 340, 100, 60,  "greyRock", self.screen)
             block2 = Block(1420, 100, 150, 300, "monster",  self.screen)
@@ -1679,6 +1682,10 @@ class mainGame:
             witch3 = Witch(1700, 150, self.witch, self.witch2, self.screen)
             witch4 = Witch(1950, 100, self.witch, self.witch2, self.screen)
             self.witches.extend([witch1, witch2, witch3, witch4])
+            
+            shaman = ShadowShaman(1400, 60, self.witch, self.witch2, self.screen)
+            self.shadowShamans.append(shaman)
+            
             for x in [1030, 1350, 1800]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
@@ -3407,6 +3414,106 @@ class SpikeBlock():
     def draw(self):
         for i in range(6):
             self.screen.blit(self.spike, (self.x + i * 100, self.y))
+
+
+# ---------------------------------------------------------------------------
+class ShadowShaman():
+    def __init__(self, x, y, witch1Image, witch2Image, screen):
+        self.witch = pygame.transform.scale(witch1Image, (120, 120))
+        self.witch2 = pygame.transform.scale(witch2Image, (120, 120))
+        self.hurtWitch = pygame.image.load("Game/Images/Bear/hurtWitch.png")
+        self.hurtWitch = pygame.transform.scale(self.hurtWitch, (120, 120))
+        self.directionX = -1 * random.randint(1, 2)
+        self.x = x
+        self.y = y
+        self.destructionAnimation = 0
+        self.stunned = 0
+        self.screen = screen
+        self.rand = 1
+        self.health = random.randint(40, 60)
+        self.fire = pygame.image.load("Game/Images/fire2.png")
+        self.fire = pygame.transform.scale(self.fire, (60, 60))
+        self.changeDirectionX = random.randint(200, 400)
+        self.changeDirectionY = 80
+        self.storeDirection = 1
+        self.directionY = 1
+        self.setThrowsFireBall = False
+        self.fireBallAnimationCounter = 0
+        self.damageAttack = 10
+        self.hp = 120
+        self.isMonsterHurtAnimation = 0
+        self.damageReceived = 0
+        self.exp = 100
+        self.isHurtAnimationStarted = False
+        self.isHurtTimer = 0
+        self.startDestructionAnimation = False
+
+    def setStartDestructionAnimation(self, v):
+        self.startDestructionAnimation = v
+
+    def getStartDestructionAnimationStatus(self):
+        return self.startDestructionAnimation
+
+    def setHurtTimer(self, timer):
+        self.isHurtTimer = timer
+
+    def updateHurtTimer(self):
+        if self.isHurtTimer > 0:
+            self.isHurtTimer -= 1
+
+    def getHurtTimer(self):
+        return self.isHurtTimer
+
+    def takeDamage(self, damage):
+        self.health -= damage
+        self.isHurtAnimationStarted = True
+        self.isHurtTimer = 30
+
+    def setHealth(self, health):
+        self.health = health
+
+    def getHealth(self):
+        return self.health
+
+    def getExp(self):
+        return self.exp
+
+    def getXPosition(self):
+        return self.x
+
+    def getYPosition(self):
+        return self.y
+
+    def setXPosition(self, x):
+        self.x = x
+
+    def setYPosition(self, y):
+        self.y = y
+
+    def getDestructionAnimationCount(self):
+        return self.destructionAnimation
+
+    def getName(self):
+        return "shadowShaman"
+
+    def getDamageAttack(self):
+        return self.damageAttack
+
+    def setDamageReceived(self, damage):
+        self.damageReceived = damage
+
+    def setStunned(self, value):
+        self.stunned = value
+
+    def drawMonster(self):
+        self.screen.blit(self.witch, (self.x, self.y))
+
+    def drawDestruction(self, damage):
+        self.destructionAnimation += 1
+        self.screen.blit(self.witch2, (self.x, self.y))
+
+    def draw(self):
+        self.screen.blit(self.witch, (self.x, self.y))
 
 
 # ---------------------------------------------------------------------------
