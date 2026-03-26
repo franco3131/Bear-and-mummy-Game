@@ -3038,6 +3038,8 @@ class Bear:
             self.initialHeight = self.y
             self.sourceBlock = block   # remember which block we're on
             self.jumpVelocity = 0.0
+            if self.thud_sound:
+                self.thud_sound.play()
 
         # ------------------------------------------------------------------ #
         # Platform landing – downstroke only.                                 #
@@ -3107,6 +3109,8 @@ class Bear:
             self.setLeftJumpStatus(False)
             self.jumpVelocity = 0.0
             self.sourceBlock = None
+            if self.thud_sound:
+                self.thud_sound.play()
         
         # Fall-through recovery: if bear somehow falls through a platform, snap back up
         if self.y > 300 and not self.getJumpStatus() and not self.getLeftJumpStatus():
