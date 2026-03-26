@@ -1624,10 +1624,6 @@ class mainGame:
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
             self.mummys.append(self._z1_mummy)
-            
-            # Add 1 mini frankenbear for testing - position on screen
-            mini_test = MiniFrankenBear(450, 150, self.screen)
-            self.miniFrankenBears.append(mini_test)
 
             self.door1 = self._z1_door
             self.door = [self.door1]  # replace list to avoid duplicate
@@ -3126,25 +3122,44 @@ class Bear:
                         return
 
         # Continuous block check during fall – catch any block in path while falling
-        # Extra edge case checks for blocks while falling
+        # Extra edge case checks including diagonal falls and edge landings
         if self.jumpVelocity <= 0 and (self.getJumpStatus() or self.getLeftJumpStatus()):
             bx2 = self.x + 100
             for block in blocks:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                # If bear is falling and horizontally overlaps with block, and feet would pass through top
+                
+                # Standard check: feet cross block top
                 if (bx2 > blx and self.x < brx and feet >= bty and feet <= bty + 20):
                     _land(block, bty)
                     return
-                # Edge case: if bear's center is above block but feet are past it, still land
-                if (bx2 > blx and self.x < brx and prev_feet <= bty and feet > bty and feet <= bty + 50):
+                
+                # Edge case 1: diagonal fall from upper left
+                if (self.x < brx and prev_feet < bty and feet >= bty):
                     _land(block, bty)
                     return
-                # Edge case: if bear is partially on edge of block while falling
-                if (feet >= bty and feet <= bty + 15 and self.x < brx and bx2 > blx):
+                
+                # Edge case 2: diagonal fall from upper right
+                if (bx2 > blx and prev_feet < bty and feet >= bty):
                     _land(block, bty)
                     return
+                
+                # Edge case 3: bear partially on block edge while falling
+                if (feet >= bty and feet <= bty + 30 and bx2 > blx and self.x < brx):
+                    _land(block, bty)
+                    return
+                
+                # Edge case 4: fast fall through block top (large velocity)
+                if (prev_feet < bty and feet > bty and self.x < brx and bx2 > blx):
+                    _land(block, bty)
+                    return
+                
+                # Edge case 5: landing on far edge of block
+                if (feet >= bty and feet <= bty + 25):
+                    if (self.x >= blx - 15 and self.x < brx) or (bx2 > blx and bx2 <= brx + 15):
+                        _land(block, bty)
+                        return
         
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
