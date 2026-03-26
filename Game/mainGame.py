@@ -3336,7 +3336,7 @@ class Bear:
                 self.hp = min(self.maxHp, int(self.maxHp * 0.85))
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
-            self.fireballDamage = int(self.fireballDamage * 1.20) + 1
+            self.fireballDamage = round(self.fireballDamage * 1.40 + 1)
             self.textArray = []
             self.showBearArray = []
             self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
