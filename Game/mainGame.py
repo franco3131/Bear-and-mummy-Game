@@ -3122,44 +3122,16 @@ class Bear:
                         return
 
         # Continuous block check during fall – catch any block in path while falling
-        # Extra edge case checks including diagonal falls and edge landings
         if self.jumpVelocity <= 0 and (self.getJumpStatus() or self.getLeftJumpStatus()):
             bx2 = self.x + 100
             for block in blocks:
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
-                
-                # Standard check: feet cross block top
+                # If bear is falling and horizontally overlaps with block, and feet would pass through top
                 if (bx2 > blx and self.x < brx and feet >= bty and feet <= bty + 20):
                     _land(block, bty)
                     return
-                
-                # Edge case 1: diagonal fall from upper left
-                if (self.x < brx and prev_feet < bty and feet >= bty):
-                    _land(block, bty)
-                    return
-                
-                # Edge case 2: diagonal fall from upper right
-                if (bx2 > blx and prev_feet < bty and feet >= bty):
-                    _land(block, bty)
-                    return
-                
-                # Edge case 3: bear partially on block edge while falling
-                if (feet >= bty and feet <= bty + 30 and bx2 > blx and self.x < brx):
-                    _land(block, bty)
-                    return
-                
-                # Edge case 4: fast fall through block top (large velocity)
-                if (prev_feet < bty and feet > bty and self.x < brx and bx2 > blx):
-                    _land(block, bty)
-                    return
-                
-                # Edge case 5: landing on far edge of block
-                if (feet >= bty and feet <= bty + 25):
-                    if (self.x >= blx - 15 and self.x < brx) or (bx2 > blx and bx2 <= brx + 15):
-                        _land(block, bty)
-                        return
         
         # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
