@@ -201,7 +201,7 @@ class mainGame:
             self.thud_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
             self.thud_sound.set_volume(0.75)
             self.jump_scream_sound = pygame.mixer.Sound("Game/Sounds/jump_scream.wav")
-            self.jump_scream_sound.set_volume(0.50)
+            self.jump_scream_sound.set_volume(0.85)
             pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
             pygame.mixer.music.set_volume(0.35)
             pygame.mixer.music.play(-1)   # loop forever
@@ -1229,12 +1229,13 @@ class mainGame:
                       and not monster.getStartDestructionAnimationStatus()):
                     monster.setStartDestructionAnimation(True)
                 elif monster.getStartDestructionAnimationStatus():
+                    if monster.getDestructionAnimationCount() == 5:
+                        if self.explosion_sound:
+                            self.explosion_sound.play()
                     monster.drawDestruction(bear.getDamageAttack()) if hasattr(monster, 'drawDestruction') else None
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
                         bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
-                        if self.explosion_sound:
-                            self.explosion_sound.play()
                         to_remove.append(monster)
 
             for monster in to_remove:
