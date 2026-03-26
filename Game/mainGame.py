@@ -3391,7 +3391,34 @@ class Door:
         return "door"
 
     def drawRectangle(self):
-        self.screen.blit(self.door, (self.x, 0))
+        # Draw ornate door with decorative frame
+        door_w, door_h = 200, 550
+        door_x, door_y = self.x, 0
+        
+        # Outer frame (stone)
+        pygame.draw.rect(self.screen, (100, 80, 60), (door_x - 10, door_y - 10, door_w + 20, door_h + 20), 8)
+        
+        # Door background (dark wood with gradient effect)
+        pygame.draw.rect(self.screen, (80, 50, 20), (door_x, door_y, door_w, door_h))
+        
+        # Door panels (lighter wood stripes)
+        for i in range(3):
+            y_pos = door_y + i * 180 + 20
+            pygame.draw.rect(self.screen, (120, 70, 30), (door_x + 10, y_pos, door_w - 20, 140), 3)
+        
+        # Door handle (brass circle)
+        handle_x = door_x + door_w // 2 + 40
+        handle_y = door_y + door_h // 2
+        pygame.draw.circle(self.screen, (220, 180, 80), (int(handle_x), int(handle_y)), 12)
+        pygame.draw.circle(self.screen, (180, 140, 40), (int(handle_x), int(handle_y)), 12, 2)
+        
+        # Decorative studs along edges
+        for y in range(door_y + 40, door_y + door_h, 80):
+            pygame.draw.circle(self.screen, (200, 160, 100), (door_x + 15, y), 6)
+            pygame.draw.circle(self.screen, (200, 160, 100), (door_x + door_w - 15, y), 6)
+        
+        # Top decoration (arch-like pattern)
+        pygame.draw.arc(self.screen, (150, 120, 80), (door_x + 40, door_y - 20, door_w - 80, 40), 0, 3.14, 4)
 
 
 # ---------------------------------------------------------------------------
