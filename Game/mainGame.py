@@ -3124,27 +3124,6 @@ class Bear:
             self.sourceBlock = None
             if self.thud_sound:
                 self.thud_sound.play()
-        
-        # Fall-through recovery: if bear somehow falls through a platform, snap back up
-        if self.y > 300 and not self.getJumpStatus() and not self.getLeftJumpStatus():
-            bx2 = self.x + 100
-            closest_block = None
-            closest_dist = float('inf')
-            for block in blocks:
-                bty = block.getBlockYPosition()
-                blx = block.getBlockXPosition()
-                brx = blx + block.getWidth()
-                if bx2 > blx and self.x < brx and bty < self.y + 100:
-                    dist = (self.y + 100) - bty
-                    if dist < closest_dist:
-                        closest_block = block
-                        closest_dist = dist
-            if closest_block and closest_dist < 60:
-                self.y = closest_block.getBlockYPosition() - 100
-                self.sourceBlock = closest_block
-                self.setJumpStatus(False)
-                self.setLeftJumpStatus(False)
-                self.jumpVelocity = 0.0
 
     def jump(self, blocks):
         """Right-facing jump (also handles neutral/vertical jump)."""
