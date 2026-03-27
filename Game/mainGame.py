@@ -200,8 +200,10 @@ class mainGame:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
             self.thud_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
             self.thud_sound.set_volume(0.75)
-            self.jump_scream_sound = pygame.mixer.Sound("Game/Sounds/jump_scream.wav")
+            self.jump_scream_sound = pygame.mixer.Sound("Game/Sounds/jump_yell.wav")
             self.jump_scream_sound.set_volume(0.85)
+            self.water_sound = pygame.mixer.Sound("Game/Sounds/water_ambient.wav")
+            self.water_sound.set_volume(0.30)
             pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
             pygame.mixer.music.set_volume(0.35)
             pygame.mixer.music.play(-1)   # loop forever
@@ -294,6 +296,7 @@ class mainGame:
             self.explosion_sound = None
             self.fireball_sound = None
             self.blob_jump_sound = None
+            self.water_sound = None
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -391,6 +394,8 @@ class mainGame:
         self.leftBoundary = 180
         self.rightBoundary = 300
         self.isFinalBossDestroyed = False
+        self.newGamePlusLevel = 0
+        self._water_playing = False
 
     # -----------------------------------------------------------------------
     # Helper: draw the bear idle sprite (used to fill animation gaps)
@@ -409,6 +414,7 @@ class mainGame:
         continueLoop = True
         bear = Bear(150, 300, self.screen, self.thud_sound)
         bear.grunt_sound = self.grunt_sound
+        bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -1340,12 +1346,16 @@ class mainGame:
                         monster.setStartDestructionAnimation(False)
                         bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
                         boss_to_remove.append(monster)
-                        bear.setArrayText(['Thank you for playing!', '',
-                                           'Press "s" to continue'])
-                        bear.setArrayText(['The screen will close now', '',
-                                           'Press "s" to continue'])
+                        self.newGamePlusLevel += 1
+                        bear.setArrayText([
+                            'NEW GAME + ' + str(self.newGamePlusLevel) + '!', '',
+                            'Press "s" to continue'])
+                        bear.setArrayText([
+                            'Enemies are stronger now...', '',
+                            'Press "s" to continue'])
                         bear.setEndText(False)
                         self.isFinalBossDestroyed = True
+                        self._triggerNewGamePlus = True
             for monster in boss_to_remove:
                 if monster in self.frankenbear:
                     self.frankenbear.remove(monster)
@@ -1445,25 +1455,28 @@ class mainGame:
                         self.showBoss = False
                     for frankenbear in self.frankenbear:
                         frankenbear.drawMonster()
-                        if frankenbear.getThrowFireBallLeft():
+                        if frankenbear.getThrowFireBallLeft() or frankenbear.getThrowFireBallRight():
                             frankenbear.setThrowFireBallLeft(False)
-                            volley = 6 if frankenbear.getHealth() <= 10 else 4
-                            for _ in range(volley):
-                                self.bossFires.append(
-                                    FireBall(frankenbear.getXPosition() + 200,
-                                             frankenbear.getYPosition() + 100,
-                                             random.randint(-12, -2),
-                                             random.randint(3, 7),
-                                             self.fireBossBall, self.screen))
-                        elif frankenbear.getThrowFireBallRight():
                             frankenbear.setThrowFireBallRight(False)
                             volley = 6 if frankenbear.getHealth() <= 10 else 4
+                            import math as _m
+                            _fx = frankenbear.getXPosition() + 200
+                            _fy = frankenbear.getYPosition() + 100
+                            _bx = bear.getXPosition() + 50
+                            _by = bear.getYPosition() + 50
+                            _dx = _bx - _fx
+                            _dy = _by - _fy
+                            _dist = max(1, _m.sqrt(_dx*_dx + _dy*_dy))
                             for _ in range(volley):
+                                _speed = random.uniform(6, 11)
+                                _spread = random.uniform(-0.25, 0.25)
+                                _vx = _speed * (_dx / _dist) + _spread * _speed
+                                _vy_raw = _speed * (_dy / _dist)
+                                _vy_raw = max(1, abs(_vy_raw)) * (1 if _dy > 0 else -1)
                                 self.bossFires.append(
-                                    FireBall(frankenbear.getXPosition() + 200,
-                                             frankenbear.getYPosition() + 100,
-                                             random.randint(2, 12),
-                                             random.randint(3, 7),
+                                    FireBall(_fx, _fy,
+                                             _vx,
+                                             _vy_raw,
                                              self.fireBossBall, self.screen))
 
                     boss_fires_to_remove = []
@@ -1550,6 +1563,10 @@ class mainGame:
 
             bear.displayBearHp()
             bear.displayBearExp()
+            if self.newGamePlusLevel > 0:
+                _ng_txt = _FONT_DAMAGE.render(
+                    "NG+" + str(self.newGamePlusLevel), True, (255, 215, 0))
+                self.screen.blit(_ng_txt, (810, 10))
 
             # ---- Story / trigger text (triggers scaled to 8px steps) ----
             if totalDistance > 2300 and not self.triggerText1:
@@ -1616,6 +1633,77 @@ class mainGame:
             elif self.escape and bear.getEndText():
                 pygame.quit()
                 return
+
+            if getattr(self, '_triggerNewGamePlus', False) and bear.getEndText():
+                self._triggerNewGamePlus = False
+                saved_level = bear.getLevel()
+                saved_exp = bear.getCurrentExp()
+                saved_hp = bear.getMaxHp()
+                saved_damage = bear.getDamageAttack()
+                saved_fireball_damage = getattr(bear, 'fireballDamage', 10)
+                saved_max_exp = bear.getMaxExp()
+
+                self.bossFires = []; self.mummys = []; self.fires = []
+                self.playerFires = []; self.greenBlobs = []; self.witches = []
+                self.shadowShamans = []; self.blocks = []; self.frankenbear = []
+                self.miniFrankenBears = []; self.lasers = []; self.waterfalls = []
+                self.door = []; self.keys = []; self.spikes = []
+
+                self.showBoss = True
+                self.triggerText1 = False; self.triggerText2 = False
+                self.triggerText3 = False; self.triggerText4 = False
+                self.triggerText5 = False; self.createdBoss = False
+                self.doorPopupTriggered = False
+                self.leftBoundary = 180; self.rightBoundary = 300
+                self.isFinalBossDestroyed = False
+                self.escape = False; self.triggerFire = False
+                self.isDoor1Open = False; self.bossTimerAnimation = 0
+                if self.water_sound and self._water_playing:
+                    self.water_sound.stop()
+                self._water_playing = False
+                self.activeMonsters = [False] * 16
+
+                bear = Bear(150, 300, self.screen, self.thud_sound)
+                bear.grunt_sound = self.grunt_sound
+                bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
+                bear.setJumpStatus(False); bear.setLeftJumpStatus(False)
+                bear.setLevel(saved_level)
+                bear.setCurrentExp(saved_exp)
+                bear.setMaxHp(saved_hp)
+                bear.setHp(saved_hp)
+                bear.setDamageAttack(saved_damage)
+                bear.fireballDamage = saved_fireball_damage
+                bear.setMaxExp(saved_max_exp)
+
+                for x in [500, 750]:
+                    mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
+                    self.mummys.append(mummy)
+                self._z1_mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+                self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
+                self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
+                self._z1_door = Door(self.screen, 1650)
+
+                block1 = Block(230,  340, 100, 60,  "red",     self.screen)
+                block2 = Block(500,  190, 100, 60,  "monster", self.screen)
+                block3 = Block(780,  190, 100, 60,  "red",     self.screen)
+                block5 = Block(1010, 190, 100, 60,  "red",     self.screen)
+                block7 = Block(1240, 190, 100, 60,  "monster", self.screen)
+                block6 = Block(1470, 190, 100, 60,  "monster", self.screen)
+                block8 = Block(1600, 100, 250, 300, "monster", self.screen)
+                self.blocks.extend([block1, block2, block3, block5, block6, block7, block8])
+
+                background = Background(self.screen)
+                backgroundScrollX = bear.getXPosition()
+                totalDistance = 60
+                bear.setLeftDirection(False)
+                bearAnimation = 0; isBearHurtAnimation = 0
+                hurtTimer = 0; jumpTimer = 0
+                attackCounterReady = 0; playerFireCooldown = 0
+                deflectTimer = 0; deflectPos = (0, 0)
+                waterOffset = 0; triggerWitchFireBallAnimation = 0
+                attackingAnimationCounter = 0; attackingLeftAnimtationCounter = 0
+                self._current_music = None
+                self._switch_music("normal")
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -1785,13 +1873,19 @@ class mainGame:
 
             waterfall = Waterfall(1300, 80, 120, 150, self.screen)
             self.waterfalls.append(waterfall)
+            if self.water_sound and not self._water_playing:
+                self.water_sound.play(-1)
+                self._water_playing = True
 
         # ── Zone 4 @ 25 500 – mummy rush on tiered platforms ─────────────────
         elif backgroundScrollX > 25500 and not self.activeMonsters[4]:
             self._switch_music("halfway")
+            if self.water_sound and self._water_playing:
+                self.water_sound.stop()
+                self._water_playing = False
             self.activeMonsters[4] = True
             self.mummys = []; self.witches = []; self.blocks = []
-            self.greenBlobs = []; self.fires = []
+            self.greenBlobs = []; self.fires = []; self.waterfalls = []
 
             block1 = Block(1100, 200, 2000, 60, "greyRock", self.screen)
             block2 = Block(1300, 240, 1000, 60, "greyRock", self.screen)

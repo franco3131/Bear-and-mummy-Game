@@ -24,9 +24,10 @@ Game/
                    KeyItem, HealthPowerItem entities
   Images/        - All graphical assets (PNG sprites organized by category)
   Sounds/        - Audio assets: spooky_peaceful.wav (normal music),
-                   halfway_intense.wav (halfway point music),
+                   halfway_intense.wav (halfway music),
                    boss_spooky.wav (boss music), fireball.wav,
-                   blob_jump.wav, jump_scream.wav, thud.wav
+                   blob_jump.wav, jump_yell.wav, thud.wav,
+                   water_ambient.wav
   __init__.py    - Package init
 pyproject.toml   - Poetry dependency config
 poetry.lock      - Locked dependencies
