@@ -1325,7 +1325,10 @@ class mainGame:
                     monster.drawDestruction(bear.getDamageAttack()) if hasattr(monster, 'drawDestruction') else None
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
-                        bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
+                        _exp_gain = monster.getExp()
+                        if self.newGamePlusLevel > 0:
+                            _exp_gain = int(_exp_gain * (1.0 + 0.30 * self.newGamePlusLevel))
+                        bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         to_remove.append(monster)
 
             for monster in to_remove:
@@ -1416,7 +1419,10 @@ class mainGame:
                     monster.drawDestruction(bear.getDamageAttack())
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
-                        bear.setCurrentExp(bear.getCurrentExp() + monster.getExp())
+                        _exp_gain = monster.getExp()
+                        if self.newGamePlusLevel > 0:
+                            _exp_gain = int(_exp_gain * (1.0 + 0.30 * self.newGamePlusLevel))
+                        bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         boss_to_remove.append(monster)
                         self.newGamePlusLevel += 1
                         bear.setArrayText([
