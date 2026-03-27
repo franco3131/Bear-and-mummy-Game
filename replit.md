@@ -27,7 +27,10 @@ Game/
                    halfway_intense.wav (halfway music),
                    boss_spooky.wav (boss music), fireball.wav,
                    blob_jump.wav, jump_yell.wav, thud.wav,
-                   water_ambient.wav
+                   water_ambient.wav, footstep.wav, door_open.wav,
+                   key_pickup.wav, level_up.wav, boss_entrance.wav,
+                   deflect.wav, spike_hit.wav, mummy_groan.wav,
+                   laser_zap.wav, boss_hit.wav
   __init__.py    - Package init
 pyproject.toml   - Poetry dependency config
 poetry.lock      - Locked dependencies

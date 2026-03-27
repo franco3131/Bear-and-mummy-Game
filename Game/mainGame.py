@@ -286,9 +286,29 @@ class mainGame:
             self.fireball_sound.set_volume(0.50)
             self.blob_jump_sound = pygame.mixer.Sound("Game/Sounds/blob_jump.wav")
             self.blob_jump_sound.set_volume(0.50)
+            self.footstep_sound = pygame.mixer.Sound("Game/Sounds/footstep.wav")
+            self.footstep_sound.set_volume(0.30)
+            self.door_open_sound = pygame.mixer.Sound("Game/Sounds/door_open.wav")
+            self.door_open_sound.set_volume(0.60)
+            self.key_pickup_sound = pygame.mixer.Sound("Game/Sounds/key_pickup.wav")
+            self.key_pickup_sound.set_volume(0.65)
+            self.level_up_sound = pygame.mixer.Sound("Game/Sounds/level_up.wav")
+            self.level_up_sound.set_volume(0.70)
+            self.boss_entrance_sound = pygame.mixer.Sound("Game/Sounds/boss_entrance.wav")
+            self.boss_entrance_sound.set_volume(0.55)
+            self.deflect_sound = pygame.mixer.Sound("Game/Sounds/deflect.wav")
+            self.deflect_sound.set_volume(0.55)
+            self.spike_hit_sound = pygame.mixer.Sound("Game/Sounds/spike_hit.wav")
+            self.spike_hit_sound.set_volume(0.50)
+            self.mummy_groan_sound = pygame.mixer.Sound("Game/Sounds/mummy_groan.wav")
+            self.mummy_groan_sound.set_volume(0.25)
+            self.laser_zap_sound = pygame.mixer.Sound("Game/Sounds/laser_zap.wav")
+            self.laser_zap_sound.set_volume(0.45)
+            self.boss_hit_sound = pygame.mixer.Sound("Game/Sounds/boss_hit.wav")
+            self.boss_hit_sound.set_volume(0.65)
 
         except Exception:
-            self.thud_sound = None   # no audio device – run silently
+            self.thud_sound = None
             self.fire_sound = None
             self.attack_sound = None
             self.grunt_sound  = None
@@ -297,6 +317,16 @@ class mainGame:
             self.fireball_sound = None
             self.blob_jump_sound = None
             self.water_sound = None
+            self.footstep_sound = None
+            self.door_open_sound = None
+            self.key_pickup_sound = None
+            self.level_up_sound = None
+            self.boss_entrance_sound = None
+            self.deflect_sound = None
+            self.spike_hit_sound = None
+            self.mummy_groan_sound = None
+            self.laser_zap_sound = None
+            self.boss_hit_sound = None
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -415,6 +445,8 @@ class mainGame:
         bear = Bear(150, 300, self.screen, self.thud_sound)
         bear.grunt_sound = self.grunt_sound
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
+        bear.level_up_sound = getattr(self, 'level_up_sound', None)
+        bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -465,6 +497,8 @@ class mainGame:
         deflectPos = (0, 0)
         waterOffset = 0
         self._current_music = "normal"
+        self._footstep_counter = 0
+        self._mummy_groan_timer = 0
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -641,7 +675,7 @@ class mainGame:
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
                             hurtTimer = 0
-                            bear.displayDamageOnBear(monster.getDamageAttack())
+                            bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             bear.setHp(bear.getHp() - monster.getDamageAttack())
                             self.screen.blit(self.hurtBear,
                                              (bear.getXPosition(), bear.getYPosition()))
@@ -650,11 +684,11 @@ class mainGame:
                                 totalDistance += STEP
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
-                                bear.displayDamageOnBear(monster.getDamageAttack())
+                                bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             monster.setHurtTimer(monster.getHurtTimer() + 1)
                         elif 0 < monster.getHurtTimer() < 15:
                             monster.setHurtTimer(monster.getHurtTimer() + 1)
-                            bear.displayDamageOnBear(monster.getDamageAttack())
+                            bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             self.screen.blit(self.hurtBear,
                                              (bear.getXPosition(), bear.getYPosition()))
                         else:
@@ -751,7 +785,7 @@ class mainGame:
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
                                 hurtTimer = 0
-                                bear.displayDamageOnBear(monster.getDamageAttack())
+                                bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.setHp(bear.getHp() - monster.getDamageAttack())
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
@@ -763,7 +797,7 @@ class mainGame:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                             elif 0 < monster.getHurtTimer() < 15:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
-                                bear.displayDamageOnBear(monster.getDamageAttack())
+                                bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
                             else:
@@ -818,13 +852,15 @@ class mainGame:
                                 else:
                                     deflectTimer = 40
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
+                                    if self.deflect_sound: self.deflect_sound.play()
                             else:
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(bear.getDamageAttack())
                                 monster.setStunned(1)
                                 monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                                if self.hit_sound: self.hit_sound.play()
+                                _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
+                                if _snd: _snd.play()
                                 hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
@@ -858,13 +894,15 @@ class mainGame:
                                 else:
                                     deflectTimer = 40
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
+                                    if self.deflect_sound: self.deflect_sound.play()
                             else:
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(bear.getDamageAttack())
                                 monster.setStunned(1)
                                 monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                                if self.hit_sound: self.hit_sound.play()
+                                _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
+                                if _snd: _snd.play()
                                 hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
@@ -932,6 +970,9 @@ class mainGame:
                         _walkImgs = [self.bearWalking1, self.bearWalking2, self.bearWalking3]
                         self.screen.blit(_walkImgs[_walkFrame],
                                          (bear.getXPosition(), bear.getYPosition() - 10))
+                        self._footstep_counter += 1
+                        if self._footstep_counter % 11 == 0 and self.footstep_sound:
+                            self.footstep_sound.play()
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -943,7 +984,7 @@ class mainGame:
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
                                 hurtTimer = 0
-                                bear.displayDamageOnBear(monster.getDamageAttack())
+                                bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.setHp(bear.getHp() - monster.getDamageAttack())
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
@@ -952,7 +993,7 @@ class mainGame:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                             elif 0 < monster.getHurtTimer() < 15:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
-                                bear.displayDamageOnBear(monster.getDamageAttack())
+                                bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
                             else:
@@ -1048,6 +1089,9 @@ class mainGame:
 
                         _walkFrame = (bearAnimation // 11) % 3
                         _walkLeftImgs = [self.bearWalkingLeft1, self.bearWalkingLeft2, self.bearWalkingLeft3]
+                        self._footstep_counter += 1
+                        if self._footstep_counter % 11 == 0 and self.footstep_sound:
+                            self.footstep_sound.play()
                         self.screen.blit(_walkLeftImgs[_walkFrame],
                                          (bear.getXPosition(), bear.getYPosition() - 10))
 
@@ -1060,7 +1104,7 @@ class mainGame:
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
-                                bear.displayDamageOnBear(monster.getDamageAttack())
+                                bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.setHp(bear.getHp() - monster.getDamageAttack())
                                 hurtTimer = 0
                                 self.screen.blit(self.hurtBear,
@@ -1070,7 +1114,7 @@ class mainGame:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                             elif 0 < monster.getHurtTimer() < 15:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
-                                bear.displayDamageOnBear(monster.getDamageAttack())
+                                bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
                             else:
@@ -1138,13 +1182,15 @@ class mainGame:
                                 else:
                                     deflectTimer = 40
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
+                                    if self.deflect_sound: self.deflect_sound.play()
                             else:
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(bear.getDamageAttack())
                                 monster.setStunned(1)
                                 monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                                if self.hit_sound: self.hit_sound.play()
+                                _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
+                                if _snd: _snd.play()
                                 hurtTimer = 0
 
                 # ---- ESC: quit -------------------------------------------
@@ -1169,7 +1215,7 @@ class mainGame:
                         if (bear.isBearHurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
-                            bear.displayDamageOnBear(monster.getDamageAttack())
+                            bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             bear.setHp(bear.getHp() - monster.getDamageAttack())
                             hurtTimer = 0
                             self.screen.blit(self.hurtBear,
@@ -1194,7 +1240,7 @@ class mainGame:
                                 monster.setHurtTimer(monster.getHurtTimer() + 1)
                         elif 0 < monster.getHurtTimer() < 15:
                             monster.setHurtTimer(monster.getHurtTimer() + 1)
-                            bear.displayDamageOnBear(monster.getDamageAttack())
+                            bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             self.screen.blit(self.hurtBear,
                                              (bear.getXPosition(), bear.getYPosition()))
                         else:
@@ -1299,6 +1345,7 @@ class mainGame:
             for minibear in self.miniFrankenBears:
                 if minibear.should_throw_laser():
                     self.lasers.append(minibear.throw_laser())
+                    if self.laser_zap_sound: self.laser_zap_sound.play()
             
             laser_to_remove = []
             for laser in self.lasers:
@@ -1316,7 +1363,7 @@ class mainGame:
                     if (bear_feet > laser_rect_top and bear_top < laser_rect_bot
                             and bear_right > laser.getStartX() and bear_left < laser.getEndX()
                             and hurtTimer > 25):
-                        bear.displayDamageOnBear(6)
+                        bear.displayDamageOnBear(6, "laser")
                         bear.setHp(bear.getHp() - 6)
                         hurtTimer = 0
                         laser_hit = True
@@ -1368,6 +1415,8 @@ class mainGame:
                                      key.getXPosition(), key.getYPosition()):
                     self.keys.remove(key)
                     self.isDoor1Open = True
+                    if self.key_pickup_sound: self.key_pickup_sound.play()
+                    if self.door_open_sound: self.door_open_sound.play()
 
             # ---- Witch fireballs (safe iteration) -----------------------
             fires_to_remove = []
@@ -1411,6 +1460,8 @@ class mainGame:
                         monster.setDamageReceived(_fb_dmg)
                         monster.setStunned(1)
                         monster.setHealth(monster.getHealth() - _fb_dmg)
+                        _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
+                        if _snd: _snd.play()
                         pf_to_remove.append(pf)
                         break
             for pf in pf_to_remove:
@@ -1418,6 +1469,14 @@ class mainGame:
                     self.playerFires.remove(pf)
 
             hurtTimer += 1
+
+            self._mummy_groan_timer += 1
+            if (self._mummy_groan_timer >= 180 and self.mummys
+                    and self.mummy_groan_sound):
+                import random as _r
+                if _r.random() < 0.3:
+                    self.mummy_groan_sound.play()
+                self._mummy_groan_timer = 0
 
             # ---- Boss trigger zone (scaled to STEP-based totalDistance) --
             # Original triggers were designed for 30px steps; scaled to 8px steps
@@ -1453,6 +1512,7 @@ class mainGame:
                         frankenbear = FrankenBear(300, 40, self.screen)
                         self.frankenbear.append(frankenbear)
                         self.showBoss = False
+                        if self.boss_entrance_sound: self.boss_entrance_sound.play()
                     for frankenbear in self.frankenbear:
                         frankenbear.drawMonster()
                         if frankenbear.getThrowFireBallLeft() or frankenbear.getThrowFireBallRight():
@@ -1666,6 +1726,8 @@ class mainGame:
                 bear = Bear(150, 300, self.screen, self.thud_sound)
                 bear.grunt_sound = self.grunt_sound
                 bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
+                bear.level_up_sound = getattr(self, 'level_up_sound', None)
+                bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
                 bear.setJumpStatus(False); bear.setLeftJumpStatus(False)
                 bear.setLevel(saved_level)
                 bear.setCurrentExp(saved_exp)
@@ -3326,10 +3388,12 @@ class Bear:
     def getDisplayTimer(self):
         return self.displayTimer
 
-    def displayDamageOnBear(self, damage):
+    def displayDamageOnBear(self, damage, source_name=None):
         _render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60)
-        if getattr(self, 'grunt_sound', None):
+        if source_name == "spikes" and getattr(self, 'spike_hit_sound', None):
+            self.spike_hit_sound.play()
+        elif getattr(self, 'grunt_sound', None):
             self.grunt_sound.play()
 
     def displayBearHp(self):
@@ -3479,6 +3543,8 @@ class Bear:
 
     def levelUpCheck(self):
         if self.maxExp <= self.exp:
+            if hasattr(self, 'level_up_sound') and self.level_up_sound:
+                self.level_up_sound.play()
             self.setEndText(False)
             self.level += 1
             self.maxExp += 20
