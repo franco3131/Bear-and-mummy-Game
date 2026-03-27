@@ -457,7 +457,7 @@ class mainGame:
         attackingLeftAnimtationCounter = 0
         hurtTimer = 0
         background = Background(self.screen)
-        for x in [500, 750]:
+        for x in [350, 500, 650, 800, 950]:
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
 
