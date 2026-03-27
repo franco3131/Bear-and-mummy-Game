@@ -271,22 +271,22 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            # ── Explosion: deep rumbling boom for monster death ──────────────
-            _n = int(_RATE * 0.55)
+            # ── Explosion: heavy low-frequency boom ────────────────────────
+            _n = int(_RATE * 0.70)
             _smp = []
             for _i in range(_n):
                 _t = _i / _RATE
-                _env = max(0.0, (1.0 - _i/_n)**1.8)
-                _boom = (_math.sin(2*_math.pi*45*_t) * 0.55
-                         + _math.sin(2*_math.pi*30*_t) * 0.35
-                         + _math.sin(2*_math.pi*60*_t * max(0.3, 1.0 - _t*2)) * 0.25)
-                _crack = _rnd.gauss(0, 0.6) * max(0, 1.0 - _t*6)
-                _rumble = (_math.sin(2*_math.pi*20*_t) * 0.3
-                           * max(0, 1.0 - _t*1.5))
-                _s = (_boom + _crack + _rumble) * _env
-                _smp.append(_s * 0.80)
+                _env = max(0.0, (1.0 - _t/0.70)**2.2)
+                _initial_blast = max(0.0, 1.0 - _t * 20) * 0.4
+                _deep_boom = (_math.sin(2*_math.pi*25*_t) * 0.6
+                              + _math.sin(2*_math.pi*40*_t) * 0.4
+                              + _math.sin(2*_math.pi*55*_t) * 0.25)
+                _sub_bass = _math.sin(2*_math.pi*15*_t) * 0.35
+                _rumble = _math.sin(2*_math.pi*35*_t + _math.sin(2*_math.pi*8*_t)*2) * 0.2
+                _s = (_deep_boom + _sub_bass + _rumble + _initial_blast) * _env
+                _smp.append(max(-1.0, min(1.0, _s * 0.85)))
             self.explosion_sound = _make_snd(_smp)
-            self.explosion_sound.set_volume(0.70)
+            self.explosion_sound.set_volume(0.80)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
@@ -436,6 +436,7 @@ class mainGame:
         self.newGamePlusLevel = 0
         self._water_playing = False
         self._silver_applied = False
+        self._bigMummyDefeated = False
 
     # -----------------------------------------------------------------------
     # Helper: draw the bear idle sprite (used to fill animation gaps)
@@ -453,6 +454,7 @@ class mainGame:
         floorHeight = 400
         continueLoop = True
         bear = Bear(150, 300, self.screen, self.thud_sound)
+        self._bear_ref = bear
         bear.grunt_sound = self.grunt_sound
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
         bear.level_up_sound = getattr(self, 'level_up_sound', None)
@@ -464,9 +466,10 @@ class mainGame:
         attackingLeftAnimtationCounter = 0
         hurtTimer = 0
         background = Background(self.screen)
-        for x in [350, 500, 650, 800, 950]:
+        for x in [700, 900, 1100, 1300, 1500]:
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
+        self._fireball_tutorial_shown = False
 
         # Pre-load Zone 1 assets now so there is no stutter when the player
         # reaches that area. These objects sit idle until the zone triggers.
@@ -1367,6 +1370,7 @@ class mainGame:
                 elif monster.getName() == "bigMummy":
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
+                    self._bigMummyDefeated = True
                     self._switch_music("post_boss_normal")
 
             # ---- Mini FrankenBear laser generation and drawing ----------------
@@ -1649,7 +1653,8 @@ class mainGame:
             # ---- Damage numbers always rendered on top of blocks --------
             for _m in (self.mummys + self.witches +
                        self.greenBlobs + self.frankenbear):
-                if getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0:
+                if (getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0
+                        and not _m.getStartDestructionAnimationStatus()):
                     _m.displayDamageOnMonster(_m.getDamageReceived())
 
             bear.displayBearHp()
@@ -1755,6 +1760,7 @@ class mainGame:
                 self.activeMonsters = [False] * 16
 
                 bear = Bear(150, 300, self.screen, self.thud_sound)
+                self._bear_ref = bear
                 bear.grunt_sound = self.grunt_sound
                 bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
                 bear.level_up_sound = getattr(self, 'level_up_sound', None)
@@ -1767,8 +1773,10 @@ class mainGame:
                 bear.setDamageAttack(saved_damage)
                 bear.fireballDamage = saved_fireball_damage
                 bear.setMaxExp(saved_max_exp)
+                self._fireball_tutorial_shown = True
+                self._bigMummyDefeated = False
 
-                for x in [350, 500, 650, 800, 950]:
+                for x in [700, 900, 1100, 1300, 1500]:
                     mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                     self.mummys.append(mummy)
                 self._z1_mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
@@ -1806,6 +1814,18 @@ class mainGame:
         # Zones are ordered in ascending scroll distance with ~4 000+ unit gaps
         # so they never overlap or interfere with one another.
 
+        # ── Fireball tutorial popup @ 400 ──────────────────────────────────────
+        if backgroundScrollX > 400 and not self._fireball_tutorial_shown:
+            self._fireball_tutorial_shown = True
+            bear = None
+            for obj in [getattr(self, '_bear_ref', None)]:
+                if obj is not None:
+                    bear = obj
+            if bear is not None:
+                bear.setArrayText(['Press "x" to shoot fireballs!', '',
+                                   'Press "s" to continue'])
+                bear.setEndText(False)
+
         # ── Zone 1 pre-load @ 2 500 – quietly position Zone 1 objects ────────
         # Objects are given offset positions so they scroll naturally into place
         # by the time Zone 1 triggers at 5 000, eliminating any pop-in.
@@ -1839,7 +1859,7 @@ class mainGame:
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
         elif backgroundScrollX > 8000 and not self.activeMonsters[14]:
             self.activeMonsters[14] = True
-            self._switch_music("normal")
+            self._switch_music("post_boss_normal" if self._bigMummyDefeated else "normal")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
@@ -1859,8 +1879,8 @@ class mainGame:
 
             # Mix of mummies for added challenge
             self.mummys.extend([
-                Mummy(1300, 200, 100, 100, self.mummy1, self.mummy2, self.screen),
-                Mummy(1700, 200, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1300, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1700, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
             ])
 
         # ── Zone 1.5 @ 11 000 – "Crumbling Ruins" gauntlet ───────────────────
@@ -2130,9 +2150,9 @@ class mainGame:
 
             # Mixed enemy types for a challenging final gauntlet
             self.mummys.extend([
-                Mummy(1050, 150, 100, 100, self.mummy1, self.mummy2, self.screen),
-                Mummy(1550, 110, 100, 100, self.mummy1, self.mummy2, self.screen),
-                Mummy(1800, 190, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1050, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1550, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1800, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
             ])
             witch1 = Witch(1300, 230, self.witch, self.witch2, self.screen, self.fireball_sound)
             witch2 = Witch(1950, 130, self.witch, self.witch2, self.screen, self.fireball_sound)
