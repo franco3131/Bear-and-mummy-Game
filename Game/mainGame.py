@@ -342,6 +342,8 @@ class mainGame:
         self.bearWalking2 = pygame.transform.scale(self.bearWalking2, (120, 115))
         self.bearWalking3 = pygame.image.load("Game/Images/Bear/bearWalking3.png")
         self.bearWalking3 = pygame.transform.scale(self.bearWalking3, (120, 115))
+        self.bearWalking4 = pygame.image.load("Game/Images/Bear/bearWalking4.png")
+        self.bearWalking4 = pygame.transform.scale(self.bearWalking4, (120, 115))
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
@@ -349,6 +351,7 @@ class mainGame:
         self.bearWalkingLeft1 = pygame.transform.flip(self.bearWalking1, True, False)
         self.bearWalkingLeft2 = pygame.transform.flip(self.bearWalking2, True, False)
         self.bearWalkingLeft3 = pygame.transform.flip(self.bearWalking3, True, False)
+        self.bearWalkingLeft4 = pygame.transform.flip(self.bearWalking4, True, False)
 
         self.bearAttacking = pygame.image.load("Game/Images/Bear/bearAttacking.png")
         self.bearAttacking = pygame.transform.scale(self.bearAttacking, (210, 105))
@@ -966,8 +969,8 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        _walkFrame = (bearAnimation // 11) % 3
-                        _walkImgs = [self.bearWalking1, self.bearWalking2, self.bearWalking3]
+                        _walkFrame = (bearAnimation // 11) % 4
+                        _walkImgs = [self.bearWalking1, self.bearWalking2, self.bearWalking4, self.bearWalking3]
                         self.screen.blit(_walkImgs[_walkFrame],
                                          (bear.getXPosition(), bear.getYPosition() - 10))
                         self._footstep_counter += 1
@@ -1087,8 +1090,8 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        _walkFrame = (bearAnimation // 11) % 3
-                        _walkLeftImgs = [self.bearWalkingLeft1, self.bearWalkingLeft2, self.bearWalkingLeft3]
+                        _walkFrame = (bearAnimation // 11) % 4
+                        _walkLeftImgs = [self.bearWalkingLeft1, self.bearWalkingLeft2, self.bearWalkingLeft4, self.bearWalkingLeft3]
                         self._footstep_counter += 1
                         if self._footstep_counter % 11 == 0 and self.footstep_sound:
                             self.footstep_sound.play()
