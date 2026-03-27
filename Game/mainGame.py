@@ -271,16 +271,22 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            # ── Explosion: short burst for monster death ────────────────────
-            _n = int(_RATE * 0.35)
+            # ── Explosion: deep rumbling boom for monster death ──────────────
+            _n = int(_RATE * 0.55)
             _smp = []
             for _i in range(_n):
                 _t = _i / _RATE
-                _env = (1.0 - _i/_n)**0.8
-                _s = (_rnd.gauss(0, 1.5) + _math.sin(2*_math.pi*120*_t)*0.4)
-                _smp.append(_s * _env * 0.70)
+                _env = max(0.0, (1.0 - _i/_n)**1.8)
+                _boom = (_math.sin(2*_math.pi*45*_t) * 0.55
+                         + _math.sin(2*_math.pi*30*_t) * 0.35
+                         + _math.sin(2*_math.pi*60*_t * max(0.3, 1.0 - _t*2)) * 0.25)
+                _crack = _rnd.gauss(0, 0.6) * max(0, 1.0 - _t*6)
+                _rumble = (_math.sin(2*_math.pi*20*_t) * 0.3
+                           * max(0, 1.0 - _t*1.5))
+                _s = (_boom + _crack + _rumble) * _env
+                _smp.append(_s * 0.80)
             self.explosion_sound = _make_snd(_smp)
-            self.explosion_sound.set_volume(0.60)
+            self.explosion_sound.set_volume(0.70)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
@@ -429,6 +435,7 @@ class mainGame:
         self.isFinalBossDestroyed = False
         self.newGamePlusLevel = 0
         self._water_playing = False
+        self._silver_applied = False
 
     # -----------------------------------------------------------------------
     # Helper: draw the bear idle sprite (used to fill animation gaps)
@@ -525,6 +532,21 @@ class mainGame:
             background.render(totalDistance)
             _draw_water(self.screen, waterOffset)
             waterOffset = (waterOffset + 2) % 60
+
+            global STEP
+            _base_step = 12 if bear.getLevel() >= 14 else 8
+            _enemies_on_screen = (self.mummys + self.witches +
+                                  self.greenBlobs + self.frankenbear +
+                                  self.shadowShamans + self.miniFrankenBears)
+            _has_alive_enemy = any(
+                (hasattr(e, 'getHealth') and e.getHealth() > 0 and
+                 -150 <= e.getXPosition() <= 950)
+                for e in _enemies_on_screen
+            )
+            STEP = _base_step if _has_alive_enemy else int(_base_step * 1.5)
+
+            if bear.getLevel() >= 14 and not self._silver_applied:
+                self._apply_silver_tint()
 
             if bear.getEndText():
 
@@ -1342,7 +1364,7 @@ class mainGame:
                 elif monster.getName() == "bigMummy":
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
-                    self._switch_music("normal")
+                    self._switch_music("post_boss_normal")
 
             # ---- Mini FrankenBear laser generation and drawing ----------------
             for minibear in self.miniFrankenBears:
@@ -1740,7 +1762,7 @@ class mainGame:
                 bear.fireballDamage = saved_fireball_damage
                 bear.setMaxExp(saved_max_exp)
 
-                for x in [500, 750]:
+                for x in [350, 500, 650, 800, 950]:
                     mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                     self.mummys.append(mummy)
                 self._z1_mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
@@ -2115,18 +2137,47 @@ class mainGame:
             ])
 
     # -----------------------------------------------------------------------
+    def _tint_silver(self, surface):
+        copy = surface.copy()
+        grey = pygame.Surface(copy.get_size(), pygame.SRCALPHA)
+        grey.fill((170, 170, 195))
+        copy.blit(grey, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+        bright = pygame.Surface(copy.get_size(), pygame.SRCALPHA)
+        bright.fill((75, 75, 80))
+        copy.blit(bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+        return copy
+
+    def _apply_silver_tint(self):
+        self._silver_applied = True
+        self.standingBear = self._tint_silver(self.standingBear)
+        self.standingBearLeft = self._tint_silver(self.standingBearLeft)
+        self.bearWalking1 = self._tint_silver(self.bearWalking1)
+        self.bearWalking2 = self._tint_silver(self.bearWalking2)
+        self.bearWalking3 = self._tint_silver(self.bearWalking3)
+        self.bearWalking4 = self._tint_silver(self.bearWalking4)
+        self.bearWalkingLeft1 = self._tint_silver(self.bearWalkingLeft1)
+        self.bearWalkingLeft2 = self._tint_silver(self.bearWalkingLeft2)
+        self.bearWalkingLeft3 = self._tint_silver(self.bearWalkingLeft3)
+        self.bearWalkingLeft4 = self._tint_silver(self.bearWalkingLeft4)
+        self.bearAttacking = self._tint_silver(self.bearAttacking)
+        self.bearAttackingLeft = self._tint_silver(self.bearAttackingLeft)
+        self.hurtBear = self._tint_silver(self.hurtBear)
+
+    # -----------------------------------------------------------------------
     def _switch_music(self, track):
         if getattr(self, '_current_music', None) == track:
             return
         self._current_music = track
         _files = {
-            "normal":     "Game/Sounds/spooky_peaceful.wav",
-            "halfway":    "Game/Sounds/halfway_intense.wav",
-            "boss_mummy": "Game/Sounds/boss_spooky.wav",
-            "boss_final": "Game/Sounds/boss_spooky.wav",
+            "normal":          "Game/Sounds/spooky_peaceful.wav",
+            "post_boss_normal": "Game/Sounds/post_boss_normal.wav",
+            "halfway":         "Game/Sounds/halfway_intense.wav",
+            "boss_mummy":      "Game/Sounds/boss_spooky.wav",
+            "boss_final":      "Game/Sounds/boss_spooky.wav",
         }
         _volumes = {
             "normal": 0.40,
+            "post_boss_normal": 0.45,
             "halfway": 0.45,
             "boss_mummy": 0.75,
             "boss_final": 0.80,
@@ -3572,6 +3623,9 @@ class Bear:
             self.showBearArray.append(False)
             if self.level % 2 == 0:
                 self.textArray.append(['Firing is faster now!', '', 'Press "s" to continue'])
+                self.showBearArray.append(False)
+            if self.level == 14:
+                self.textArray.append(['SILVER MODE ACTIVATED!', 'Speed increased by 50%!', 'Press "s" to continue'])
                 self.showBearArray.append(False)
             self.line = 0
             self.tupleIndex = 0
