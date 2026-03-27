@@ -427,7 +427,7 @@ class mainGame:
         self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
         self._z1_door        = Door(self.screen, 1650)
 
-        self.activeMonsters = [False] * 14
+        self.activeMonsters = [False] * 16
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
         block1 = Block(230,  340, 100, 60,  "red",     self.screen)
@@ -538,8 +538,8 @@ class mainGame:
                                 return True
                         return False
 
+                    _jump_right_moved = False
                     if airborne:
-                        # ---- Already in the air: move right every frame ----
                         totalDistance += STEP
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
@@ -549,6 +549,7 @@ class mainGame:
                                 bear.setXPosition(bear.getXPosition() + STEP)
                                 backgroundScrollX = bear.getXPosition() - STEP
                                 background.setXPosition(backgroundScrollX)
+                                _jump_right_moved = True
                             else:
                                 totalDistance -= STEP
                         else:
@@ -558,9 +559,10 @@ class mainGame:
                                     or _tall_wall_ahead(bear.getXPosition())):
                                 totalDistance -= STEP
                             else:
+                                _jump_right_moved = True
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
-                                               self.playerFires)
+                                               self.playerFires + self.shadowShamans + self.miniFrankenBears)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
                                 for block in self.blocks:
@@ -596,7 +598,7 @@ class mainGame:
                             else:
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
-                                               self.playerFires)
+                                               self.playerFires + self.shadowShamans + self.miniFrankenBears)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
                                 for block in self.blocks:
@@ -653,13 +655,14 @@ class mainGame:
                             monster.setHurtTimer(0)
                         bear.setLeftDirection(False)
 
-                    background.update(bear.getXPosition(), bear.getYPosition())
+                    if _jump_right_moved or not airborne:
+                        background.update(bear.getXPosition(), bear.getYPosition())
 
                 # ---- Z + LEFT: jump-left ---------------------------------
                 elif keys[pygame.K_z] and keys[pygame.K_LEFT]:
                     airborne = bear.getJumpStatus() or bear.getLeftJumpStatus()
+                    _jump_left_moved = False
                     if airborne:
-                        # ---- Already in the air: move left every frame ----
                         totalDistance -= STEP
                         if bear.getXPosition() > self.leftBoundary:
                             for block in self.blocks:
@@ -668,12 +671,14 @@ class mainGame:
                                 bear.setXPosition(bear.getXPosition() - STEP)
                                 backgroundScrollX = bear.getXPosition() + STEP
                                 background.setXPosition(backgroundScrollX)
+                                _jump_left_moved = True
                             else:
                                 totalDistance += STEP
                         else:
+                            _jump_left_moved = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -703,7 +708,7 @@ class mainGame:
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.spikes +
-                                           self.playerFires)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -761,7 +766,8 @@ class mainGame:
                             bear.setLeftJumpStatus(True)
                             bear.startJump()
 
-                    background.update(backgroundScrollX, bear.getYPosition())
+                    if _jump_left_moved or not airborne:
+                        background.update(backgroundScrollX, bear.getYPosition())
 
                 # ---- Z only: vertical jump --------------------------------
                 elif (keys[pygame.K_z]
@@ -880,7 +886,7 @@ class mainGame:
                             _right_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
@@ -972,7 +978,7 @@ class mainGame:
                             jumpTimer = 0
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for block in self.blocks:
@@ -1003,7 +1009,7 @@ class mainGame:
                             _left_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -1089,7 +1095,7 @@ class mainGame:
                         else:
                             moveObjects = (self.mummys + self.fires + self.greenBlobs +
                                            self.witches + self.door + self.keys + self.spikes +
-                                           self.playerFires)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for block in self.blocks:
@@ -1406,10 +1412,10 @@ class mainGame:
             # ---- Boss trigger zone (scaled to STEP-based totalDistance) --
             # Original triggers were designed for 30px steps; scaled to 8px steps
             # by multiplying by (8/30) ≈ 0.267. Zone triggers ÷ ~3.75.
-            if 38000 < totalDistance < 38030 and not self.createdBoss:
+            if 52900 < totalDistance < 53000 and not self.createdBoss:
                 self.createdBoss = True
 
-            if totalDistance > 38030 and not self.activeMonsters[9]:
+            if totalDistance > 53000 and not self.activeMonsters[9]:
                 self.spikes = []
                 self.activeMonsters[9] = True
                 self._switch_music("boss_final")
@@ -1420,7 +1426,7 @@ class mainGame:
                 self.fires = []
                 self.activeMonsters[1] = True
 
-            if totalDistance > 38030:
+            if totalDistance > 53000:
                 totalDistance = 90000
                 background.setStopBackground(True)
                 self.leftBoundary = 80
@@ -1621,10 +1627,10 @@ class mainGame:
 
         # ── Zone 1 pre-load @ 2 500 – quietly position Zone 1 objects ────────
         # Objects are given offset positions so they scroll naturally into place
-        # by the time Zone 1 triggers at 3 800, eliminating any pop-in.
+        # by the time Zone 1 triggers at 5 000, eliminating any pop-in.
         if backgroundScrollX > 2500 and not self.activeMonsters[11]:
             self.activeMonsters[11] = True
-            offset = 3800 - 2500  # 1 300 scroll-units of lead time
+            offset = 5000 - 2500  # 2 500 scroll-units of lead time
             self._z1_block_left.setblockXPosition(0    + offset)
             self._z1_block_right.setblockXPosition(1800 + offset)
             self._z1_door.setXPosition(1650 + offset)
@@ -1635,8 +1641,8 @@ class mainGame:
             self.door.append(self._z1_door)
             self.door1 = self._z1_door
 
-        # ── Zone 1 @ 3 800 – big mummy flanked by monster blocks ─────────────
-        if backgroundScrollX > 3800 and not self.activeMonsters[1]:
+        # ── Zone 1 @ 5 000 – big mummy flanked by monster blocks ─────────────
+        if backgroundScrollX > 5000 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
             self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
@@ -1649,9 +1655,9 @@ class mainGame:
             self.door = [self.door1]  # replace list to avoid duplicate
             self.doorPopupTriggered = False
 
-        # ── Zone 1.2 @ 4 500 – "Enchanted Tomb" mystical gauntlet ──────────────
-        elif backgroundScrollX > 4500 and not self.activeMonsters[11]:
-            self.activeMonsters[11] = True
+        # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
+        elif backgroundScrollX > 8000 and not self.activeMonsters[14]:
+            self.activeMonsters[14] = True
             self._switch_music("normal")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -1676,8 +1682,8 @@ class mainGame:
                 Mummy(1700, 200, 100, 100, self.mummy1, self.mummy2, self.screen),
             ])
 
-        # ── Zone 1.5 @ 5 500 – "Crumbling Ruins" gauntlet ───────────────────
-        elif backgroundScrollX > 5500 and not self.activeMonsters[10]:
+        # ── Zone 1.5 @ 11 000 – "Crumbling Ruins" gauntlet ───────────────────
+        elif backgroundScrollX > 11000 and not self.activeMonsters[10]:
             self.activeMonsters[10] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -1715,8 +1721,8 @@ class mainGame:
             self.witches.extend([witch1, witch2])
             self.triggerFire = True
 
-        # ── Zone 2 @ 7 000 – green blobs on a rock platform ──────────────────
-        elif backgroundScrollX > 7000 and not self.activeMonsters[3]:
+        # ── Zone 2 @ 14 500 – green blobs on a rock platform ──────────────────
+        elif backgroundScrollX > 14500 and not self.activeMonsters[3]:
             self.activeMonsters[3] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -1740,8 +1746,8 @@ class mainGame:
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 320
 
-        # ── Zone 3 @ 11 500 – first witch encounter (3 witches) ──────────────
-        elif backgroundScrollX > 11500 and not self.activeMonsters[2]:
+        # ── Zone 3 @ 18 500 – first witch encounter (3 witches) ──────────────
+        elif backgroundScrollX > 18500 and not self.activeMonsters[2]:
             self.activeMonsters[2] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
@@ -1766,8 +1772,8 @@ class mainGame:
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
             self.triggerFire = True
 
-        # ── Zone 3.5 @ 14 000 – waterfall passage ─────────────────────────────
-        elif backgroundScrollX > 14000 and not self.activeMonsters[13]:
+        # ── Zone 3.5 @ 22 000 – waterfall passage ─────────────────────────────
+        elif backgroundScrollX > 22000 and not self.activeMonsters[13]:
             self.activeMonsters[13] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
@@ -1780,8 +1786,9 @@ class mainGame:
             waterfall = Waterfall(1300, 80, 120, 150, self.screen)
             self.waterfalls.append(waterfall)
 
-        # ── Zone 4 @ 16 000 – mummy rush on tiered platforms ─────────────────
-        elif backgroundScrollX > 16000 and not self.activeMonsters[4]:
+        # ── Zone 4 @ 25 500 – mummy rush on tiered platforms ─────────────────
+        elif backgroundScrollX > 25500 and not self.activeMonsters[4]:
+            self._switch_music("halfway")
             self.activeMonsters[4] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -1798,8 +1805,8 @@ class mainGame:
             self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen, self.blob_jump_sound))
             self.greenBlobs.append(GreenBlob(1700, 300, 100, 100, self.screen, self.blob_jump_sound))
 
-        # ── Zone 4.2 @ 18 000 – mini frankenbeares with rainbow lasers ────────
-        elif backgroundScrollX > 18000 and not self.activeMonsters[12]:
+        # ── Zone 4.2 @ 29 000 – mini frankenbeares with rainbow lasers ────────
+        elif backgroundScrollX > 29000 and not self.activeMonsters[12]:
             self.activeMonsters[12] = True
             self.miniFrankenBears = []; self.blocks = []
             self.mummys = []; self.witches = []; self.greenBlobs = []; self.fires = []
@@ -1814,8 +1821,8 @@ class mainGame:
             mini3 = MiniFrankenBear(2000, 200, self.screen)
             self.miniFrankenBears.extend([mini1, mini2, mini3])
 
-        # ── Zone 5 @ 20 500 – striped platforms, mummies + 2 witches ─────────
-        elif backgroundScrollX > 20500 and not self.activeMonsters[5]:
+        # ── Zone 5 @ 32 500 – striped platforms, mummies + 2 witches ─────────
+        elif backgroundScrollX > 32500 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
@@ -1836,11 +1843,12 @@ class mainGame:
             witch3 = Witch(2000,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3])
 
-        # ── Zone 6 @ 25 000 – checkered gauntlet, blobs + mummies ───────────
-        elif backgroundScrollX > 25000 and not self.activeMonsters[6]:
+        # ── Zone 6 @ 37 000 – checkered gauntlet, blobs + mummies + miniFranken
+        elif backgroundScrollX > 37000 and not self.activeMonsters[6]:
             self.activeMonsters[6] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
+            self.miniFrankenBears = []; self.lasers = []
 
             block1 = Block(1100, 240, 3500, 60, "checkered", self.screen)
             block2 = Block(1020, 280, 3500, 60, "checkered", self.screen)
@@ -1862,8 +1870,12 @@ class mainGame:
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 380
 
-        # ── Zone 7 @ 29 500 – 3 witches, small platforms (no ceiling) ────────
-        elif backgroundScrollX > 29500 and not self.activeMonsters[7]:
+            mini1 = MiniFrankenBear(1500, 160, self.screen)
+            mini2 = MiniFrankenBear(1900, 200, self.screen)
+            self.miniFrankenBears.extend([mini1, mini2])
+
+        # ── Zone 7 @ 41 500 – 3 witches, small platforms (no ceiling) ────────
+        elif backgroundScrollX > 41500 and not self.activeMonsters[7]:
             self.activeMonsters[7] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -1882,11 +1894,12 @@ class mainGame:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
-        # ── Zone 8 @ 34 000 – spike gauntlet ─────────────────────────────────
-        elif backgroundScrollX > 34000 and not self.activeMonsters[8]:
+        # ── Zone 8 @ 46 000 – spike gauntlet + miniFranken ────────────────────
+        elif backgroundScrollX > 46000 and not self.activeMonsters[8]:
             self.activeMonsters[8] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
+            self.miniFrankenBears = []; self.lasers = []
 
             block1 = Block(1050, 220, 100, 60, "checkered", self.screen)
             block2 = Block(1300, 220, 100, 60, "checkered", self.screen)
@@ -1908,11 +1921,15 @@ class mainGame:
             self.witches.extend([witch1, witch2])
             self.greenBlobs.append(GreenBlob(1150, 300, 100, 100, self.screen, self.blob_jump_sound))
             self.greenBlobs.append(GreenBlob(1650, 300, 100, 100, self.screen, self.blob_jump_sound))
+
+            mini1 = MiniFrankenBear(1200, 140, self.screen)
+            mini2 = MiniFrankenBear(1700, 100, self.screen)
+            self.miniFrankenBears.extend([mini1, mini2])
             self.triggerFire = True
 
-        # ── Zone 9 @ 36 500 – "Floating Gauntlet" mixed challenge ──────────────
-        elif backgroundScrollX > 36500 and not self.activeMonsters[10]:
-            self.activeMonsters[10] = True
+        # ── Zone 9 @ 49 500 – "Floating Gauntlet" mixed challenge ──────────────
+        elif backgroundScrollX > 49500 and not self.activeMonsters[15]:
+            self.activeMonsters[15] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.spikes = []
 
@@ -1945,12 +1962,19 @@ class mainGame:
         self._current_music = track
         _files = {
             "normal":     "Game/Sounds/spooky_peaceful.wav",
+            "halfway":    "Game/Sounds/halfway_intense.wav",
             "boss_mummy": "Game/Sounds/boss_spooky.wav",
             "boss_final": "Game/Sounds/boss_spooky.wav",
         }
+        _volumes = {
+            "normal": 0.40,
+            "halfway": 0.45,
+            "boss_mummy": 0.75,
+            "boss_final": 0.80,
+        }
         try:
             pygame.mixer.music.load(_files[track])
-            pygame.mixer.music.set_volume(0.35 if track == "normal" else 0.50)
+            pygame.mixer.music.set_volume(_volumes.get(track, 0.50))
             pygame.mixer.music.play(-1)
         except Exception:
             pass

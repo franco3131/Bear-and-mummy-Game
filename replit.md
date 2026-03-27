@@ -17,11 +17,16 @@ The player controls a bear character navigating through levels, defeating enemie
 ```
 main.py          - Entry point, creates and runs the game
 Game/
-  mainGame.py    - Main game file (~3500 lines) containing all game logic:
+  mainGame.py    - Main game file (~4000 lines) containing all game logic:
                    mainGame class, Bear (player), Mummy, Witch, GreenBlob,
-                   FrankenBear (boss), Block, Background, Door, SpikeBlock,
+                   FrankenBear (boss), ShadowShaman, MiniFrankenBear,
+                   Block, Background, Door, SpikeBlock, Waterfall,
                    KeyItem, HealthPowerItem entities
   Images/        - All graphical assets (PNG sprites organized by category)
+  Sounds/        - Audio assets: spooky_peaceful.wav (normal music),
+                   halfway_intense.wav (halfway point music),
+                   boss_spooky.wav (boss music), fireball.wav,
+                   blob_jump.wav, jump_scream.wav, thud.wav
   __init__.py    - Package init
 pyproject.toml   - Poetry dependency config
 poetry.lock      - Locked dependencies
