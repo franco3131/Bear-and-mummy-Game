@@ -1474,7 +1474,8 @@ class mainGame:
                     if monster.getDestructionAnimationCount() == 5:
                         if self.explosion_sound:
                             self.explosion_sound.play()
-                    monster.drawDestruction(bear.getDamageAttack()) if hasattr(monster, 'drawDestruction') else None
+                    _death_dmg = monster.getDamageReceived() if monster.getDamageReceived() > 0 else bear.getDamageAttack()
+                    monster.drawDestruction(_death_dmg) if hasattr(monster, 'drawDestruction') else None
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
                         _exp_gain = monster.getExp()
@@ -1574,7 +1575,8 @@ class mainGame:
                         and not monster.getStartDestructionAnimationStatus()):
                     monster.setStartDestructionAnimation(True)
                 elif monster.getStartDestructionAnimationStatus():
-                    monster.drawDestruction(bear.getDamageAttack())
+                    _boss_death_dmg = monster.getDamageReceived() if monster.getDamageReceived() > 0 else bear.getDamageAttack()
+                    monster.drawDestruction(_boss_death_dmg)
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
                         _exp_gain = monster.getExp()
@@ -1876,7 +1878,7 @@ class mainGame:
                 if not getattr(self, '_beam_popup_shown', False):
                     self._beam_popup_shown = True
                     self._beam_popup_timer = 180
-                if getattr(self, '_beam_popup_timer', 0) > 0:
+                if getattr(self, '_beam_popup_timer', 0) > 0 and bear.getEndText():
                     self._beam_popup_timer -= 1
                     _flash = (pygame.time.get_ticks() // 400) % 2 == 0
                     if _flash:
@@ -4031,6 +4033,8 @@ class Bear:
                 self.showBearArray.append(False)
             if self.level == 14:
                 self.textArray.append(['SILVER MODE ACTIVATED!', 'Speed increased by 50%!', 'Press "s" to continue'])
+                self.showBearArray.append(False)
+                self.textArray.append(['Firing rate MASSIVELY increased!', 'Rapid fire unlocked!', 'Press "s" to continue'])
                 self.showBearArray.append(False)
             self.line = 0
             self.tupleIndex = 0
