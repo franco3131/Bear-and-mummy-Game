@@ -92,6 +92,9 @@ python main.py
 - **Fireball speed boost** — at level 12+, fireball speed gets a 3× multiplier (100% faster than previous 1.5× boost)
 - **Mid-game difficulty scaling** — at Zone 4 (25500+ distance, ~50% mark), all new enemies get +50% HP, +50% attack; enemies tinted red; experience gain boosted by 75%
 - **Beam super attack** — charge bar fills slowly (0.1/frame); press C when full to fire a piercing beam dealing 5× damage; charge bar shown in HUD with "BEAM" label; "C:READY" text when fully charged
-- **Explosion sound redesign v2** — 1.2s multi-phase boom with initial blast crack, deep bass (12-70Hz), debris rumble, and bass swell; much more dramatic and cinematic
+- **Explosion sound redesign v3** — 0.55s punchy mid-frequency boom (50-180Hz range) with blast crack, rumble, and high volume; audible and impactful
 - **Boss fireball collision fix** — fireball hitbox increased from 60×60 to 80×80 for better collision detection with the bear
-- **Red floor at 50% mark** — floor texture tinted red when hard mode activates at Zone 4, giving a visual cue that the second half is harder
+- **Red floor at 50% mark** — floor texture tinted red when hard mode activates at Zone 4; difficulty increased to 1.7× HP and ATK (up from 1.5×)
+- **Boss fireball rate slowed** — boss throws fireballs less frequently (normal: 18-35 frame intervals, enraged: 12-25)
+- **Fireball speed at level 12+** — reduced from 3× to 2.5× boost (75% increase instead of 100%)
+- **Attack immunity to fireballs** — bear is immune to all fireball damage while in melee attack animation

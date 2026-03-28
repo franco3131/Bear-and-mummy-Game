@@ -271,26 +271,23 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            # ── Explosion: dramatic multi-phase boom ─────────────────────
-            _n = int(_RATE * 1.20)
+            # ── Explosion: punchy mid-frequency boom ──────────────────────
+            _n = int(_RATE * 0.55)
             _smp = []
             for _i in range(_n):
                 _t = _i / _RATE
-                _blast_env = max(0.0, 1.0 - _t * 12) * 0.6
-                _boom_env = max(0.0, (1.0 - _t / 1.20) ** 1.8)
-                _crack = _rnd.gauss(0, 0.4) * max(0.0, 1.0 - _t * 8) * 0.5
-                _deep_boom = (_math.sin(2*_math.pi*22*_t) * 0.7
-                              + _math.sin(2*_math.pi*38*_t) * 0.5
-                              + _math.sin(2*_math.pi*55*_t) * 0.3
-                              + _math.sin(2*_math.pi*70*_t) * 0.15)
-                _sub_bass = _math.sin(2*_math.pi*12*_t) * 0.4
-                _rumble = _math.sin(2*_math.pi*30*_t + _math.sin(2*_math.pi*6*_t)*3) * 0.25
-                _debris = _rnd.gauss(0, 0.12) * max(0.0, min(1.0, (_t - 0.05)*8)) * max(0.0, 1.0 - _t/0.8) * 0.3
-                _swell = _math.sin(2*_math.pi*45*_t) * 0.2 * max(0.0, min(1.0, (_t-0.1)*5)) * max(0.0, 1.0 - (_t-0.1)/0.6)
-                _s = (_crack + _deep_boom + _sub_bass + _rumble + _debris + _swell) * _boom_env + _blast_env * _crack * 2
-                _smp.append(max(-1.0, min(1.0, _s * 0.80)))
+                _env = max(0.0, (1.0 - _t / 0.55) ** 1.6)
+                _blast = max(0.0, 1.0 - _t * 15) * 0.7
+                _boom = (_math.sin(2*_math.pi*80*_t) * 0.6
+                         + _math.sin(2*_math.pi*120*_t) * 0.45
+                         + _math.sin(2*_math.pi*180*_t) * 0.25
+                         + _math.sin(2*_math.pi*50*_t) * 0.5)
+                _crack = _rnd.gauss(0, 0.35) * max(0.0, 1.0 - _t * 10) * 0.4
+                _rumble = _math.sin(2*_math.pi*60*_t + _math.sin(2*_math.pi*12*_t)*2) * 0.3
+                _s = (_boom + _crack + _rumble) * _env + _blast * (_crack + 0.3)
+                _smp.append(max(-1.0, min(1.0, _s * 0.95)))
             self.explosion_sound = _make_snd(_smp)
-            self.explosion_sound.set_volume(0.85)
+            self.explosion_sound.set_volume(0.90)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
@@ -601,7 +598,7 @@ class mainGame:
                     _eff_lvl = min(_lvl, 9)
                     _boost = 1.2 if _eff_lvl >= 6 else 1.0
                     if _lvl >= 12:
-                        _boost *= 3.0
+                        _boost *= 2.5
                     _fb_speed = int(10 * (1.15 ** (_eff_lvl // 2)) * _boost)
                     vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
@@ -758,8 +755,11 @@ class mainGame:
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
                                         self.frankenbear + self.shadowShamans + self.miniFrankenBears)
+                    _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                            continue
+                        if _attacking and monster.getName() == "fireBall":
                             continue
                         if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -872,8 +872,11 @@ class mainGame:
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
+                        _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                                continue
+                            if _attacking and monster.getName() == "fireBall":
                                 continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
@@ -1091,8 +1094,11 @@ class mainGame:
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
+                        _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                                continue
+                            if _attacking and monster.getName() == "fireBall":
                                 continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
@@ -1216,8 +1222,11 @@ class mainGame:
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
+                        _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                                continue
+                            if _attacking and monster.getName() == "fireBall":
                                 continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
@@ -1329,8 +1338,11 @@ class mainGame:
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
                                         self.frankenbear + self.shadowShamans + self.miniFrankenBears)
+                    _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
+                            continue
+                        if _attacking and monster.getName() == "fireBall":
                             continue
                         if (bear.isBearHurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -2330,8 +2342,8 @@ class mainGame:
                        self.shadowShamans + self.miniFrankenBears):
                 if not getattr(_m, '_hm_boosted', False):
                     _m._hm_boosted = True
-                    _m.health = int(_m.health * 1.5)
-                    _m.damageAttack = int(_m.damageAttack * 1.5)
+                    _m.health = int(_m.health * 1.7)
+                    _m.damageAttack = int(_m.damageAttack * 1.7)
                     _cls = type(_m).__name__
                     for attr in _sprite_attrs.get(_cls, []):
                         _img = getattr(_m, attr, None)
@@ -4334,7 +4346,7 @@ class FrankenBear():
         self.blinkTimer = 0
         self.attackTimer = 0
         self.randomBlink = random.randint(50, 150)
-        self.randomAttack = random.randint(6, 15)
+        self.randomAttack = random.randint(18, 35)
         self.bossDisplay = self.boss3
         self.blinked = False
         self.attacked = False
@@ -4436,9 +4448,9 @@ class FrankenBear():
             if self.attacked:
                 # Enrage: attack faster when health is low
                 if self.health <= 3:
-                    self.randomAttack = random.randint(4, 10)
+                    self.randomAttack = random.randint(12, 25)
                 else:
-                    self.randomAttack = random.randint(6, 15)
+                    self.randomAttack = random.randint(18, 35)
                 self.attackTimer = 0
                 self.blinkTimer = 0
                 self.flipped = random.randint(1, 2)
