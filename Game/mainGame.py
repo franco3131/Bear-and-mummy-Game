@@ -1547,7 +1547,7 @@ class mainGame:
                     if (bear_feet > laser_rect_top and bear_top < laser_rect_bot
                             and bear_right > laser.getStartX() and bear_left < laser.getEndX()
                             and hurtTimer > 25):
-                        _laser_dmg = max(6, int(bear.getDamageAttack() * 0.10))
+                        _laser_dmg = max(6, int(bear.getMaxHp() * 0.10))
                         bear.displayDamageOnBear(_laser_dmg, "laser")
                         bear.setHp(bear.getHp() - _laser_dmg)
                         hurtTimer = 0
@@ -1629,6 +1629,7 @@ class mainGame:
                         _fb = FireBall(witch.getXPosition(), witch.getYPosition(),
                                        random.randint(-7, 7), random.randint(1, 12),
                                        self.fireBall, self.screen)
+                        _fb.damageAttack = max(4, int(bear.getMaxHp() * 0.05))
                         if getattr(self, '_hardMode', False):
                             _fb.damageAttack = int(_fb.damageAttack * 1.8)
                         self.fires.append(_fb)
@@ -1718,10 +1719,10 @@ class mainGame:
             # ---- Boss trigger zone (scaled to STEP-based totalDistance) --
             # Original triggers were designed for 30px steps; scaled to 8px steps
             # by multiplying by (8/30) ≈ 0.267. Zone triggers ÷ ~3.75.
-            if 52900 < totalDistance < 53000 and not self.createdBoss:
+            if 59900 < totalDistance < 60000 and not self.createdBoss:
                 self.createdBoss = True
 
-            if totalDistance > 53000 and not self.activeMonsters[9]:
+            if totalDistance > 60000 and not self.activeMonsters[9]:
                 self.spikes = []
                 self.activeMonsters[9] = True
                 self._switch_music("boss_final")
@@ -1732,7 +1733,7 @@ class mainGame:
                 self.fires = []
                 self.activeMonsters[1] = True
 
-            if totalDistance > 53000:
+            if totalDistance > 60000:
                 totalDistance = 90000
                 background.setStopBackground(True)
                 self.leftBoundary = 80
@@ -1770,11 +1771,14 @@ class mainGame:
                                 _vx = _speed * (_dx / _dist) + _spread * _speed
                                 _vy_raw = _speed * (_dy / _dist)
                                 _vy_raw = max(1, abs(_vy_raw)) * (1 if _dy > 0 else -1)
-                                self.bossFires.append(
-                                    FireBall(_fx, _fy,
+                                _bfb = FireBall(_fx, _fy,
                                              _vx,
                                              _vy_raw,
-                                             self.fireBossBall, self.screen))
+                                             self.fireBossBall, self.screen)
+                                _bfb.damageAttack = max(4, int(bear.getMaxHp() * 0.05))
+                                if getattr(self, '_hardMode', False):
+                                    _bfb.damageAttack = int(_bfb.damageAttack * 1.8)
+                                self.bossFires.append(_bfb)
 
                     boss_fires_to_remove = []
                     for fire in self.bossFires:
@@ -2024,20 +2028,26 @@ class mainGame:
                         self.shadowShamans.append(ShadowShaman(x, _ngr.randint(100, 200), self.witch, self.witch2, self.screen))
                     else:
                         self.miniFrankenBears.append(MiniFrankenBear(x, _ngr.randint(100, 200), self.screen))
-                _ng_hp_mult = 1.0 + 5.0 * self.newGamePlusLevel
+                _ng_hp_mult = 1.0 + 10.0 * self.newGamePlusLevel
                 _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
                 _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
+                _ng_spd_mult = 1.0 + 0.2 * self.newGamePlusLevel
                 for _ngm in (self.mummys + self.witches + self.greenBlobs +
                              self.shadowShamans + self.miniFrankenBears):
                     _ngm.health = int(_ngm.health * _ng_hp_mult)
                     _ngm.damageAttack = int(_ngm.damageAttack * _ng_dmg_mult)
                     _ngm.exp = int(_ngm.exp * _ng_exp_mult)
+                    if hasattr(_ngm, 'walk_speed'):
+                        _ngm.walk_speed = max(1, round(_ngm.walk_speed * _ng_spd_mult))
+                    if hasattr(_ngm, 'rand'):
+                        _ngm.rand = max(1, round(_ngm.rand * _ng_spd_mult))
                     _ngm._ng_boosted = True
 
                 self._z1_mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
                 self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_mult)
                 self._z1_mummy.damageAttack = int(self._z1_mummy.damageAttack * _ng_dmg_mult)
                 self._z1_mummy.exp = int(self._z1_mummy.exp * _ng_exp_mult)
+                self._z1_mummy.rand = max(1, round(self._z1_mummy.rand * _ng_spd_mult))
                 self._z1_mummy._ng_boosted = True
                 self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
                 self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
@@ -2292,8 +2302,8 @@ class mainGame:
             mini3 = MiniFrankenBear(2000, 200, self.screen)
             self.miniFrankenBears.extend([mini1, mini2, mini3])
 
-        # ── Zone 5 @ 32 500 – striped platforms, mummies + 2 witches ─────────
-        elif backgroundScrollX > 32500 and not self.activeMonsters[5]:
+        # ── Zone 5 @ 34 000 – striped platforms, mummies + 2 witches ─────────
+        elif backgroundScrollX > 34000 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
@@ -2314,8 +2324,8 @@ class mainGame:
             witch3 = Witch(2000,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3])
 
-        # ── Zone 6 @ 37 000 – checkered gauntlet, blobs + mummies + miniFranken
-        elif backgroundScrollX > 37000 and not self.activeMonsters[6]:
+        # ── Zone 6 @ 39 500 – checkered gauntlet, blobs + mummies + miniFranken
+        elif backgroundScrollX > 39500 and not self.activeMonsters[6]:
             self.activeMonsters[6] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -2345,8 +2355,8 @@ class mainGame:
             mini2 = MiniFrankenBear(1900, 200, self.screen)
             self.miniFrankenBears.extend([mini1, mini2])
 
-        # ── Zone 7 @ 41 500 – 3 witches, small platforms (no ceiling) ────────
-        elif backgroundScrollX > 41500 and not self.activeMonsters[7]:
+        # ── Zone 7 @ 45 000 – 3 witches, small platforms (no ceiling) ────────
+        elif backgroundScrollX > 45000 and not self.activeMonsters[7]:
             self.activeMonsters[7] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -2365,8 +2375,8 @@ class mainGame:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
-        # ── Zone 8 @ 46 000 – spike gauntlet + miniFranken ────────────────────
-        elif backgroundScrollX > 46000 and not self.activeMonsters[8]:
+        # ── Zone 8 @ 50 500 – spike gauntlet + miniFranken ────────────────────
+        elif backgroundScrollX > 50500 and not self.activeMonsters[8]:
             self.activeMonsters[8] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -2400,8 +2410,8 @@ class mainGame:
             self.miniFrankenBears.extend([mini1, mini2])
             self.triggerFire = True
 
-        # ── Zone 8.5 @ 48 000 – "Shadow Ambush" ──────────────────────────────
-        elif backgroundScrollX > 48000 and not getattr(self, '_zone85_active', False):
+        # ── Zone 8.5 @ 53 500 – "Shadow Ambush" ──────────────────────────────
+        elif backgroundScrollX > 53500 and not getattr(self, '_zone85_active', False):
             self._zone85_active = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.spikes = []
@@ -2435,7 +2445,7 @@ class mainGame:
             self.triggerFire = True
 
         # ── Zone 9 @ 49 500 – "Floating Gauntlet" mixed challenge ──────────────
-        elif backgroundScrollX > 49500 and not self.activeMonsters[15]:
+        elif backgroundScrollX > 56500 and not self.activeMonsters[15]:
             self.activeMonsters[15] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.spikes = []
@@ -2490,9 +2500,10 @@ class mainGame:
                             setattr(_m, attr, _tinted)
 
         if self.newGamePlusLevel > 0:
-            _ng_hp_m = 1.0 + 5.0 * self.newGamePlusLevel
+            _ng_hp_m = 1.0 + 10.0 * self.newGamePlusLevel
             _ng_dmg_m = 1.0 + 3.0 * self.newGamePlusLevel
             _ng_exp_m = 1.0 + 1.0 * self.newGamePlusLevel
+            _ng_spd_m = 1.0 + 0.2 * self.newGamePlusLevel
             for _m in (self.mummys + self.witches + self.greenBlobs +
                        self.shadowShamans + self.miniFrankenBears):
                 if not getattr(_m, '_ng_boosted', False):
@@ -2500,6 +2511,10 @@ class mainGame:
                     _m.health = int(_m.health * _ng_hp_m)
                     _m.damageAttack = int(_m.damageAttack * _ng_dmg_m)
                     _m.exp = int(_m.exp * _ng_exp_m)
+                    if hasattr(_m, 'walk_speed'):
+                        _m.walk_speed = max(1, round(_m.walk_speed * _ng_spd_m))
+                    if hasattr(_m, 'rand'):
+                        _m.rand = max(1, round(_m.rand * _ng_spd_m))
 
         if getattr(self, '_hardMode80', False):
             for _m in (self.mummys + self.witches + self.greenBlobs +

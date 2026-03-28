@@ -122,5 +122,8 @@ python main.py
 - **Beam damage display** — melee no longer overwrites beam damage number; stunned guard prevents re-hitting stunned enemies
 - **Laser damage scales** — MiniFrankenBear laser now deals at least 10% of player's attack power (min 6)
 - **80% zone speed boost** — green blob jump timer halved and witch fireball rate 40% faster at Zone 8+
-- **NG+ extreme difficulty** — enemies get 500% more HP, 300% more damage, 100% more XP per NG+ level; applies to all zone-spawned enemies
+- **NG+ extreme difficulty** — enemies get 1000% more HP, 300% more damage, 100% more XP per NG+ level; enemies also move 20% faster per NG+ level; applies to all zone-spawned enemies
 - **MiniFrankenBear visual overhaul v2** — darker outlines, inner ear detail, red pupils, brown snout, teeth marks, zigzag belly stitching, arm stumps with claws, shoe-like feet, bigger shinier neck bolts
+- **Laser damage scales to max HP** — laser now deals 10% of player's max HP (min 6) instead of 10% of attack power
+- **Fireball damage scales to max HP** — all enemy fireballs (witch + boss) now deal 5% of player's max HP (min 4); hard mode still applies 1.8× multiplier
+- **Zone spacing increased** — zones 5-9 and boss zone spread out significantly to prevent blocks from disappearing too soon (Zone 5: 34000, Zone 6: 39500, Zone 7: 45000, Zone 8: 50500, Zone 8.5: 53500, Zone 9: 56500, Boss: 60000)
