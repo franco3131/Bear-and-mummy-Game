@@ -225,6 +225,22 @@ class mainGame:
                 _buf.append(_val)
             self.fire_sound = pygame.mixer.Sound(buffer=_buf)
             self.fire_sound.set_volume(0.35)
+            _RATE2 = 44100
+            _n2 = int(_RATE2 * 0.25)
+            _buf2 = _arr.array('h')
+            import math as _fsm
+            for _i2 in range(_n2):
+                _t2 = _i2 / _RATE2
+                _env2 = (1.0 - _i2 / _n2) ** 0.4
+                _wave = _fsm.sin(2 * _fsm.pi * 600 * _t2) * 0.3
+                _wave += _fsm.sin(2 * _fsm.pi * 1200 * _t2 * (1 - _t2)) * 0.25
+                _wave += _rnd.randint(-32767, 32767) / 32767.0 * 0.45
+                _val2 = int(_env2 * _wave * 32000)
+                _val2 = max(-32767, min(32767, _val2))
+                _buf2.append(_val2)
+                _buf2.append(_val2)
+            self.fire_sound_silver = pygame.mixer.Sound(buffer=_buf2)
+            self.fire_sound_silver.set_volume(0.40)
 
             def _make_snd(samples):
                 _b = _arr.array('h')
@@ -350,6 +366,7 @@ class mainGame:
         except Exception:
             self.thud_sound = None
             self.fire_sound = None
+            self.fire_sound_silver = None
             self.attack_sound = None
             self.grunt_sound  = None
             self.hit_sound    = None
@@ -454,6 +471,20 @@ class mainGame:
             pygame.draw.circle(_rb, (_r, _g, _b, 255), (_px, _py), 7)
         pygame.draw.circle(_rb, (255, 255, 255, 220), (_cx, _cy), 8)
         self.fireballRainbow = _rb
+
+        _sv = pygame.Surface((50, 50), pygame.SRCALPHA)
+        pygame.draw.circle(_sv, (180, 190, 210, 200), (25, 25), 24)
+        pygame.draw.circle(_sv, (210, 220, 235, 240), (25, 25), 18)
+        pygame.draw.circle(_sv, (240, 245, 255, 255), (25, 25), 12)
+        pygame.draw.circle(_sv, (255, 255, 255, 255), (25, 25), 6)
+        pygame.draw.circle(_sv, (255, 255, 255, 120), (18, 14), 8)
+        pygame.draw.circle(_sv, (255, 255, 255, 80), (33, 20), 5)
+        for _sa in range(0, 360, 45):
+            _sr = _math.radians(_sa)
+            _sx = 25 + int(21 * _math.cos(_sr))
+            _sy = 25 + int(21 * _math.sin(_sr))
+            pygame.draw.circle(_sv, (255, 255, 255, 100), (_sx, _sy), 4)
+        self.fireballSilver = _sv
 
         self.screen.fill((255, 255, 255))
         pygame.display.update()
@@ -616,7 +647,9 @@ class mainGame:
                             if bear.getLeftDirection()
                             else bear.getXPosition() + 100)
                     fb_y = bear.getYPosition() + 30
-                    if _lvl >= 12:
+                    if _lvl >= 14:
+                        _fb_img = self.fireballSilver
+                    elif _lvl >= 12:
                         _fb_img = self.fireballGold
                     elif _lvl >= 10:
                         _fb_img = self.fireballRainbow
@@ -631,7 +664,9 @@ class mainGame:
                     self.playerFires.append(
                         FireBall(fb_x, fb_y, vel_x, 0,
                                  _fb_img, self.screen))
-                    if self.fire_sound:
+                    if _lvl >= 10 and self.fire_sound_silver:
+                        self.fire_sound_silver.play()
+                    elif self.fire_sound:
                         self.fire_sound.play()
                     attackingAnimationCounter = 1
 
@@ -966,6 +1001,8 @@ class mainGame:
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
                                     if self.deflect_sound: self.deflect_sound.play()
                             else:
+                                if getattr(monster, 'stunned', 0) > 0:
+                                    continue
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(_dmg)
@@ -1017,6 +1054,8 @@ class mainGame:
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
                                     if self.deflect_sound: self.deflect_sound.play()
                             else:
+                                if getattr(monster, 'stunned', 0) > 0:
+                                    continue
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(_dmg)
@@ -1320,6 +1359,8 @@ class mainGame:
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
                                     if self.deflect_sound: self.deflect_sound.play()
                             else:
+                                if getattr(monster, 'stunned', 0) > 0:
+                                    continue
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(bear.getDamageAttack())
@@ -1439,8 +1480,6 @@ class mainGame:
                         _exp_gain = monster.getExp()
                         if self._hardMode:
                             _exp_gain = int(_exp_gain * 1.75)
-                        if self.newGamePlusLevel > 0:
-                            _exp_gain = int(_exp_gain * (1.0 + 0.30 * self.newGamePlusLevel))
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         to_remove.append(monster)
 
@@ -1507,8 +1546,9 @@ class mainGame:
                     if (bear_feet > laser_rect_top and bear_top < laser_rect_bot
                             and bear_right > laser.getStartX() and bear_left < laser.getEndX()
                             and hurtTimer > 25):
-                        bear.displayDamageOnBear(6, "laser")
-                        bear.setHp(bear.getHp() - 6)
+                        _laser_dmg = max(6, int(bear.getDamageAttack() * 0.10))
+                        bear.displayDamageOnBear(_laser_dmg, "laser")
+                        bear.setHp(bear.getHp() - _laser_dmg)
                         hurtTimer = 0
                         laser_hit = True
                     
@@ -1540,8 +1580,6 @@ class mainGame:
                         _exp_gain = monster.getExp()
                         if self._hardMode:
                             _exp_gain = int(_exp_gain * 1.75)
-                        if self.newGamePlusLevel > 0:
-                            _exp_gain = int(_exp_gain * (1.0 + 0.30 * self.newGamePlusLevel))
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         boss_to_remove.append(monster)
                         self.newGamePlusLevel += 1
@@ -1984,7 +2022,21 @@ class mainGame:
                         self.shadowShamans.append(ShadowShaman(x, _ngr.randint(100, 200), self.witch, self.witch2, self.screen))
                     else:
                         self.miniFrankenBears.append(MiniFrankenBear(x, _ngr.randint(100, 200), self.screen))
+                _ng_hp_mult = 1.0 + 5.0 * self.newGamePlusLevel
+                _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
+                _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
+                for _ngm in (self.mummys + self.witches + self.greenBlobs +
+                             self.shadowShamans + self.miniFrankenBears):
+                    _ngm.health = int(_ngm.health * _ng_hp_mult)
+                    _ngm.damageAttack = int(_ngm.damageAttack * _ng_dmg_mult)
+                    _ngm.exp = int(_ngm.exp * _ng_exp_mult)
+                    _ngm._ng_boosted = True
+
                 self._z1_mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+                self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_mult)
+                self._z1_mummy.damageAttack = int(self._z1_mummy.damageAttack * _ng_dmg_mult)
+                self._z1_mummy.exp = int(self._z1_mummy.exp * _ng_exp_mult)
+                self._z1_mummy._ng_boosted = True
                 self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
                 self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
                 self._z1_door = Door(self.screen, 1650)
@@ -2435,6 +2487,18 @@ class mainGame:
                             _tinted.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
                             setattr(_m, attr, _tinted)
 
+        if self.newGamePlusLevel > 0:
+            _ng_hp_m = 1.0 + 5.0 * self.newGamePlusLevel
+            _ng_dmg_m = 1.0 + 3.0 * self.newGamePlusLevel
+            _ng_exp_m = 1.0 + 1.0 * self.newGamePlusLevel
+            for _m in (self.mummys + self.witches + self.greenBlobs +
+                       self.shadowShamans + self.miniFrankenBears):
+                if not getattr(_m, '_ng_boosted', False):
+                    _m._ng_boosted = True
+                    _m.health = int(_m.health * _ng_hp_m)
+                    _m.damageAttack = int(_m.damageAttack * _ng_dmg_m)
+                    _m.exp = int(_m.exp * _ng_exp_m)
+
         if getattr(self, '_hardMode80', False):
             for _m in (self.mummys + self.witches + self.greenBlobs +
                        self.shadowShamans + self.miniFrankenBears):
@@ -2442,6 +2506,10 @@ class mainGame:
                     _m._hm80_boosted = True
                     _m.health = int(_m.health * 1.2)
                     _m.damageAttack = int(_m.damageAttack * 1.2)
+                    if isinstance(_m, GreenBlob):
+                        _m.nextJumpTimer = max(20, int(_m.nextJumpTimer * 0.5))
+                    if isinstance(_m, Witch):
+                        _m.changeDirectionX = max(100, int(_m.changeDirectionX * 0.6))
 
     # -----------------------------------------------------------------------
     def _tint_silver(self, surface):
@@ -4460,7 +4528,13 @@ class MiniFrankenBear():
         self.screen.blit(img, (self.x, self.y))
 
     def drawMonster(self):
-        self.walk()
+        if self.stunned == 0:
+            self.walk()
+        elif self.stunned > 0:
+            self.stunned += 1
+            if self.stunned >= 20:
+                self.stunned = 0
+                self.damageReceived = 0
         self.update_laser_timer()
         self.draw()
 

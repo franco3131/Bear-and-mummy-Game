@@ -116,3 +116,11 @@ python main.py
 - **FrankenBear visual details** — neck bolts, stitch marks, pulsing eyes (yellow→red when enraged) drawn on top of boss sprite
 - **Fireball hitbox increased** — fireBall hitbox now 90×90 (up from 80×80) for more reliable collision
 - **Beam damage display fix** — ShadowShamans and MiniFrankenBears now show correct beam damage numbers when hit
+- **Silver fireball visual** — shiny silver fireball sprite at level 14+ with metallic highlights and radial sparkles
+- **Silver fireball sound** — new higher-pitched energy sound (sine+sweep+noise) plays at level 10+; replaces normal fire sound
+- **MiniFrankenBear stunned fix** — stunned counter now auto-resets after 20 frames; damage numbers clear properly; monster pauses while stunned
+- **Beam damage display** — melee no longer overwrites beam damage number; stunned guard prevents re-hitting stunned enemies
+- **Laser damage scales** — MiniFrankenBear laser now deals at least 10% of player's attack power (min 6)
+- **80% zone speed boost** — green blob jump timer halved and witch fireball rate 40% faster at Zone 8+
+- **NG+ extreme difficulty** — enemies get 500% more HP, 300% more damage, 100% more XP per NG+ level; applies to all zone-spawned enemies
+- **MiniFrankenBear visual overhaul v2** — darker outlines, inner ear detail, red pupils, brown snout, teeth marks, zigzag belly stitching, arm stumps with claws, shoe-like feet, bigger shinier neck bolts
