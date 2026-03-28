@@ -277,8 +277,16 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            self.explosion_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
-            self.explosion_sound.set_volume(0.85)
+            _n = int(_RATE * 0.15)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = max(0.0, (1.0 - _t / 0.15) ** 2.2)
+                _snap = _rnd.gauss(0, 1) * max(0.0, 1.0 - _t * 25) * 0.8
+                _thump = _math.sin(2*_math.pi*140*_t) * 0.6 + _math.sin(2*_math.pi*90*_t) * 0.4
+                _smp.append(max(-1.0, min(1.0, (_snap + _thump) * _env * 0.85)))
+            self.explosion_sound = _make_snd(_smp)
+            self.explosion_sound.set_volume(0.90)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
