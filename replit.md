@@ -88,3 +88,7 @@ python main.py
 - **Silver mode (level 14)** — all bear sprites tinted silver via BLEND_RGB_MULT + BLEND_RGB_ADD; permanent 50% speed increase (STEP 8→12); "SILVER MODE ACTIVATED!" notification
 - **Dead zone speed boost** — dynamic STEP each frame: when no alive enemies within visible range (-150 to 950 px), movement speed boosted by 50%; returns to normal when enemies are on screen
 - **Dynamic STEP** — `STEP` is now a mutable global modified per frame based on silver mode + dead zone state (base 8/12 × 1.0/1.5)
+- **Critical hits** — 20% chance on both melee attacks and fireballs for 2× damage; plays a distinct heavy crit sound
+- **Fireball speed boost** — at level 12+, fireball speed gets a 3× multiplier (100% faster than previous 1.5× boost)
+- **Mid-game difficulty scaling** — at Zone 4 (25500+ distance, ~50% mark), all new enemies get +50% HP, +50% attack; enemies tinted red; experience gain boosted by 75%
+- **Beam super attack** — charge bar fills slowly (0.1/frame); press C when full to fire a piercing beam dealing 5× damage; charge bar shown in HUD with "BEAM" label; "C:READY" text when fully charged

@@ -313,6 +313,32 @@ class mainGame:
             self.boss_hit_sound = pygame.mixer.Sound("Game/Sounds/boss_hit.wav")
             self.boss_hit_sound.set_volume(0.65)
 
+            _n = int(_RATE * 0.30)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = max(0.0, (1.0 - _t/0.30)**1.5)
+                _s = (_math.sin(2*_math.pi*180*_t) * 0.5
+                      + _math.sin(2*_math.pi*360*_t) * 0.3
+                      + _math.sin(2*_math.pi*90*_t) * 0.4
+                      + _rnd.gauss(0, 0.15) * max(0, 1.0 - _t*8))
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.90)))
+            self.crit_sound = _make_snd(_smp)
+            self.crit_sound.set_volume(0.85)
+
+            _n = int(_RATE * 0.45)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = max(0.0, (1.0 - _t/0.45)**1.2)
+                _s = (_math.sin(2*_math.pi*200*_t) * 0.6
+                      + _math.sin(2*_math.pi*400*_t) * 0.3
+                      + _math.sin(2*_math.pi*100*_t) * 0.35
+                      + _math.sin(2*_math.pi*800*_t) * 0.15 * max(0, 1.0 - _t*5))
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.85)))
+            self.beam_sound = _make_snd(_smp)
+            self.beam_sound.set_volume(0.80)
+
         except Exception:
             self.thud_sound = None
             self.fire_sound = None
@@ -333,6 +359,8 @@ class mainGame:
             self.mummy_groan_sound = None
             self.laser_zap_sound = None
             self.boss_hit_sound = None
+            self.crit_sound = None
+            self.beam_sound = None
         _init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -437,6 +465,8 @@ class mainGame:
         self._water_playing = False
         self._silver_applied = False
         self._bigMummyDefeated = False
+        self._hardMode = False
+        self.beamProjectiles = []
 
     # -----------------------------------------------------------------------
     # Helper: draw the bear idle sprite (used to fill animation gaps)
@@ -512,6 +542,8 @@ class mainGame:
         self._current_music = "normal"
         self._footstep_counter = 0
         self._mummy_groan_timer = 0
+        beamCharge = 0.0
+        beamCooldown = 0
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -564,7 +596,7 @@ class mainGame:
                     _eff_lvl = min(_lvl, 9)
                     _boost = 1.2 if _eff_lvl >= 6 else 1.0
                     if _lvl >= 12:
-                        _boost *= 1.5
+                        _boost *= 3.0
                     _fb_speed = int(10 * (1.15 ** (_eff_lvl // 2)) * _boost)
                     vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
                     fb_x = (bear.getXPosition() - 60
@@ -588,6 +620,27 @@ class mainGame:
                                  _fb_img, self.screen))
                     if self.fire_sound:
                         self.fire_sound.play()
+                    attackingAnimationCounter = 1
+
+                # ---- C: beam super attack ---------------------------------
+                beamCooldown = max(0, beamCooldown - 1)
+                beamCharge = min(100.0, beamCharge + 0.10)
+                if keys[pygame.K_c] and beamCharge >= 100.0 and beamCooldown == 0:
+                    beamCharge = 0.0
+                    beamCooldown = 60
+                    _beam_dmg = bear.getDamageAttack() * 5
+                    _beam_vx = -18 if bear.getLeftDirection() else 18
+                    _beam_x = (bear.getXPosition() - 100
+                               if bear.getLeftDirection()
+                               else bear.getXPosition() + 100)
+                    _beam_y = bear.getYPosition() + 30
+                    self.beamProjectiles.append({
+                        "x": _beam_x, "y": _beam_y,
+                        "vx": _beam_vx, "dmg": _beam_dmg, "timer": 90,
+                        "hit_ids": set()
+                    })
+                    if self.beam_sound:
+                        self.beam_sound.play()
                     attackingAnimationCounter = 1
 
                 # ---- Z + RIGHT: jump-right --------------------------------
@@ -633,6 +686,8 @@ class mainGame:
                                                self.playerFires + self.shadowShamans + self.miniFrankenBears)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
+                                for _bp in self.beamProjectiles:
+                                    _bp["x"] -= STEP
                                 for block in self.blocks:
                                     if not block.getIsLeftBoundary():
                                         block.setblockXPosition(block.getBlockXPosition() - STEP)
@@ -669,6 +724,8 @@ class mainGame:
                                                self.playerFires + self.shadowShamans + self.miniFrankenBears)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
+                                for _bp in self.beamProjectiles:
+                                    _bp["x"] -= STEP
                                 for block in self.blocks:
                                     if not block.getIsLeftBoundary():
                                         block.setblockXPosition(block.getBlockXPosition() - STEP)
@@ -749,6 +806,8 @@ class mainGame:
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
+                            for _bp in self.beamProjectiles:
+                                _bp["x"] += STEP
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
@@ -779,6 +838,8 @@ class mainGame:
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
+                            for _bp in self.beamProjectiles:
+                                _bp["x"] += STEP
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
@@ -868,14 +929,20 @@ class mainGame:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
+                            _base_dmg = bear.getDamageAttack()
+                            _is_crit = random.random() < 0.20
+                            _dmg = _base_dmg * 2 if _is_crit else _base_dmg
                             if monster.getName() == "bigMummy":
                                 if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
                                                         monster.getXPosition(), monster.getYPosition(),
                                                         bear.getLeftDirection()):
-                                    monster.setDamageReceived(bear.getDamageAttack())
+                                    monster.setDamageReceived(_dmg)
                                     monster.setStunned(1)
-                                    monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                                    if self.hit_sound: self.hit_sound.play()
+                                    monster.setHealth(monster.getHealth() - _dmg)
+                                    if _is_crit and self.crit_sound:
+                                        self.crit_sound.play()
+                                    elif self.hit_sound:
+                                        self.hit_sound.play()
                                     hurtTimer = 0
                                 else:
                                     deflectTimer = 40
@@ -884,11 +951,14 @@ class mainGame:
                             else:
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
-                                monster.setDamageReceived(bear.getDamageAttack())
+                                monster.setDamageReceived(_dmg)
                                 monster.setStunned(1)
-                                monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                                _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
-                                if _snd: _snd.play()
+                                monster.setHealth(monster.getHealth() - _dmg)
+                                if _is_crit and self.crit_sound:
+                                    self.crit_sound.play()
+                                else:
+                                    _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
+                                    if _snd: _snd.play()
                                 hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
@@ -910,14 +980,20 @@ class mainGame:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
+                            _base_dmg = bear.getDamageAttack()
+                            _is_crit = random.random() < 0.20
+                            _dmg = _base_dmg * 2 if _is_crit else _base_dmg
                             if monster.getName() == "bigMummy":
                                 if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
                                                         monster.getXPosition(), monster.getYPosition(),
                                                         bear.getLeftDirection()):
-                                    monster.setDamageReceived(bear.getDamageAttack())
+                                    monster.setDamageReceived(_dmg)
                                     monster.setStunned(1)
-                                    monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                                    if self.hit_sound: self.hit_sound.play()
+                                    monster.setHealth(monster.getHealth() - _dmg)
+                                    if _is_crit and self.crit_sound:
+                                        self.crit_sound.play()
+                                    elif self.hit_sound:
+                                        self.hit_sound.play()
                                     hurtTimer = 0
                                 else:
                                     deflectTimer = 40
@@ -926,11 +1002,14 @@ class mainGame:
                             else:
                                 if not self.frankenbear:
                                     monster.setXPosition(monster.getXPosition() + STEP)
-                                monster.setDamageReceived(bear.getDamageAttack())
+                                monster.setDamageReceived(_dmg)
                                 monster.setStunned(1)
-                                monster.setHealth(monster.getHealth() - bear.getDamageAttack())
-                                _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
-                                if _snd: _snd.play()
+                                monster.setHealth(monster.getHealth() - _dmg)
+                                if _is_crit and self.crit_sound:
+                                    self.crit_sound.play()
+                                else:
+                                    _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
+                                    if _snd: _snd.play()
                                 hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
@@ -961,6 +1040,8 @@ class mainGame:
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
+                            for _bp in self.beamProjectiles:
+                                _bp["x"] -= STEP
                             for block in self.blocks:
                                 if not block.getIsLeftBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -1056,6 +1137,8 @@ class mainGame:
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
+                            for _bp in self.beamProjectiles:
+                                _bp["x"] -= STEP
                             for block in self.blocks:
                                 block.setblockXPosition(block.getBlockXPosition() - STEP)
                             backgroundScrollX = bear.getXPosition()
@@ -1087,6 +1170,8 @@ class mainGame:
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
+                            for _bp in self.beamProjectiles:
+                                _bp["x"] += STEP
                             for block in self.blocks:
                                 if not block.getIsRightBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -1176,6 +1261,8 @@ class mainGame:
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
+                            for _bp in self.beamProjectiles:
+                                _bp["x"] += STEP
                             for block in self.blocks:
                                 block.setblockXPosition(block.getBlockXPosition() + STEP)
                             backgroundScrollX = bear.getXPosition() - STEP
@@ -1329,6 +1416,8 @@ class mainGame:
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
                         _exp_gain = monster.getExp()
+                        if self._hardMode:
+                            _exp_gain = int(_exp_gain * 1.75)
                         if self.newGamePlusLevel > 0:
                             _exp_gain = int(_exp_gain * (1.0 + 0.30 * self.newGamePlusLevel))
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
@@ -1424,6 +1513,8 @@ class mainGame:
                     if monster.getDestructionAnimationCount() >= 30:
                         monster.setStartDestructionAnimation(False)
                         _exp_gain = monster.getExp()
+                        if self._hardMode:
+                            _exp_gain = int(_exp_gain * 1.75)
                         if self.newGamePlusLevel > 0:
                             _exp_gain = int(_exp_gain * (1.0 + 0.30 * self.newGamePlusLevel))
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
@@ -1492,16 +1583,57 @@ class mainGame:
                                          monster.getYPosition(), 80, 100)
                     if pf_rect.colliderect(m_rect):
                         _fb_dmg = bear.fireballDamage
+                        _is_crit = random.random() < 0.20
+                        if _is_crit:
+                            _fb_dmg *= 2
                         monster.setDamageReceived(_fb_dmg)
                         monster.setStunned(1)
                         monster.setHealth(monster.getHealth() - _fb_dmg)
-                        _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
-                        if _snd: _snd.play()
+                        if _is_crit and self.crit_sound:
+                            self.crit_sound.play()
+                        else:
+                            _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
+                            if _snd: _snd.play()
                         pf_to_remove.append(pf)
                         break
             for pf in pf_to_remove:
                 if pf in self.playerFires:
                     self.playerFires.remove(pf)
+
+            # ---- Beam projectiles -------------------------------------------
+            bp_to_remove = []
+            for bp in self.beamProjectiles:
+                bp["x"] += bp["vx"]
+                bp["timer"] -= 1
+                _bw, _bh = 120, 30
+                _by = bp["y"]
+                _glow = pygame.Surface((_bw + 20, _bh + 20), pygame.SRCALPHA)
+                pygame.draw.ellipse(_glow, (100, 200, 255, 60), (0, 0, _bw + 20, _bh + 20))
+                self.screen.blit(_glow, (bp["x"] - 10, _by - 10))
+                _core = pygame.Surface((_bw, _bh), pygame.SRCALPHA)
+                pygame.draw.ellipse(_core, (180, 230, 255, 220), (0, 0, _bw, _bh))
+                pygame.draw.ellipse(_core, (255, 255, 255, 200), (10, 5, _bw - 20, _bh - 10))
+                self.screen.blit(_core, (bp["x"], _by))
+                if bp["x"] < -150 or bp["x"] > 1050 or bp["timer"] <= 0:
+                    bp_to_remove.append(bp)
+                    continue
+                bp_rect = pygame.Rect(bp["x"], _by, _bw, _bh)
+                monsters = (self.mummys + self.witches +
+                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears)
+                for monster in monsters:
+                    _mid = id(monster)
+                    if _mid in bp["hit_ids"]:
+                        continue
+                    m_rect = pygame.Rect(monster.getXPosition(),
+                                         monster.getYPosition(), 80, 100)
+                    if bp_rect.colliderect(m_rect):
+                        bp["hit_ids"].add(_mid)
+                        monster.setDamageReceived(bp["dmg"])
+                        monster.setStunned(3)
+                        monster.setHealth(monster.getHealth() - bp["dmg"])
+            for bp in bp_to_remove:
+                if bp in self.beamProjectiles:
+                    self.beamProjectiles.remove(bp)
 
             hurtTimer += 1
 
@@ -1659,6 +1791,19 @@ class mainGame:
 
             bear.displayBearHp()
             bear.displayBearExp()
+            _bc_x, _bc_y, _bc_w, _bc_h = 624, 6, 180, 28
+            _hud_panel(self.screen, _bc_x, _bc_y, _bc_w, _bc_h, (30, 50, 100))
+            _bc_ratio = min(1.0, beamCharge / 100.0)
+            if _bc_ratio >= 1.0:
+                _bc_col = (100, 200, 255)
+            else:
+                _bc_col = (60, 100, 180)
+            _hud_bar(self.screen, _bc_x + 50, _bc_y + 5, _bc_w - 58, 14, _bc_ratio, _bc_col)
+            _hud_text_outlined(self.screen, _FONT_HUD_VAL, "BEAM",
+                               _bc_x + 6, _bc_y + 4, (100, 200, 255))
+            if _bc_ratio >= 1.0:
+                _rdy = _FONT_HUD_VAL.render("C:READY", True, (255, 255, 100))
+                self.screen.blit(_rdy, (_bc_x + 52, _bc_y + 14))
             if self.newGamePlusLevel > 0:
                 _ng_txt = _FONT_DAMAGE.render(
                     "NG+" + str(self.newGamePlusLevel), True, (255, 215, 0))
@@ -1775,6 +1920,8 @@ class mainGame:
                 bear.setMaxExp(saved_max_exp)
                 self._fireball_tutorial_shown = True
                 self._bigMummyDefeated = False
+                self._hardMode = False
+                self.beamProjectiles = []
 
                 for x in [700, 900, 1100, 1300, 1500]:
                     mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
@@ -1997,6 +2144,7 @@ class mainGame:
                 self.water_sound.stop()
                 self._water_playing = False
             self.activeMonsters[4] = True
+            self._hardMode = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.waterfalls = []
 
@@ -2161,6 +2309,33 @@ class mainGame:
                 GreenBlob(1150, 250, 100, 100, self.screen, self.blob_jump_sound),
                 GreenBlob(1700, 210, 100, 100, self.screen, self.blob_jump_sound),
             ])
+
+        if self._hardMode:
+            _sprite_attrs = {
+                'Mummy':           ['mummy1', 'mummy2', 'hurtMummy', 'hurtLeftMummy'],
+                'Witch':           ['witch', 'witch2', 'hurtWitch'],
+                'GreenBlob':       ['greenBlob', 'hurtGreenBlob'],
+                'ShadowShaman':    ['witch', 'witch2', 'hurtWitch'],
+                'MiniFrankenBear': [],
+            }
+            for _m in (self.mummys + self.witches + self.greenBlobs +
+                       self.shadowShamans + self.miniFrankenBears):
+                if not getattr(_m, '_hm_boosted', False):
+                    _m._hm_boosted = True
+                    _m.health = int(_m.health * 1.5)
+                    _m.damageAttack = int(_m.damageAttack * 1.5)
+                    _cls = type(_m).__name__
+                    for attr in _sprite_attrs.get(_cls, []):
+                        _img = getattr(_m, attr, None)
+                        if _img and isinstance(_img, pygame.Surface):
+                            _tinted = _img.copy()
+                            _red_ov = pygame.Surface(_tinted.get_size(), pygame.SRCALPHA)
+                            _red_ov.fill((255, 130, 130))
+                            _tinted.blit(_red_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+                            _bright = pygame.Surface(_tinted.get_size(), pygame.SRCALPHA)
+                            _bright.fill((60, 0, 0))
+                            _tinted.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+                            setattr(_m, attr, _tinted)
 
     # -----------------------------------------------------------------------
     def _tint_silver(self, surface):
