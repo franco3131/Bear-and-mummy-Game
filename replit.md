@@ -103,3 +103,10 @@ python main.py
 - **Beam damage reduced** — beam super attack now does 3× normal damage (down from 5×)
 - **Fireball damage reduced** — all fireballs (witch and boss) deal 20% less damage (4 base instead of 5)
 - **80% music track** — exciting fast-paced "final push" music (Am-F-G-Em progression, 160 BPM) triggers at Zone 8 (46000 distance)
+- **Post-boss jungle music** — tribal jungle theme with congas, flute, bird chirps replaces the post-boss track
+- **Beam power increase** — beam now does 4× normal damage (up from 3×); flashing "PRESS C FOR BEAM!" popup appears when fully charged
+- **80% difficulty scaling** — enemies at Zone 8+ get additional 1.2× HP and ATK on top of hard mode
+- **Boss slowed significantly** — FrankenBear attack intervals increased to 40-70 normal, 25-50 enraged
+- **Fireball attack immunity removed** — fireballs now hit the bear regardless of attack state
+- **MiniFrankenBear overhaul** — procedurally drawn green bear sprite with Frankenstein bolts/stitches; added to melee attack targets; laser now properly resets and fires repeatedly
+- **ShadowShaman melee fix** — added to melee attack targets with proper 120×120 hitbox

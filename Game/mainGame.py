@@ -136,6 +136,10 @@ def isMonsterHurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition,
         m_w, m_h = 300, 300
     elif monsterType == "bigMummy":
         m_w, m_h = 200, 300
+    elif monsterType == "miniFrankenBear":
+        m_w, m_h = 80, 80
+    elif monsterType == "shadowShaman":
+        m_w, m_h = 120, 120
     else:
         m_w, m_h = 100, 100
 
@@ -632,7 +636,7 @@ class mainGame:
                 if keys[pygame.K_c] and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
                     beamCooldown = 60
-                    _beam_dmg = bear.getDamageAttack() * 3
+                    _beam_dmg = bear.getDamageAttack() * 4
                     _beam_vx = -18 if bear.getLeftDirection() else 18
                     _beam_x = (bear.getXPosition() - 100
                                if bear.getLeftDirection()
@@ -757,11 +761,8 @@ class mainGame:
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
                                         self.frankenbear + self.shadowShamans + self.miniFrankenBears)
-                    _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
-                            continue
-                        if _attacking and monster.getName() == "fireBall":
                             continue
                         if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -874,11 +875,8 @@ class mainGame:
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
-                        _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
-                                continue
-                            if _attacking and monster.getName() == "fireBall":
                                 continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
@@ -934,7 +932,7 @@ class mainGame:
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
@@ -985,7 +983,7 @@ class mainGame:
                     bear.setLeftDirection(True)
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
@@ -1096,11 +1094,8 @@ class mainGame:
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
-                        _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
-                                continue
-                            if _attacking and monster.getName() == "fireBall":
                                 continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
@@ -1224,11 +1219,8 @@ class mainGame:
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
                                             self.frankenbear)
-                        _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
-                                continue
-                            if _attacking and monster.getName() == "fireBall":
                                 continue
                             if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
@@ -1296,7 +1288,7 @@ class mainGame:
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears
                     for monster in monsters:
                         if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
@@ -1340,11 +1332,8 @@ class mainGame:
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
                                         self.frankenbear + self.shadowShamans + self.miniFrankenBears)
-                    _attacking = attackingAnimationCounter > 0 or attackingLeftAnimtationCounter > 0
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
-                            continue
-                        if _attacking and monster.getName() == "fireBall":
                             continue
                         if (bear.isBearHurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
@@ -1486,11 +1475,13 @@ class mainGame:
                 if minibear.should_throw_laser():
                     self.lasers.append(minibear.throw_laser())
                     if self.laser_zap_sound: self.laser_zap_sound.play()
-            
+
             laser_to_remove = []
             for laser in self.lasers:
                 if not laser.draw():
                     laser_to_remove.append(laser)
+                    if hasattr(laser, '_owner') and laser._owner:
+                        laser._owner.has_thrown_laser = False
                 else:
                     laser_hit = False
                     laser_rect_top = laser.getYPosition() - 20
@@ -1514,6 +1505,8 @@ class mainGame:
             for laser in laser_to_remove:
                 if laser in self.lasers:
                     self.lasers.remove(laser)
+                    if hasattr(laser, '_owner') and laser._owner:
+                        laser._owner.has_thrown_laser = False
 
             # ---- Deflect indicator for big mummy body hits (drawn on top) ------
             if deflectTimer > 0:
@@ -1823,6 +1816,14 @@ class mainGame:
             if _bc_ratio >= 1.0:
                 _rdy = _FONT_HUD_VAL.render("C:READY", True, (255, 255, 100))
                 self.screen.blit(_rdy, (_bc_x + 52, _bc_y + 14))
+                _flash = (pygame.time.get_ticks() // 400) % 2 == 0
+                if _flash:
+                    _popup_txt = _FONT_DAMAGE.render("PRESS C FOR BEAM!", True, (100, 200, 255))
+                    _popup_bg = pygame.Surface((_popup_txt.get_width() + 16, _popup_txt.get_height() + 8), pygame.SRCALPHA)
+                    _popup_bg.fill((0, 0, 40, 180))
+                    _px = 450 - _popup_txt.get_width() // 2
+                    self.screen.blit(_popup_bg, (_px - 8, 80))
+                    self.screen.blit(_popup_txt, (_px, 84))
             if self.newGamePlusLevel > 0:
                 _ng_txt = _FONT_DAMAGE.render(
                     "NG+" + str(self.newGamePlusLevel), True, (255, 215, 0))
@@ -1940,6 +1941,7 @@ class mainGame:
                 self._fireball_tutorial_shown = True
                 self._bigMummyDefeated = False
                 self._hardMode = False
+                self._hardMode80 = False
                 self.beamProjectiles = []
 
                 for x in [700, 900, 1100, 1300, 1500]:
@@ -2278,6 +2280,7 @@ class mainGame:
             self.greenBlobs = []; self.fires = []
             self.miniFrankenBears = []; self.lasers = []
             self._switch_music("final_push")
+            self._hardMode80 = True
 
             block1 = Block(1050, 220, 100, 60, "checkered", self.screen)
             block2 = Block(1300, 220, 100, 60, "checkered", self.screen)
@@ -2360,6 +2363,14 @@ class mainGame:
                             _tinted.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
                             setattr(_m, attr, _tinted)
 
+        if getattr(self, '_hardMode80', False):
+            for _m in (self.mummys + self.witches + self.greenBlobs +
+                       self.shadowShamans + self.miniFrankenBears):
+                if not getattr(_m, '_hm80_boosted', False):
+                    _m._hm80_boosted = True
+                    _m.health = int(_m.health * 1.2)
+                    _m.damageAttack = int(_m.damageAttack * 1.2)
+
     # -----------------------------------------------------------------------
     def _tint_silver(self, surface):
         copy = surface.copy()
@@ -2394,7 +2405,7 @@ class mainGame:
         self._current_music = track
         _files = {
             "normal":          "Game/Sounds/spooky_peaceful.wav",
-            "post_boss_normal": "Game/Sounds/post_boss_normal.wav",
+            "post_boss_normal": "Game/Sounds/post_boss_jungle.wav",
             "halfway":         "Game/Sounds/halfway_intense.wav",
             "final_push":      "Game/Sounds/final_push.wav",
             "boss_mummy":      "Game/Sounds/boss_spooky.wav",
@@ -4224,17 +4235,37 @@ class MiniFrankenBear():
         if cls._shared_sprites is not None:
             return
         _size = (80, 80)
-        _boss_img = pygame.image.load("Game/Images/boss1.png")
-        _normal = pygame.transform.scale(_boss_img, _size)
-        _tint_g = _normal.copy()
-        _tint_g.fill((100, 255, 100), special_flags=pygame.BLEND_RGB_MULT)
-        _hurt = _normal.copy()
-        _hurt.fill((255, 100, 100), special_flags=pygame.BLEND_RGB_MULT)
-        _hurt.fill((60, 0, 0), special_flags=pygame.BLEND_RGB_ADD)
+
+        def _draw_mini_bear(surf, body_col, eye_col, bolt_col):
+            pygame.draw.ellipse(surf, body_col, (15, 25, 50, 50))
+            pygame.draw.circle(surf, body_col, (40, 22), 20)
+            pygame.draw.circle(surf, body_col, (25, 8), 10)
+            pygame.draw.circle(surf, body_col, (55, 8), 10)
+            pygame.draw.circle(surf, eye_col, (33, 18), 4)
+            pygame.draw.circle(surf, eye_col, (47, 18), 4)
+            pygame.draw.circle(surf, (200, 200, 0), (33, 18), 2)
+            pygame.draw.circle(surf, (200, 200, 0), (47, 18), 2)
+            pygame.draw.line(surf, (40, 40, 40), (35, 28), (45, 28), 2)
+            pygame.draw.circle(surf, bolt_col, (10, 22), 5)
+            pygame.draw.circle(surf, bolt_col, (70, 22), 5)
+            pygame.draw.rect(surf, bolt_col, (7, 18, 6, 8))
+            pygame.draw.rect(surf, bolt_col, (67, 18, 6, 8))
+            pygame.draw.line(surf, (30, 30, 30), (30, 12), (30, 32), 2)
+            pygame.draw.line(surf, (30, 30, 30), (50, 12), (50, 32), 2)
+            pygame.draw.line(surf, (30, 30, 30), (25, 40), (55, 40), 2)
+            pygame.draw.ellipse(surf, body_col, (10, 55, 18, 22))
+            pygame.draw.ellipse(surf, body_col, (52, 55, 18, 22))
+
+        _normal = pygame.Surface(_size, pygame.SRCALPHA)
+        _draw_mini_bear(_normal, (50, 140, 50), (20, 20, 20), (160, 160, 160))
+
+        _hurt = pygame.Surface(_size, pygame.SRCALPHA)
+        _draw_mini_bear(_hurt, (180, 60, 60), (40, 10, 10), (200, 160, 160))
+
         cls._shared_sprites = {
-            "normal": _tint_g,
+            "normal": _normal,
             "hurt": _hurt,
-            "flipped": pygame.transform.flip(_tint_g, True, False),
+            "flipped": pygame.transform.flip(_normal, True, False),
             "hurt_flip": pygame.transform.flip(_hurt, True, False),
         }
 
@@ -4279,7 +4310,9 @@ class MiniFrankenBear():
         self.laser_timer = 0
         self.laser_interval = random.randint(60, 100)
         _cx = self.x + 40
-        return Laser(_cx - 150, _cx + 150, self.y + 10, self.screen)
+        _laser = Laser(_cx - 150, _cx + 150, self.y + 10, self.screen)
+        _laser._owner = self
+        return _laser
     
     def draw(self):
         sp = MiniFrankenBear._shared_sprites
@@ -4375,7 +4408,7 @@ class FrankenBear():
         self.blinkTimer = 0
         self.attackTimer = 0
         self.randomBlink = random.randint(50, 150)
-        self.randomAttack = random.randint(18, 35)
+        self.randomAttack = random.randint(40, 70)
         self.bossDisplay = self.boss3
         self.blinked = False
         self.attacked = False
@@ -4477,9 +4510,9 @@ class FrankenBear():
             if self.attacked:
                 # Enrage: attack faster when health is low
                 if self.health <= 3:
-                    self.randomAttack = random.randint(12, 25)
+                    self.randomAttack = random.randint(25, 50)
                 else:
-                    self.randomAttack = random.randint(18, 35)
+                    self.randomAttack = random.randint(40, 70)
                 self.attackTimer = 0
                 self.blinkTimer = 0
                 self.flipped = random.randint(1, 2)
