@@ -98,3 +98,8 @@ python main.py
 - **Boss fireball rate slowed** — boss throws fireballs less frequently (normal: 18-35 frame intervals, enraged: 12-25)
 - **Fireball speed at level 12+** — reduced from 3× to 2.5× boost (75% increase instead of 100%)
 - **Attack immunity to fireballs** — bear is immune to all fireball damage while in melee attack animation
+- **MiniFrankenBear sprite fix** — now uses boss1.png scaled to 80×80 with green tint instead of placeholder circle; proper hurt/destruction animations; collision hitbox added to `_MONSTER_SIZES`
+- **ShadowShaman collision fix** — added 120×120 hitbox to `_MONSTER_SIZES` so contact damage works
+- **Beam damage reduced** — beam super attack now does 3× normal damage (down from 5×)
+- **Fireball damage reduced** — all fireballs (witch and boss) deal 20% less damage (4 base instead of 5)
+- **80% music track** — exciting fast-paced "final push" music (Am-F-G-Em progression, 160 BPM) triggers at Zone 8 (46000 distance)

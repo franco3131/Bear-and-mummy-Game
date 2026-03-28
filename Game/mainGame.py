@@ -59,14 +59,16 @@ def _hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0)):
 # Collision helpers (using pygame.Rect for clean, accurate AABB detection)
 # ---------------------------------------------------------------------------
 _MONSTER_SIZES = {
-    "mummy":        (100, 100),
-    "bigMummy":     (200, 300),
-    "fireBall":     (80,  80),
-    "witch":        (100, 100),
-    "greenBlob":    (100, 100),
-    "bigGreenBlob": (300, 400),
-    "spikes":       (600, 60),
-    "frankenbears": (300, 300),
+    "mummy":          (100, 100),
+    "bigMummy":       (200, 300),
+    "fireBall":       (80,  80),
+    "witch":          (100, 100),
+    "greenBlob":      (100, 100),
+    "bigGreenBlob":   (300, 400),
+    "spikes":         (600, 60),
+    "frankenbears":   (300, 300),
+    "shadowShaman":   (120, 120),
+    "miniFrankenBear": (80,  80),
 }
 
 BEAR_W = 80
@@ -630,7 +632,7 @@ class mainGame:
                 if keys[pygame.K_c] and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
                     beamCooldown = 60
-                    _beam_dmg = bear.getDamageAttack() * 5
+                    _beam_dmg = bear.getDamageAttack() * 3
                     _beam_vx = -18 if bear.getLeftDirection() else 18
                     _beam_x = (bear.getXPosition() - 100
                                if bear.getLeftDirection()
@@ -2275,6 +2277,7 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
             self.miniFrankenBears = []; self.lasers = []
+            self._switch_music("final_push")
 
             block1 = Block(1050, 220, 100, 60, "checkered", self.screen)
             block2 = Block(1300, 220, 100, 60, "checkered", self.screen)
@@ -2393,6 +2396,7 @@ class mainGame:
             "normal":          "Game/Sounds/spooky_peaceful.wav",
             "post_boss_normal": "Game/Sounds/post_boss_normal.wav",
             "halfway":         "Game/Sounds/halfway_intense.wav",
+            "final_push":      "Game/Sounds/final_push.wav",
             "boss_mummy":      "Game/Sounds/boss_spooky.wav",
             "boss_final":      "Game/Sounds/boss_spooky.wav",
         }
@@ -2400,6 +2404,7 @@ class mainGame:
             "normal": 0.40,
             "post_boss_normal": 0.45,
             "halfway": 0.45,
+            "final_push": 0.50,
             "boss_mummy": 0.75,
             "boss_final": 0.80,
         }
@@ -3120,7 +3125,7 @@ class FireBall():
         self.fire = pygame.transform.scale(fireballImage, (60, 60))
         self.stunned = False
         self.health = 1
-        self.damageAttack = 5
+        self.damageAttack = 4
         self.isHurtTimer = 0
 
     def setHurtTimer(self, timer):
@@ -4212,7 +4217,29 @@ class Laser():
 
 
 class MiniFrankenBear():
+    _shared_sprites = None
+
+    @classmethod
+    def _load_sprites(cls):
+        if cls._shared_sprites is not None:
+            return
+        _size = (80, 80)
+        _boss_img = pygame.image.load("Game/Images/boss1.png")
+        _normal = pygame.transform.scale(_boss_img, _size)
+        _tint_g = _normal.copy()
+        _tint_g.fill((100, 255, 100), special_flags=pygame.BLEND_RGB_MULT)
+        _hurt = _normal.copy()
+        _hurt.fill((255, 100, 100), special_flags=pygame.BLEND_RGB_MULT)
+        _hurt.fill((60, 0, 0), special_flags=pygame.BLEND_RGB_ADD)
+        cls._shared_sprites = {
+            "normal": _tint_g,
+            "hurt": _hurt,
+            "flipped": pygame.transform.flip(_tint_g, True, False),
+            "hurt_flip": pygame.transform.flip(_hurt, True, False),
+        }
+
     def __init__(self, x, y, screen):
+        MiniFrankenBear._load_sprites()
         self.x = x
         self.y = y
         self.screen = screen
@@ -4251,27 +4278,29 @@ class MiniFrankenBear():
         self.has_thrown_laser = True
         self.laser_timer = 0
         self.laser_interval = random.randint(60, 100)
-        return Laser(self.x - 150, self.x + 150, self.y - 30, self.screen)
+        _cx = self.x + 40
+        return Laser(_cx - 150, _cx + 150, self.y + 10, self.screen)
     
     def draw(self):
-        size = 80
-        color_r = max(100, min(255, self.health * 5))
-        s = pygame.Surface((size, size), pygame.SRCALPHA)
-        pygame.draw.circle(s, (color_r, 50, 50), (size//2, size//2), size//2)
-        pygame.draw.rect(s, (100, 20, 20), (size//4, size//4, size//2, size//2))
-        self.screen.blit(s, (self.x - size//2, self.y - size//2))
-    
+        sp = MiniFrankenBear._shared_sprites
+        if self.isHurtTimer > 0:
+            img = sp["hurt_flip"] if self.direction < 0 else sp["hurt"]
+        else:
+            img = sp["flipped"] if self.direction < 0 else sp["normal"]
+        self.screen.blit(img, (self.x, self.y))
+
     def drawMonster(self):
         self.walk()
         self.update_laser_timer()
         self.draw()
-    
+
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
-        alpha = int(255 * (1 - self.destructionAnimation / 30))
-        s = pygame.Surface((80, 80), pygame.SRCALPHA)
-        pygame.draw.circle(s, (255, 100, 100, alpha), (40, 40), 40)
-        self.screen.blit(s, (self.x - 40, self.y - 40))
+        alpha = max(0, int(255 * (1 - self.destructionAnimation / 30)))
+        sp = MiniFrankenBear._shared_sprites
+        img = sp["normal"].copy()
+        img.set_alpha(alpha)
+        self.screen.blit(img, (self.x, self.y))
     
     def getHealth(self):
         return self.health
