@@ -277,19 +277,20 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            _n = int(_RATE * 0.8)
+            _n = int(_RATE * 0.9)
             _smp = []
             for _i in range(_n):
                 _t = _i / _RATE
-                _env = max(0.0, (1.0 - _t / 0.8) ** 1.0)
-                _initial_blast = max(0.0, 1.0 - _t * 12) * _rnd.gauss(0, 1) * 1.0
-                _boom = (_math.sin(2*_math.pi*40*_t) * 0.9
-                         + _math.sin(2*_math.pi*65*_t) * 0.6
-                         + _math.sin(2*_math.pi*30*_t + _math.sin(2*_math.pi*6*_t)*4) * 0.5
-                         + _math.sin(2*_math.pi*100*_t) * 0.3)
-                _crackle = _rnd.gauss(0, 0.6) * max(0.0, 1.0 - _t * 4) * 0.6
-                _rumble_env = min(1.0, _t * 6) * max(0.0, 1.0 - (_t - 0.2) * 2.0)
-                _rumble = _math.sin(2*_math.pi*25*_t) * _rumble_env * 0.8
+                _env = max(0.0, (1.0 - _t / 0.9) ** 0.8)
+                _initial_blast = max(0.0, 1.0 - _t * 10) * _rnd.gauss(0, 1) * 1.0
+                _boom = (_math.sin(2*_math.pi*35*_t) * 1.0
+                         + _math.sin(2*_math.pi*55*_t) * 0.7
+                         + _math.sin(2*_math.pi*25*_t + _math.sin(2*_math.pi*5*_t)*5) * 0.6
+                         + _math.sin(2*_math.pi*90*_t) * 0.4
+                         + _math.sin(2*_math.pi*15*_t) * 0.5)
+                _crackle = _rnd.gauss(0, 0.7) * max(0.0, 1.0 - _t * 3) * 0.7
+                _rumble_env = min(1.0, _t * 5) * max(0.0, 1.0 - (_t - 0.25) * 1.5)
+                _rumble = _math.sin(2*_math.pi*20*_t) * _rumble_env * 1.0
                 _s = (_initial_blast + _boom * _env + _crackle + _rumble)
                 _smp.append(max(-1.0, min(1.0, _s)))
             self.explosion_sound = _make_snd(_smp)
@@ -599,7 +600,11 @@ class mainGame:
                 playerFireCooldown = max(0, playerFireCooldown - 1)
                 if (keys[pygame.K_x]
                         and playerFireCooldown == 0):
-                    playerFireCooldown = 30
+                    _base_cd = 30
+                    _lvl_cd = bear.getLevel()
+                    if _lvl_cd >= 14:
+                        _base_cd = max(5, int(_base_cd * (0.70 ** (_lvl_cd - 13))))
+                    playerFireCooldown = _base_cd
                     _lvl = bear.getLevel()
                     _eff_lvl = min(_lvl, 9)
                     _boost = 1.2 if _eff_lvl >= 6 else 1.0
@@ -1481,7 +1486,7 @@ class mainGame:
             # ---- Mini FrankenBear laser generation and drawing ----------------
             for minibear in self.miniFrankenBears:
                 if minibear.should_throw_laser():
-                    self.lasers.append(minibear.throw_laser())
+                    self.lasers.append(minibear.throw_laser(bear.getXPosition()))
                     if self.laser_zap_sound: self.laser_zap_sound.play()
 
             laser_to_remove = []
@@ -1581,10 +1586,12 @@ class mainGame:
                 for witch in self.witches:
                     witch.setThrowsFireBalls(True)
                     for _ in range(1):
-                        self.fires.append(
-                            FireBall(witch.getXPosition(), witch.getYPosition(),
-                                     random.randint(-7, 7), random.randint(1, 12),
-                                     self.fireBall, self.screen))
+                        _fb = FireBall(witch.getXPosition(), witch.getYPosition(),
+                                       random.randint(-7, 7), random.randint(1, 12),
+                                       self.fireBall, self.screen)
+                        if getattr(self, '_hardMode', False):
+                            _fb.damageAttack = int(_fb.damageAttack * 1.8)
+                        self.fires.append(_fb)
 
             # ---- Player fireballs -----------------------------------------
             pf_to_remove = []
@@ -1648,9 +1655,12 @@ class mainGame:
                                          monster.getYPosition(), 80, 100)
                     if bp_rect.colliderect(m_rect):
                         bp["hit_ids"].add(_mid)
-                        monster.setDamageReceived(bp["dmg"])
+                        _beam_hit_dmg = bp["dmg"]
+                        if isinstance(monster, MiniFrankenBear):
+                            _beam_hit_dmg = int(_beam_hit_dmg * 1.5)
+                        monster.setDamageReceived(_beam_hit_dmg)
                         monster.setStunned(3)
-                        monster.setHealth(monster.getHealth() - bp["dmg"])
+                        monster.setHealth(monster.getHealth() - _beam_hit_dmg)
             for bp in bp_to_remove:
                 if bp in self.beamProjectiles:
                     self.beamProjectiles.remove(bp)
@@ -2748,13 +2758,17 @@ class Background():
 
         _bg_draw = self.bgimage
         if getattr(self, '_ng_blue', False) and not getattr(self, '_black_latched', False):
-            _bg_draw = self.bgimage.copy()
-            _blue_ov = pygame.Surface(_bg_draw.get_size(), pygame.SRCALPHA)
-            _blue_ov.fill((80, 100, 200))
-            _bg_draw.blit(_blue_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
-            _bright = pygame.Surface(_bg_draw.get_size(), pygame.SRCALPHA)
-            _bright.fill((20, 30, 80))
-            _bg_draw.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+            _cache_key = id(self.bgimage)
+            if getattr(self, '_blue_cache_key', None) != _cache_key:
+                self._blue_cache_key = _cache_key
+                self._blue_cached = self.bgimage.copy()
+                _blue_ov = pygame.Surface(self._blue_cached.get_size(), pygame.SRCALPHA)
+                _blue_ov.fill((80, 100, 200))
+                self._blue_cached.blit(_blue_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+                _bright = pygame.Surface(self._blue_cached.get_size(), pygame.SRCALPHA)
+                _bright.fill((20, 30, 80))
+                self._blue_cached.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+            _bg_draw = self._blue_cached
 
         self.surface.blit(_bg_draw, (self.bgX1, self.bgY1))
         self.surface.blit(_bg_draw, (self.bgX2 + 5, self.bgY2))
@@ -4327,24 +4341,53 @@ class MiniFrankenBear():
         _size = (80, 80)
 
         def _draw_mini_bear(surf, body_col, eye_col, bolt_col):
+            _dark = tuple(max(0, c - 30) for c in body_col)
             pygame.draw.ellipse(surf, body_col, (15, 25, 50, 50))
+            pygame.draw.ellipse(surf, _dark, (15, 25, 50, 50), 2)
             pygame.draw.circle(surf, body_col, (40, 22), 20)
+            pygame.draw.circle(surf, _dark, (40, 22), 20, 2)
             pygame.draw.circle(surf, body_col, (25, 8), 10)
+            pygame.draw.circle(surf, _dark, (25, 8), 10, 2)
             pygame.draw.circle(surf, body_col, (55, 8), 10)
-            pygame.draw.circle(surf, eye_col, (33, 18), 4)
-            pygame.draw.circle(surf, eye_col, (47, 18), 4)
-            pygame.draw.circle(surf, (200, 200, 0), (33, 18), 2)
-            pygame.draw.circle(surf, (200, 200, 0), (47, 18), 2)
-            pygame.draw.line(surf, (40, 40, 40), (35, 28), (45, 28), 2)
-            pygame.draw.circle(surf, bolt_col, (10, 22), 5)
-            pygame.draw.circle(surf, bolt_col, (70, 22), 5)
-            pygame.draw.rect(surf, bolt_col, (7, 18, 6, 8))
-            pygame.draw.rect(surf, bolt_col, (67, 18, 6, 8))
-            pygame.draw.line(surf, (30, 30, 30), (30, 12), (30, 32), 2)
-            pygame.draw.line(surf, (30, 30, 30), (50, 12), (50, 32), 2)
-            pygame.draw.line(surf, (30, 30, 30), (25, 40), (55, 40), 2)
+            pygame.draw.circle(surf, _dark, (55, 8), 10, 2)
+            pygame.draw.circle(surf, (20, 20, 20), (25, 8), 4)
+            pygame.draw.circle(surf, (20, 20, 20), (55, 8), 4)
+            pygame.draw.circle(surf, eye_col, (33, 18), 5)
+            pygame.draw.circle(surf, eye_col, (47, 18), 5)
+            pygame.draw.circle(surf, (220, 220, 0), (33, 18), 3)
+            pygame.draw.circle(surf, (220, 220, 0), (47, 18), 3)
+            pygame.draw.circle(surf, (255, 50, 50), (33, 18), 1)
+            pygame.draw.circle(surf, (255, 50, 50), (47, 18), 1)
+            pygame.draw.line(surf, (40, 40, 40), (34, 28), (46, 28), 2)
+            for _tx in [34, 36, 38, 40, 42, 44]:
+                pygame.draw.line(surf, (40, 40, 40), (_tx, 27), (_tx, 29), 1)
+            pygame.draw.ellipse(surf, (80, 60, 50), (35, 30, 10, 6))
+            pygame.draw.circle(surf, bolt_col, (10, 22), 6)
+            pygame.draw.circle(surf, bolt_col, (70, 22), 6)
+            pygame.draw.rect(surf, bolt_col, (6, 17, 8, 10))
+            pygame.draw.rect(surf, bolt_col, (66, 17, 8, 10))
+            pygame.draw.circle(surf, (200, 200, 200), (10, 22), 3)
+            pygame.draw.circle(surf, (200, 200, 200), (70, 22), 3)
+            pygame.draw.line(surf, (30, 30, 30), (28, 10), (28, 34), 2)
+            pygame.draw.line(surf, (30, 30, 30), (52, 10), (52, 34), 2)
+            pygame.draw.line(surf, (30, 30, 30), (23, 40), (57, 40), 2)
+            for _sx in [28, 35, 42, 49]:
+                pygame.draw.line(surf, (30, 30, 30), (_sx, 43), (_sx + 4, 50), 2)
+                pygame.draw.line(surf, (30, 30, 30), (_sx + 4, 50), (_sx + 8, 43), 2)
+            pygame.draw.line(surf, (60, 60, 60), (20, 20), (25, 35), 2)
+            pygame.draw.line(surf, (60, 60, 60), (55, 20), (60, 35), 2)
             pygame.draw.ellipse(surf, body_col, (10, 55, 18, 22))
+            pygame.draw.ellipse(surf, _dark, (10, 55, 18, 22), 2)
             pygame.draw.ellipse(surf, body_col, (52, 55, 18, 22))
+            pygame.draw.ellipse(surf, _dark, (52, 55, 18, 22), 2)
+            pygame.draw.ellipse(surf, _dark, (12, 68, 14, 8))
+            pygame.draw.ellipse(surf, _dark, (54, 68, 14, 8))
+            pygame.draw.ellipse(surf, body_col, (18, 38, 12, 18))
+            pygame.draw.ellipse(surf, body_col, (50, 38, 12, 18))
+            pygame.draw.circle(surf, _dark, (20, 52), 3)
+            pygame.draw.circle(surf, _dark, (22, 52), 3)
+            pygame.draw.circle(surf, _dark, (54, 52), 3)
+            pygame.draw.circle(surf, _dark, (56, 52), 3)
 
         _normal = pygame.Surface(_size, pygame.SRCALPHA)
         _draw_mini_bear(_normal, (50, 140, 50), (20, 20, 20), (160, 160, 160))
@@ -4395,12 +4438,16 @@ class MiniFrankenBear():
     def should_throw_laser(self):
         return self.laser_timer >= self.laser_interval and not self.has_thrown_laser
     
-    def throw_laser(self):
+    def throw_laser(self, bear_x=None):
         self.has_thrown_laser = True
         self.laser_timer = 0
         self.laser_interval = random.randint(60, 100)
         _cx = self.x + 40
-        _laser = Laser(_cx - 150, _cx + 150, self.y + 10, self.screen)
+        if bear_x is not None:
+            _end = bear_x if bear_x < _cx else bear_x + 100
+        else:
+            _end = _cx - 300 if self.direction < 0 else _cx + 300
+        _laser = Laser(_cx, _end, self.y + 10, self.screen)
         _laser._owner = self
         return _laser
     
