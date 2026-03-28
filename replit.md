@@ -109,4 +109,10 @@ python main.py
 - **Boss slowed significantly** — FrankenBear attack intervals increased to 40-70 normal, 25-50 enraged
 - **Fireball attack immunity removed** — fireballs now hit the bear regardless of attack state
 - **MiniFrankenBear overhaul** — procedurally drawn green bear sprite with Frankenstein bolts/stitches; added to melee attack targets; laser now properly resets and fires repeatedly
-- **ShadowShaman melee fix** — added to melee attack targets with proper 120×120 hitbox
+- **ShadowShaman melee fix** — added to melee attack targets with proper 120×120 hitbox; has getDamageReceived/displayDamageOnMonster
+- **Laser projectile** — laser is now a traveling green energy projectile (moves across screen) instead of a static beam; scrolls with world
+- **Zone 8.5 "Shadow Ambush"** — new zone at distance 48000 with ShadowShamans, MiniFrankenBears, spikes, and mixed ground enemies
+- **NG+ blue background** — New Game+ tints the background blue and randomizes starting enemy mix (mummies, witches, blobs, shamans, mini-bears)
+- **FrankenBear visual details** — neck bolts, stitch marks, pulsing eyes (yellow→red when enraged) drawn on top of boss sprite
+- **Fireball hitbox increased** — fireBall hitbox now 90×90 (up from 80×80) for more reliable collision
+- **Beam damage display fix** — ShadowShamans and MiniFrankenBears now show correct beam damage numbers when hit

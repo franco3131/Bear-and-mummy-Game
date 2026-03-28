@@ -61,7 +61,7 @@ def _hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0)):
 _MONSTER_SIZES = {
     "mummy":          (100, 100),
     "bigMummy":       (200, 300),
-    "fireBall":       (80,  80),
+    "fireBall":       (90,  90),
     "witch":          (100, 100),
     "greenBlob":      (100, 100),
     "bigGreenBlob":   (300, 400),
@@ -277,20 +277,21 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            _n = int(_RATE * 0.7)
+            _n = int(_RATE * 0.8)
             _smp = []
             for _i in range(_n):
                 _t = _i / _RATE
-                _env = max(0.0, (1.0 - _t / 0.7) ** 1.2)
-                _initial_blast = max(0.0, 1.0 - _t * 18) * _rnd.gauss(0, 1) * 0.9
-                _boom = (_math.sin(2*_math.pi*45*_t) * 0.7
-                         + _math.sin(2*_math.pi*70*_t) * 0.5
-                         + _math.sin(2*_math.pi*35*_t + _math.sin(2*_math.pi*8*_t)*3) * 0.4)
-                _crackle = _rnd.gauss(0, 0.5) * max(0.0, 1.0 - _t * 5) * 0.5
-                _rumble_env = min(1.0, _t * 8) * max(0.0, 1.0 - (_t - 0.15) * 2.5)
-                _rumble = _math.sin(2*_math.pi*30*_t) * _rumble_env * 0.6
+                _env = max(0.0, (1.0 - _t / 0.8) ** 1.0)
+                _initial_blast = max(0.0, 1.0 - _t * 12) * _rnd.gauss(0, 1) * 1.0
+                _boom = (_math.sin(2*_math.pi*40*_t) * 0.9
+                         + _math.sin(2*_math.pi*65*_t) * 0.6
+                         + _math.sin(2*_math.pi*30*_t + _math.sin(2*_math.pi*6*_t)*4) * 0.5
+                         + _math.sin(2*_math.pi*100*_t) * 0.3)
+                _crackle = _rnd.gauss(0, 0.6) * max(0.0, 1.0 - _t * 4) * 0.6
+                _rumble_env = min(1.0, _t * 6) * max(0.0, 1.0 - (_t - 0.2) * 2.0)
+                _rumble = _math.sin(2*_math.pi*25*_t) * _rumble_env * 0.8
                 _s = (_initial_blast + _boom * _env + _crackle + _rumble)
-                _smp.append(max(-1.0, min(1.0, _s * 0.95)))
+                _smp.append(max(-1.0, min(1.0, _s)))
             self.explosion_sound = _make_snd(_smp)
             self.explosion_sound.set_volume(1.0)
             
@@ -690,7 +691,8 @@ class mainGame:
                                 _jump_right_moved = True
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
-                                               self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                               self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
                                 for _bp in self.beamProjectiles:
@@ -728,7 +730,8 @@ class mainGame:
                             else:
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
-                                               self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                               self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
                                 for _bp in self.beamProjectiles:
@@ -810,7 +813,8 @@ class mainGame:
                             _jump_left_moved = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -842,7 +846,8 @@ class mainGame:
                         else:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.spikes +
-                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -1044,7 +1049,8 @@ class mainGame:
                             _right_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for _bp in self.beamProjectiles:
@@ -1141,7 +1147,8 @@ class mainGame:
                             jumpTimer = 0
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for _bp in self.beamProjectiles:
@@ -1174,7 +1181,8 @@ class mainGame:
                             _left_scrolled = True
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
-                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -1265,7 +1273,8 @@ class mainGame:
                         else:
                             moveObjects = (self.mummys + self.fires + self.greenBlobs +
                                            self.witches + self.door + self.keys + self.spikes +
-                                           self.playerFires + self.shadowShamans + self.miniFrankenBears)
+                                           self.playerFires + self.shadowShamans + self.miniFrankenBears +
+                                               self.lasers)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -1795,7 +1804,8 @@ class mainGame:
 
             # ---- Damage numbers always rendered on top of blocks --------
             for _m in (self.mummys + self.witches +
-                       self.greenBlobs + self.frankenbear):
+                       self.greenBlobs + self.frankenbear +
+                       self.shadowShamans + self.miniFrankenBears):
                 if (getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0
                         and not _m.getStartDestructionAnimationStatus()):
                     _m.displayDamageOnMonster(_m.getDamageReceived())
@@ -1946,11 +1956,24 @@ class mainGame:
                 self._bigMummyDefeated = False
                 self._hardMode = False
                 self._hardMode80 = False
+                self._zone85_active = False
+                self._beam_popup_shown = False
                 self.beamProjectiles = []
 
-                for x in [700, 900, 1100, 1300, 1500]:
-                    mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
-                    self.mummys.append(mummy)
+                import random as _ngr
+                _enemy_x_positions = sorted(_ngr.sample(range(600, 1800, 100), 5))
+                for x in _enemy_x_positions:
+                    _roll = _ngr.random()
+                    if _roll < 0.35:
+                        self.mummys.append(Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
+                    elif _roll < 0.55:
+                        self.witches.append(Witch(x, _ngr.randint(100, 250), self.witch, self.witch2, self.screen, self.fireball_sound))
+                    elif _roll < 0.75:
+                        self.greenBlobs.append(GreenBlob(x, 300, 100, 100, self.screen, self.blob_jump_sound))
+                    elif _roll < 0.90:
+                        self.shadowShamans.append(ShadowShaman(x, _ngr.randint(100, 200), self.witch, self.witch2, self.screen))
+                    else:
+                        self.miniFrankenBears.append(MiniFrankenBear(x, _ngr.randint(100, 200), self.screen))
                 self._z1_mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
                 self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
                 self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
@@ -1966,6 +1989,7 @@ class mainGame:
                 self.blocks.extend([block1, block2, block3, block5, block6, block7, block8])
 
                 background = Background(self.screen)
+                background._ng_blue = True
                 self._bg_ref = background
                 backgroundScrollX = bear.getXPosition()
                 totalDistance = 60
@@ -2310,6 +2334,40 @@ class mainGame:
             mini1 = MiniFrankenBear(1200, 140, self.screen)
             mini2 = MiniFrankenBear(1700, 100, self.screen)
             self.miniFrankenBears.extend([mini1, mini2])
+            self.triggerFire = True
+
+        # ── Zone 8.5 @ 48 000 – "Shadow Ambush" ──────────────────────────────
+        elif backgroundScrollX > 48000 and not getattr(self, '_zone85_active', False):
+            self._zone85_active = True
+            self.mummys = []; self.witches = []; self.blocks = []
+            self.greenBlobs = []; self.fires = []; self.spikes = []
+            self.miniFrankenBears = []; self.lasers = []
+
+            block1 = Block(1000, 260, 110, 50, "checkered", self.screen)
+            block2 = Block(1350, 200, 110, 50, "checkered", self.screen)
+            block3 = Block(1700, 260, 110, 50, "checkered", self.screen)
+            self.blocks.extend([block1, block2, block3])
+
+            self.spikes.append(SpikeBlock(1200, 340, self.screen))
+            self.spikes.append(SpikeBlock(1500, 340, self.screen))
+
+            self.shadowShamans.extend([
+                ShadowShaman(1100, 180, self.witch, self.witch2, self.screen),
+                ShadowShaman(1600, 140, self.witch, self.witch2, self.screen),
+            ])
+            mini1 = MiniFrankenBear(1300, 120, self.screen)
+            mini2 = MiniFrankenBear(1800, 160, self.screen)
+            self.miniFrankenBears.extend([mini1, mini2])
+
+            self.mummys.extend([
+                Mummy(1050, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1400, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1750, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+            ])
+            self.greenBlobs.extend([
+                GreenBlob(1250, 300, 100, 100, self.screen, self.blob_jump_sound),
+                GreenBlob(1550, 300, 100, 100, self.screen, self.blob_jump_sound),
+            ])
             self.triggerFire = True
 
         # ── Zone 9 @ 49 500 – "Floating Gauntlet" mixed challenge ──────────────
@@ -2683,9 +2741,23 @@ class Background():
                 self._sway_frame = 1 - self._sway_frame   # toggle A↔B
             self.bgimage = self.bg_pairs[bg_idx][self._sway_frame]
 
-        self.surface.fill((0, 0, 0))
-        self.surface.blit(self.bgimage, (self.bgX1, self.bgY1))
-        self.surface.blit(self.bgimage, (self.bgX2 + 5, self.bgY2))
+        if getattr(self, '_ng_blue', False):
+            self.surface.fill((15, 25, 60))
+        else:
+            self.surface.fill((0, 0, 0))
+
+        _bg_draw = self.bgimage
+        if getattr(self, '_ng_blue', False) and not getattr(self, '_black_latched', False):
+            _bg_draw = self.bgimage.copy()
+            _blue_ov = pygame.Surface(_bg_draw.get_size(), pygame.SRCALPHA)
+            _blue_ov.fill((80, 100, 200))
+            _bg_draw.blit(_blue_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+            _bright = pygame.Surface(_bg_draw.get_size(), pygame.SRCALPHA)
+            _bright.fill((20, 30, 80))
+            _bg_draw.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+
+        self.surface.blit(_bg_draw, (self.bgX1, self.bgY1))
+        self.surface.blit(_bg_draw, (self.bgX2 + 5, self.bgY2))
         self.surface.blit(self.floor, (self.bgX1, self.bgY1 + 400))
         self.surface.blit(self.floor, (self.bgX2 + 5, self.bgY2 + 400))
         self.surface.blit(self.water, (self.bgX1, self.bgY1 + 600))
@@ -4126,6 +4198,13 @@ class ShadowShaman():
     def setDamageReceived(self, damage):
         self.damageReceived = damage
 
+    def getDamageReceived(self):
+        return self.damageReceived
+
+    def displayDamageOnMonster(self, damage):
+        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60)
+
     def setStunned(self, value):
         self.stunned = value
 
@@ -4186,47 +4265,54 @@ class Waterfall():
 # ---------------------------------------------------------------------------
 class Laser():
     def __init__(self, start_x, end_x, y, screen):
-        self.start_x = start_x
-        self.end_x = end_x
+        self.x = start_x
         self.y = y
         self.screen = screen
+        self.vx = -6 if end_x < start_x else 6
         self.lifetime = 0
-        self.max_lifetime = 20
-        self.width = abs(end_x - start_x)
-        
+        self.max_lifetime = 120
+        self.width = 40
+        self.height = 12
+
     def draw(self):
         if self.lifetime < self.max_lifetime:
             self.lifetime += 1
-            alpha = int(255 * (1 - self.lifetime / self.max_lifetime))
-            length = self.width
-            num_colors = 7
-            segment_width = max(1, length // num_colors)
-            colors = [
-                (255, 0, 0),      # Red
-                (255, 127, 0),    # Orange
-                (255, 255, 0),    # Yellow
-                (0, 255, 0),      # Green
-                (0, 0, 255),      # Blue
-                (75, 0, 130),     # Indigo
-                (148, 0, 211)     # Violet
-            ]
-            for i in range(num_colors):
-                x_pos = self.start_x + i * segment_width
-                color = colors[i % len(colors)]
-                pygame.draw.line(self.screen, color, (x_pos, self.y), 
-                               (x_pos + segment_width, self.y), 8)
+            self.x += self.vx
+            _alpha = max(80, int(255 * (1 - self.lifetime / self.max_lifetime)))
+
+            _glow = pygame.Surface((self.width + 16, self.height + 16), pygame.SRCALPHA)
+            pygame.draw.ellipse(_glow, (100, 255, 100, min(120, _alpha)), (0, 0, self.width + 16, self.height + 16))
+            self.screen.blit(_glow, (self.x - 8, self.y - 8))
+
+            _core = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            pygame.draw.ellipse(_core, (180, 255, 80, _alpha), (0, 0, self.width, self.height))
+            pygame.draw.ellipse(_core, (255, 255, 200, _alpha), (8, 2, self.width - 16, self.height - 4))
+            self.screen.blit(_core, (self.x, self.y))
+
+            _trail = pygame.Surface((20, 6), pygame.SRCALPHA)
+            _trail.fill((100, 200, 50, max(30, _alpha // 3)))
+            self.screen.blit(_trail, (self.x - self.vx * 2, self.y + 3))
+
+            if self.x < -60 or self.x > 960:
+                return False
             return True
         return False
-    
+
     def getYPosition(self):
         return self.y
-    
+
     def getStartX(self):
-        return min(self.start_x, self.end_x)
-    
+        return self.x
+
     def getEndX(self):
-        return max(self.start_x, self.end_x)
-    
+        return self.x + self.width
+
+    def setXPosition(self, x):
+        self.x = x
+
+    def getXPosition(self):
+        return self.x
+
     def isActive(self):
         return self.lifetime < self.max_lifetime
 
@@ -4371,10 +4457,17 @@ class MiniFrankenBear():
     
     def setDamageReceived(self, damage):
         self.damageReceived = damage
-    
+
+    def getDamageReceived(self):
+        return self.damageReceived
+
+    def displayDamageOnMonster(self, damage):
+        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.x + 40, self.y - 40)
+
     def setStunned(self, value):
         self.stunned = value
-    
+
     def setStartDestructionAnimation(self, v):
         self.startDestructionAnimation = v
     
@@ -4489,6 +4582,27 @@ class FrankenBear():
     def displayDamageOnMonster(self, damage):
         _render_damage_text(self.screen, _FONT_BOSS_DAMAGE, damage, 450, 130)
 
+    def _draw_boss_details(self):
+        _bx, _by = 300, 40
+        pygame.draw.circle(self.screen, (160, 160, 160), (_bx + 70, _by + 100), 14)
+        pygame.draw.circle(self.screen, (160, 160, 160), (_bx + 230, _by + 100), 14)
+        pygame.draw.rect(self.screen, (140, 140, 140), (_bx + 64, _by + 90, 12, 20))
+        pygame.draw.rect(self.screen, (140, 140, 140), (_bx + 224, _by + 90, 12, 20))
+        pygame.draw.line(self.screen, (50, 50, 50), (_bx + 110, _by + 60), (_bx + 110, _by + 170), 3)
+        pygame.draw.line(self.screen, (50, 50, 50), (_bx + 190, _by + 60), (_bx + 190, _by + 170), 3)
+        pygame.draw.line(self.screen, (50, 50, 50), (_bx + 100, _by + 110), (_bx + 200, _by + 110), 3)
+        for _sx in [120, 140, 160, 180]:
+            pygame.draw.line(self.screen, (40, 40, 40), (_bx + _sx, _by + 175), (_bx + _sx + 8, _by + 195), 2)
+            pygame.draw.line(self.screen, (40, 40, 40), (_bx + _sx + 8, _by + 195), (_bx + _sx + 16, _by + 175), 2)
+        _pulse = abs((pygame.time.get_ticks() // 100) % 20 - 10)
+        _eye_glow = min(255, 180 + _pulse * 7)
+        if self.health <= 3:
+            _eye_col = (_eye_glow, 50, 50)
+        else:
+            _eye_col = (_eye_glow, _eye_glow, 50)
+        pygame.draw.circle(self.screen, _eye_col, (_bx + 130, _by + 140), 6)
+        pygame.draw.circle(self.screen, _eye_col, (_bx + 170, _by + 140), 6)
+
     def drawMonster(self):
         self.blinkTimer += 1
         self.attackTimer += 1
@@ -4512,7 +4626,6 @@ class FrankenBear():
                 self.blinked = False
                 self.blinkTimer = 0
             if self.attacked:
-                # Enrage: attack faster when health is low
                 if self.health <= 3:
                     self.randomAttack = random.randint(25, 50)
                 else:
@@ -4528,6 +4641,8 @@ class FrankenBear():
                     self.setThrowFireBallRight(True)
                 self.attacked = False
             self.screen.blit(self.boss1, (300, 40))
+
+        self._draw_boss_details()
 
         if self.stunned > 0:
             self.stunned += 1
