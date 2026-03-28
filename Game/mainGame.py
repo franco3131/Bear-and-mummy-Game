@@ -61,7 +61,7 @@ def _hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0)):
 _MONSTER_SIZES = {
     "mummy":        (100, 100),
     "bigMummy":     (200, 300),
-    "fireBall":     (60,  60),
+    "fireBall":     (80,  80),
     "witch":        (100, 100),
     "greenBlob":    (100, 100),
     "bigGreenBlob": (300, 400),
@@ -271,22 +271,26 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            # ── Explosion: heavy low-frequency boom ────────────────────────
-            _n = int(_RATE * 0.70)
+            # ── Explosion: dramatic multi-phase boom ─────────────────────
+            _n = int(_RATE * 1.20)
             _smp = []
             for _i in range(_n):
                 _t = _i / _RATE
-                _env = max(0.0, (1.0 - _t/0.70)**2.2)
-                _initial_blast = max(0.0, 1.0 - _t * 20) * 0.4
-                _deep_boom = (_math.sin(2*_math.pi*25*_t) * 0.6
-                              + _math.sin(2*_math.pi*40*_t) * 0.4
-                              + _math.sin(2*_math.pi*55*_t) * 0.25)
-                _sub_bass = _math.sin(2*_math.pi*15*_t) * 0.35
-                _rumble = _math.sin(2*_math.pi*35*_t + _math.sin(2*_math.pi*8*_t)*2) * 0.2
-                _s = (_deep_boom + _sub_bass + _rumble + _initial_blast) * _env
-                _smp.append(max(-1.0, min(1.0, _s * 0.85)))
+                _blast_env = max(0.0, 1.0 - _t * 12) * 0.6
+                _boom_env = max(0.0, (1.0 - _t / 1.20) ** 1.8)
+                _crack = _rnd.gauss(0, 0.4) * max(0.0, 1.0 - _t * 8) * 0.5
+                _deep_boom = (_math.sin(2*_math.pi*22*_t) * 0.7
+                              + _math.sin(2*_math.pi*38*_t) * 0.5
+                              + _math.sin(2*_math.pi*55*_t) * 0.3
+                              + _math.sin(2*_math.pi*70*_t) * 0.15)
+                _sub_bass = _math.sin(2*_math.pi*12*_t) * 0.4
+                _rumble = _math.sin(2*_math.pi*30*_t + _math.sin(2*_math.pi*6*_t)*3) * 0.25
+                _debris = _rnd.gauss(0, 0.12) * max(0.0, min(1.0, (_t - 0.05)*8)) * max(0.0, 1.0 - _t/0.8) * 0.3
+                _swell = _math.sin(2*_math.pi*45*_t) * 0.2 * max(0.0, min(1.0, (_t-0.1)*5)) * max(0.0, 1.0 - (_t-0.1)/0.6)
+                _s = (_crack + _deep_boom + _sub_bass + _rumble + _debris + _swell) * _boom_env + _blast_env * _crack * 2
+                _smp.append(max(-1.0, min(1.0, _s * 0.80)))
             self.explosion_sound = _make_snd(_smp)
-            self.explosion_sound.set_volume(0.80)
+            self.explosion_sound.set_volume(0.85)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
@@ -496,6 +500,7 @@ class mainGame:
         attackingLeftAnimtationCounter = 0
         hurtTimer = 0
         background = Background(self.screen)
+        self._bg_ref = background
         for x in [700, 900, 1100, 1300, 1500]:
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
@@ -1941,6 +1946,7 @@ class mainGame:
                 self.blocks.extend([block1, block2, block3, block5, block6, block7, block8])
 
                 background = Background(self.screen)
+                self._bg_ref = background
                 backgroundScrollX = bear.getXPosition()
                 totalDistance = 60
                 bear.setLeftDirection(False)
@@ -2145,6 +2151,8 @@ class mainGame:
                 self._water_playing = False
             self.activeMonsters[4] = True
             self._hardMode = True
+            if hasattr(self, '_bg_ref') and self._bg_ref:
+                self._bg_ref.setHardModeFloor()
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.waterfalls = []
 
@@ -2618,6 +2626,16 @@ class Background():
 
     def setXPosition(self, totalX):
         self.totalX = totalX
+
+    def setHardModeFloor(self):
+        _tinted = self.floor.copy()
+        _ov = pygame.Surface(_tinted.get_size(), pygame.SRCALPHA)
+        _ov.fill((255, 120, 120))
+        _tinted.blit(_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+        _bright = pygame.Surface(_tinted.get_size(), pygame.SRCALPHA)
+        _bright.fill((80, 0, 0))
+        _tinted.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+        self.floor = _tinted
 
     def render(self, total_distance=0):
         # Choose theme and sway frame.
