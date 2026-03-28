@@ -284,9 +284,9 @@ class mainGame:
                 _env = max(0.0, (1.0 - _t / 0.15) ** 2.2)
                 _snap = _rnd.gauss(0, 1) * max(0.0, 1.0 - _t * 25) * 0.8
                 _thump = _math.sin(2*_math.pi*140*_t) * 0.6 + _math.sin(2*_math.pi*90*_t) * 0.4
-                _smp.append(max(-1.0, min(1.0, (_snap + _thump) * _env * 0.85)))
+                _smp.append(max(-1.0, min(1.0, (_snap + _thump) * _env)))
             self.explosion_sound = _make_snd(_smp)
-            self.explosion_sound.set_volume(0.90)
+            self.explosion_sound.set_volume(1.0)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
@@ -1809,14 +1809,19 @@ class mainGame:
             if _bc_ratio >= 1.0:
                 _rdy = _FONT_HUD_VAL.render("C:READY", True, (255, 255, 100))
                 self.screen.blit(_rdy, (_bc_x + 52, _bc_y + 14))
-                _flash = (pygame.time.get_ticks() // 400) % 2 == 0
-                if _flash:
-                    _popup_txt = _FONT_DAMAGE.render("PRESS C FOR BEAM!", True, (100, 200, 255))
-                    _popup_bg = pygame.Surface((_popup_txt.get_width() + 16, _popup_txt.get_height() + 8), pygame.SRCALPHA)
-                    _popup_bg.fill((0, 0, 40, 180))
-                    _px = 450 - _popup_txt.get_width() // 2
-                    self.screen.blit(_popup_bg, (_px - 8, 80))
-                    self.screen.blit(_popup_txt, (_px, 84))
+                if not getattr(self, '_beam_popup_shown', False):
+                    self._beam_popup_shown = True
+                    self._beam_popup_timer = 180
+                if getattr(self, '_beam_popup_timer', 0) > 0:
+                    self._beam_popup_timer -= 1
+                    _flash = (pygame.time.get_ticks() // 400) % 2 == 0
+                    if _flash:
+                        _popup_txt = _FONT_DAMAGE.render("PRESS C FOR BEAM!", True, (100, 200, 255))
+                        _popup_bg = pygame.Surface((_popup_txt.get_width() + 16, _popup_txt.get_height() + 8), pygame.SRCALPHA)
+                        _popup_bg.fill((0, 0, 40, 180))
+                        _px = 450 - _popup_txt.get_width() // 2
+                        self.screen.blit(_popup_bg, (_px - 8, 80))
+                        self.screen.blit(_popup_txt, (_px, 84))
             if self.newGamePlusLevel > 0:
                 _ng_txt = _FONT_DAMAGE.render(
                     "NG+" + str(self.newGamePlusLevel), True, (255, 215, 0))
