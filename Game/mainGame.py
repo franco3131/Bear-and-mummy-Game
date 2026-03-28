@@ -277,23 +277,8 @@ class mainGame:
             self.hit_sound = _make_snd(_smp)
             self.hit_sound.set_volume(0.75)
 
-            # ── Explosion: punchy mid-frequency boom ──────────────────────
-            _n = int(_RATE * 0.55)
-            _smp = []
-            for _i in range(_n):
-                _t = _i / _RATE
-                _env = max(0.0, (1.0 - _t / 0.55) ** 1.6)
-                _blast = max(0.0, 1.0 - _t * 15) * 0.7
-                _boom = (_math.sin(2*_math.pi*80*_t) * 0.6
-                         + _math.sin(2*_math.pi*120*_t) * 0.45
-                         + _math.sin(2*_math.pi*180*_t) * 0.25
-                         + _math.sin(2*_math.pi*50*_t) * 0.5)
-                _crack = _rnd.gauss(0, 0.35) * max(0.0, 1.0 - _t * 10) * 0.4
-                _rumble = _math.sin(2*_math.pi*60*_t + _math.sin(2*_math.pi*12*_t)*2) * 0.3
-                _s = (_boom + _crack + _rumble) * _env + _blast * (_crack + 0.3)
-                _smp.append(max(-1.0, min(1.0, _s * 0.95)))
-            self.explosion_sound = _make_snd(_smp)
-            self.explosion_sound.set_volume(0.90)
+            self.explosion_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
+            self.explosion_sound.set_volume(0.85)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
