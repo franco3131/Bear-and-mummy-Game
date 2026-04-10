@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "pygame-helper": {
+      "type": "stdio",
+      "command": "/Users/davidfranco/Downloads/Bear-and-mummy-Game-main/.venv/bin/python",
+      "args": ["/Users/davidfranco/Downloads/Bear-and-mummy-Game-main/mcp_server.py"]
+    }
+  }
+}
