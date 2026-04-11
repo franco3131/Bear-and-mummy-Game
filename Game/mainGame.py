@@ -106,9 +106,12 @@ _MONSTER_SIZES = {
     "greenBlob":      (100, 100),
     "bigGreenBlob":   (300, 400),
     "spikes":         (600, 60),
-    "frankenbears":   (300, 300),
+    "frankenbears":   (400, 350),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
+    "snake":          (80,  60),
+    "monkeyMummy":    (70,  80),
+    "lion":           (90, 70),
 }
 
 BEAR_W = 80
@@ -530,6 +533,7 @@ class mainGame:
         self.lasers = []
         self.waterfalls = []
         self.snakes = []
+        self.lions = []
         self.coins = []
         self.destroyable_blocks = []
         self.active_weapon = None
@@ -605,6 +609,7 @@ class mainGame:
         self._silver_applied = False
         self._bigMummyDefeated = False
         self._hardMode = False
+        self._hardMode75 = False
         self.beamProjectiles = []
         self.checkpoint_file = os.path.join('Game', 'checkpoint.json')
         self._checkpoint_saved = False
@@ -661,7 +666,7 @@ class mainGame:
                 self.mummys, self.witches, self.greenBlobs, self.door,
                 self.keys, self.spikes, getattr(self, 'bossFires', []),
                 self.playerFires, self.shadowShamans, self.miniFrankenBears,
-                self.lasers, self.snakes, self.monkey_mummies, self.coins,
+                self.lasers, self.snakes, self.monkey_mummies, self.lions, self.coins,
                 self.destroyable_blocks, self.fires
             ]
             for group in all_movable:
@@ -993,7 +998,8 @@ class mainGame:
             _base_step = 12 if bear.getLevel() >= 14 else 8
             _enemies_on_screen = (self.mummys + self.witches +
                                   self.greenBlobs + self.frankenbear +
-                                  self.shadowShamans + self.miniFrankenBears)
+                                  self.shadowShamans + self.miniFrankenBears +
+                                  self.snakes + self.monkey_mummies + self.lions)
             _has_alive_enemy = any(
                 (hasattr(e, 'getHealth') and e.getHealth() > 0 and
                  -150 <= e.getXPosition() <= 950)
@@ -1119,7 +1125,7 @@ class mainGame:
                     
                     # Damage enemies in radius
                     enemies = (self.mummys + self.witches + self.greenBlobs +
-                              self.shadowShamans + self.miniFrankenBears + self.snakes)
+                              self.shadowShamans + self.miniFrankenBears + self.snakes + self.lions)
                     for enemy in enemies:
                         if hasattr(enemy, 'getHealth') and enemy.getHealth() > 0:
                             ex = enemy.getXPosition() + 40
@@ -1168,7 +1174,7 @@ class mainGame:
                         # Apply damage for each bolt
                         _lene = (self.mummys + self.witches + self.greenBlobs +
                                  self.shadowShamans + self.miniFrankenBears +
-                                 self.snakes + self.monkey_mummies)
+                                 self.snakes + self.monkey_mummies + self.lions)
                         for _bi, _off in enumerate(_offsets):
                             _bx = int(_lx + _off)
                             _ldmg = int(bear.getDamageAttack() * 2.5)
@@ -1188,7 +1194,7 @@ class mainGame:
                         _lrect = pygame.Rect(self.lightning_x - 45, 0, 90, 450)
                         _lene = (self.mummys + self.witches + self.greenBlobs +
                                  self.shadowShamans + self.miniFrankenBears +
-                                 self.snakes + self.monkey_mummies)
+                                 self.snakes + self.monkey_mummies + self.lions)
                         for _le in _lene:
                             if hasattr(_le, 'getHealth') and _le.getHealth() > 0:
                                 _er = pygame.Rect(_le.getXPosition(), _le.getYPosition(), 100, 100)
@@ -1241,7 +1247,7 @@ class mainGame:
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
                                                self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
                                 for coin in self.coins:
@@ -1284,7 +1290,7 @@ class mainGame:
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
                                                self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
                                 for coin in self.coins:
@@ -1319,7 +1325,7 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
+                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions)
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                             continue
@@ -1371,7 +1377,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for coin in self.coins:
@@ -1408,7 +1414,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -1439,7 +1445,7 @@ class mainGame:
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
-                                            self.frankenbear + self.snakes + self.monkey_mummies)
+                                            self.frankenbear + self.snakes + self.monkey_mummies + self.lions)
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                                 continue
@@ -1497,7 +1503,7 @@ class mainGame:
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions
                     for monster in monsters:
                         if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
@@ -1550,7 +1556,7 @@ class mainGame:
                     bear.setLeftDirection(True)
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions
                     for monster in monsters:
                         if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
@@ -1615,7 +1621,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for coin in self.coins:
@@ -1667,7 +1673,7 @@ class mainGame:
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
-                                            self.frankenbear + self.snakes + self.monkey_mummies)
+                                            self.frankenbear + self.snakes + self.monkey_mummies + self.lions)
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                                 continue
@@ -1717,7 +1723,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
                             for coin in self.coins:
@@ -1755,7 +1761,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for coin in self.coins:
@@ -1802,7 +1808,7 @@ class mainGame:
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
-                                            self.frankenbear + self.snakes + self.monkey_mummies)
+                                            self.frankenbear + self.snakes + self.monkey_mummies + self.lions)
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                                 continue
@@ -1851,7 +1857,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.greenBlobs +
                                            self.witches + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers + self.snakes + self.monkey_mummies)
+                                               self.lasers + self.snakes + self.monkey_mummies + self.lions)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -1873,7 +1879,7 @@ class mainGame:
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions
                     for monster in monsters:
                         if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
@@ -1918,7 +1924,7 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
+                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions)
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                             continue
@@ -2026,7 +2032,7 @@ class mainGame:
             for mm in self.monkey_mummies:
                 mm.setBlocks(self.blocks)
 
-            monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
+            monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions
             to_remove = []
             for monster in monsters:
                 if monster.getHealth() > 0:
@@ -2102,14 +2108,20 @@ class mainGame:
                     for _ci in range(random.randint(1, 3)):
                         self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
                                                monster.getYPosition() + 30, self.screen))
-                    
-                    # Check if all monkeys are defeated - trigger New Game+
-                    if len(self.monkey_mummies) == 0 and getattr(self, '_monkey_level_active', False):
+                elif monster in self.lions:
+                    self.lions.remove(monster)
+                    for _ci in range(random.randint(2, 4)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
+
+                if getattr(self, '_monkey_level_active', False):
+                    _jungle_enemies_left = len(self.monkey_mummies) + len(self.snakes) + len(self.lions)
+                    if _jungle_enemies_left == 0:
                         self.newGamePlusLevel += 1
                         bear.setArrayText([
-                            'MONKEY TEMPLE CONQUERED!', '',
+                            'JUNGLE CONQUERED!', '',
                             'NEW GAME + ' + str(self.newGamePlusLevel) + ' UNLOCKED!',
-                            '', 'Returning to the first level...', '',
+                            '', 'Returning to the crypt...', '',
                             'Press "s" to continue'])
                         bear.setEndText(False)
                         self._monkey_level_active = False
@@ -2194,11 +2206,11 @@ class mainGame:
                         boss_to_remove.append(monster)
                         bear.setArrayText([
                             'FINAL BOSS DEFEATED!', '',
-                            'NEW GAME + UNLOCKED!', '',
+                            'THE JUNGLE AWAITS...', '',
                             'Press "s" to continue'])
                         bear.setEndText(False)
                         self.isFinalBossDestroyed = True
-                        self._triggerNewGamePlus = True
+                        self._triggerJungleTransition = True
             for monster in boss_to_remove:
                 if monster in self.frankenbear:
                     self.frankenbear.remove(monster)
@@ -2271,7 +2283,7 @@ class mainGame:
                     continue
                 pf_rect = pygame.Rect(pf_x, pf_y, 60, 60)
                 monsters = (self.mummys + self.witches +
-                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
+                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions)
                 for monster in monsters:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
@@ -2325,7 +2337,7 @@ class mainGame:
                     continue
                 bp_rect = pygame.Rect(bp["x"], _by, _bw, _bh)
                 monsters = (self.mummys + self.witches +
-                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
+                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions)
                 for monster in monsters:
                     _mid = id(monster)
                     if _mid in bp["hit_ids"]:
@@ -2352,6 +2364,17 @@ class mainGame:
             for bp in bp_to_remove:
                 if bp in self.beamProjectiles:
                     self.beamProjectiles.remove(bp)
+
+            # ---- Lion drawing and contact detection ----------------------------
+            for lion in self.lions:
+                if lion.getHealth() > 0:
+                    lion_rect = pygame.Rect(lion.getXPosition(), lion.getYPosition(), 90, 70)
+                    bear_rect_l = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
+                    if lion_rect.colliderect(bear_rect_l) and hurtTimer > 25:
+                        _lion_dmg = lion.damageAttack
+                        bear.displayDamageOnBear(_lion_dmg, "lion")
+                        bear.setHp(bear.getHp() - _lion_dmg)
+                        hurtTimer = 0
 
             # ---- Snake poison contact detection ----------------------------
             for snake in self.snakes:
@@ -2620,7 +2643,7 @@ class mainGame:
             # ---- Damage numbers always rendered on top of blocks --------
             for _m in (self.mummys + self.witches +
                        self.greenBlobs + self.frankenbear +
-                       self.shadowShamans + self.miniFrankenBears):
+                       self.shadowShamans + self.miniFrankenBears + self.lions):
                 if (getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0
                         and not _m.getStartDestructionAnimationStatus()):
                     _m.displayDamageOnMonster(_m.getDamageReceived())
@@ -2768,7 +2791,7 @@ class mainGame:
                 self.shadowShamans = []; self.blocks = []; self.frankenbear = []
                 self.miniFrankenBears = []; self.lasers = []; self.waterfalls = []
                 self.door = []; self.keys = []; self.spikes = []
-                self.snakes = []; self.monkey_mummies = []; self.coins = []
+                self.snakes = []; self.monkey_mummies = []; self.lions = []; self.coins = []
                 self.destroyable_blocks = []; self.beamProjectiles = []
 
                 self.showBoss = True
@@ -2816,6 +2839,7 @@ class mainGame:
                 self._fireball_tutorial_shown = True
                 self._bigMummyDefeated = (transition_mode == 'jungle')
                 self._hardMode = False
+                self._hardMode75 = False
                 self._hardMode80 = False
                 self._zone85_active = False
                 self._beam_popup_shown = False
@@ -2834,46 +2858,49 @@ class mainGame:
                 attackingAnimationCounter = 0; attackingLeftAnimtationCounter = 0
                 self._current_music = None
 
-                # Both jungle AND ng_plus transitions go to the jungle level
-                self._jungle_unlocked = True
-                _ng_hp_mult = 1.0 + 10.0 * self.newGamePlusLevel
-                _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
-                _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
-                _ng_spd_mult = 1.0 + 0.2 * self.newGamePlusLevel
-                self._z1_mummy = Mummy(1000, 20, 260, 360, self.mummy1, self.mummy2, self.screen)
-                self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_mult)
-                self._z1_mummy.damageAttack = int(self._z1_mummy.damageAttack * _ng_dmg_mult)
-                self._z1_mummy.exp = int(self._z1_mummy.exp * _ng_exp_mult)
-                self._z1_mummy.rand = max(1, round(self._z1_mummy.rand * _ng_spd_mult))
-                self._z1_mummy._ng_boosted = True
-                self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
-                self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
-                self._z1_door = Door(self.screen, 1650)
-                if transition_mode != 'jungle':
-                    background._ng_blue = True
-                # Restart from the very beginning with the same layout
-                self._jungle_unlocked = False
                 self._bigMummyDefeated = False
                 self._boss_door_passed = False
                 self._post_boss_platform_popup_shown = False
-                self._fireball_tutorial_shown = False
+                self._fireball_tutorial_shown = True
                 self._poison_floats = []
-                # Recreate initial blocks (identical to runGame)
-                _b1 = Block(230,  340, 100, 60,  "red",     self.screen)
-                _b2 = Block(500,  190, 100, 60,  "monster", self.screen)
-                _b3 = Block(780,  190, 100, 60,  "red",     self.screen)
-                _b5 = Block(1010, 190, 100, 60,  "red",     self.screen)
-                _b7 = Block(1240, 190, 100, 60,  "monster", self.screen)
-                _b6 = Block(1470, 190, 100, 60,  "monster", self.screen)
-                _b8 = Block(1600, 100, 250, 300, "monster", self.screen)
-                self.blocks.extend([_b1, _b2, _b3, _b5, _b6, _b7, _b8])
-                # Recreate initial mummies scaled for NG+
-                for _mx in [700, 900, 1100, 1300, 1500]:
-                    _m = Mummy(_mx, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
-                    _m.health = int(_m.health * _ng_hp_mult)
-                    _m.damageAttack = int(_m.damageAttack * _ng_dmg_mult)
-                    _m.rand = max(1, round(_m.rand * _ng_spd_mult))
-                    self.mummys.append(_m)
+
+                if transition_mode == 'jungle':
+                    self._jungle_unlocked = True
+                    background._jungle_mode = True
+                    self._switch_music("post_boss_normal")
+                    self.blocks = []
+                    self.mummys = []
+                else:
+                    self._jungle_unlocked = False
+                    background._ng_blue = True
+                    _ng_hp_mult = 1.0 + 10.0 * self.newGamePlusLevel
+                    _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
+                    _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
+                    _ng_spd_mult = 1.0 + 0.2 * self.newGamePlusLevel
+                    self._z1_mummy = Mummy(1000, 20, 260, 360, self.mummy1, self.mummy2, self.screen)
+                    self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_mult)
+                    self._z1_mummy.damageAttack = int(self._z1_mummy.damageAttack * _ng_dmg_mult)
+                    self._z1_mummy.exp = int(self._z1_mummy.exp * _ng_exp_mult)
+                    self._z1_mummy.rand = max(1, round(self._z1_mummy.rand * _ng_spd_mult))
+                    self._z1_mummy._ng_boosted = True
+                    self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
+                    self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
+                    self._z1_door = Door(self.screen, 1650)
+                    _b1 = Block(230,  340, 100, 60,  "red",     self.screen)
+                    _b2 = Block(500,  190, 100, 60,  "monster", self.screen)
+                    _b3 = Block(780,  190, 100, 60,  "red",     self.screen)
+                    _b5 = Block(1010, 190, 100, 60,  "red",     self.screen)
+                    _b7 = Block(1240, 190, 100, 60,  "monster", self.screen)
+                    _b6 = Block(1470, 190, 100, 60,  "monster", self.screen)
+                    _b8 = Block(1600, 100, 250, 300, "monster", self.screen)
+                    self.blocks.extend([_b1, _b2, _b3, _b5, _b6, _b7, _b8])
+                    for _mx in [700, 900, 1100, 1300, 1500]:
+                        _m = Mummy(_mx, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
+                        _m.health = int(_m.health * _ng_hp_mult)
+                        _m.damageAttack = int(_m.damageAttack * _ng_dmg_mult)
+                        _m.rand = max(1, round(_m.rand * _ng_spd_mult))
+                        self.mummys.append(_m)
+                    self._switch_music("normal")
                 bear.setXPosition(150)
                 bear.setYPosition(300)
                 backgroundScrollX = 60
@@ -2989,36 +3016,37 @@ class mainGame:
             self.doorPopupTriggered = False
 
         # ── Zone TEST @ 6 500 – "Monkey Temple" – Optional Challenge Level ──
-        # NOTE: Disabled from the automatic zone chain; reserved for a future
-        # explicit trigger so it does not override Zone 1.2's witch gauntlet.
-        if (backgroundScrollX > 1_000_000 and not getattr(self, '_monkey_level_active', False)
-            and self._jungle_unlocked):
+        if (backgroundScrollX > 5000 and not getattr(self, '_monkey_level_active', False)
+            and self._jungle_unlocked and not self.activeMonsters[3]):
+            self.activeMonsters[3] = True
             self._monkey_level_active = True
-            # Keep post-boss music playing; only override to normal if not already post-boss
-            if getattr(self, '_current_music', None) not in ('post_boss_normal', 'enchanted_tomb'):
-                self._switch_music("normal")
+            self._switch_music("post_boss_normal")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
-            self.monkey_mummies = []
-            
-            # Create random platforms for variety
+            self.monkey_mummies = []; self.snakes = []; self.lions = []
+
             import random as _rnd
-            platform_y_values = [100, 150, 200, 250, 300, 350]
-            
-            # Generate 8-10 random platforms
-            for i in range(_rnd.randint(8, 10)):
-                plat_x = 1050 + (i * 150)
-                plat_y = _rnd.choice(platform_y_values)
-                plat_width = _rnd.randint(60, 120)
-                plat_type = _rnd.choice(["checkered", "striped", "greyRock", "monster"])
-                platform = Block(plat_x, plat_y, plat_width, 50, plat_type, self.screen)
-                self.blocks.append(platform)
-            
-            # Add 3 MonkeyMummies as the challenge
-            monkey1 = MonkeyMummy(1150, 250, 70, 80, self.mummy1, self.mummy2, self.screen)
-            monkey2 = MonkeyMummy(1450, 180, 70, 80, self.mummy1, self.mummy2, self.screen)
-            monkey3 = MonkeyMummy(1750, 220, 70, 80, self.mummy1, self.mummy2, self.screen)
-            self.monkey_mummies.extend([monkey1, monkey2, monkey3])
+            for i in range(8):
+                plat_x = 1050 + (i * 200)
+                plat_y = _rnd.choice([120, 180, 240, 300, 340])
+                plat_width = _rnd.randint(80, 140)
+                plat_type = _rnd.choice(["striped", "greyRock", "checkered"])
+                self.blocks.append(Block(plat_x, plat_y, plat_width, 50, plat_type, self.screen))
+
+            self.monkey_mummies.extend([
+                MonkeyMummy(1150, 250, 70, 80, self.mummy1, self.mummy2, self.screen),
+                MonkeyMummy(1500, 180, 70, 80, self.mummy1, self.mummy2, self.screen),
+                MonkeyMummy(1850, 220, 70, 80, self.mummy1, self.mummy2, self.screen),
+            ])
+            self.snakes.extend([
+                Snake(1200, 340, self.screen),
+                Snake(1600, 340, self.screen),
+                Snake(2000, 340, self.screen),
+            ])
+            self.lions.extend([
+                Lion(1350, 330, self.screen),
+                Lion(1750, 330, self.screen),
+            ])
 
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
         elif backgroundScrollX > 8000 and not self.activeMonsters[14]:
@@ -3265,9 +3293,10 @@ class mainGame:
             mini2 = MiniFrankenBear(1900, 200, self.screen)
             self.miniFrankenBears.extend([mini1, mini2])
 
-        # ── Zone 7 @ 45 000 – 3 witches, small platforms (no ceiling) ────────
+        # ── Zone 7 @ 45 000 – 75% mark, enemies 100% harder ────────
         elif backgroundScrollX > 45000 and not self.activeMonsters[7]:
             self.activeMonsters[7] = True
+            self._hardMode75 = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
@@ -3391,7 +3420,7 @@ class mainGame:
                 'MiniFrankenBear': [],
             }
             for _m in (self.mummys + self.witches + self.greenBlobs +
-                       self.shadowShamans + self.miniFrankenBears):
+                       self.shadowShamans + self.miniFrankenBears + self.lions):
                 if not getattr(_m, '_hm_boosted', False):
                     _m._hm_boosted = True
                     _m.health = int(_m.health * 1.7)
@@ -3415,7 +3444,7 @@ class mainGame:
             _ng_exp_m = 1.0 + 1.0 * self.newGamePlusLevel
             _ng_spd_m = 1.0 + 0.2 * self.newGamePlusLevel
             for _m in (self.mummys + self.witches + self.greenBlobs +
-                       self.shadowShamans + self.miniFrankenBears):
+                       self.shadowShamans + self.miniFrankenBears + self.lions):
                 if not getattr(_m, '_ng_boosted', False):
                     _m._ng_boosted = True
                     _m.health = int(_m.health * _ng_hp_m)
@@ -3426,9 +3455,17 @@ class mainGame:
                     if hasattr(_m, 'rand'):
                         _m.rand = max(1, round(_m.rand * _ng_spd_m))
 
+        if getattr(self, '_hardMode75', False):
+            for _m in (self.mummys + self.witches + self.greenBlobs +
+                       self.shadowShamans + self.miniFrankenBears + self.lions):
+                if not getattr(_m, '_hm75_boosted', False):
+                    _m._hm75_boosted = True
+                    _m.health = int(_m.health * 2.0)
+                    _m.damageAttack = int(_m.damageAttack * 2.0)
+
         if getattr(self, '_hardMode80', False):
             for _m in (self.mummys + self.witches + self.greenBlobs +
-                       self.shadowShamans + self.miniFrankenBears):
+                       self.shadowShamans + self.miniFrankenBears + self.lions):
                 if not getattr(_m, '_hm80_boosted', False):
                     _m._hm80_boosted = True
                     _m.health = int(_m.health * 1.2)
@@ -3684,6 +3721,13 @@ class Background():
         self._sway_frame  = 0
         self._sway_period = 10
 
+        try:
+            _jungle = pygame.image.load('Game/Images/jungle_bg.png')
+            self.jungle_bg = pygame.transform.scale(_jungle, (900, 700))
+        except (FileNotFoundError, Exception):
+            self.jungle_bg = self.bg_pairs[0][0]
+        self._jungle_mode = False
+
         self.bgBlack  = pygame.image.load('Game/Images/black.png')
         self.bgBlack  = pygame.transform.scale(self.bgBlack, (900, 700))
         self.floor = pygame.image.load('Game/Images/wood.png')
@@ -3762,13 +3806,17 @@ class Background():
             self._black_latched = True
             self.isBlackBackground = False
         elif not getattr(self, '_black_latched', False):
-            bg_idx = min(2, max(0, int(total_distance)) // 4500)
-            self._sway_timer += 1
-            if self._sway_timer >= self._sway_period:
-                self._sway_timer = 0
-                self._sway_frame = 1 - self._sway_frame
-            self.bgimage = self.bg_pairs[bg_idx][self._sway_frame]
-            self.bgimage_alt = self.bg_alt_pairs[bg_idx]
+            if getattr(self, '_jungle_mode', False):
+                self.bgimage = self.jungle_bg
+                self.bgimage_alt = self.jungle_bg
+            else:
+                bg_idx = min(2, max(0, int(total_distance)) // 4500)
+                self._sway_timer += 1
+                if self._sway_timer >= self._sway_period:
+                    self._sway_timer = 0
+                    self._sway_frame = 1 - self._sway_frame
+                self.bgimage = self.bg_pairs[bg_idx][self._sway_frame]
+                self.bgimage_alt = self.bg_alt_pairs[bg_idx]
 
         if getattr(self, '_ng_blue', False):
             self.surface.fill((15, 25, 60))
@@ -5748,7 +5796,7 @@ class FrankenBear():
         self.blinkTimer = 0
         self.attackTimer = 0
         self.randomBlink = random.randint(50, 150)
-        self.randomAttack = random.randint(40, 70)
+        self.randomAttack = random.randint(60, 100)
         self.bossDisplay = self.boss3
         self.blinked = False
         self.attacked = False
@@ -5881,9 +5929,9 @@ class FrankenBear():
                 self.blinkTimer = 0
             if self.attacked:
                 if self.health <= 3:
-                    self.randomAttack = random.randint(25, 50)
-                else:
                     self.randomAttack = random.randint(40, 70)
+                else:
+                    self.randomAttack = random.randint(60, 100)
                 self.attackTimer = 0
                 self.blinkTimer = 0
                 self.flipped = random.randint(1, 2)
@@ -6310,7 +6358,7 @@ class DestroyableBlock:
 
 
 class MonkeyMummy:
-    """Agile monkey mummy enemy - faster and more erratic than regular mummies."""
+    """Agile monkey enemy - jumps in parabolic arcs unpredictably."""
     
     def __init__(self, x, y, width, height, mummy1Image, mummy2Image, screen):
         self.startX = x
@@ -6320,8 +6368,13 @@ class MonkeyMummy:
         self.width = width
         self.height = height
         self.screen = screen
-        self.mummy1 = mummy1Image
-        self.mummy2 = mummy2Image
+        try:
+            _monkey_img = pygame.image.load("Game/Images/monkey.png")
+            self.mummy1 = pygame.transform.scale(_monkey_img, (width, height))
+            self.mummy2 = pygame.transform.flip(self.mummy1, True, False)
+        except (FileNotFoundError, Exception):
+            self.mummy1 = pygame.transform.scale(mummy1Image, (width, height))
+            self.mummy2 = pygame.transform.scale(mummy2Image, (width, height))
         self.health = int(20 * 1.15)
         self.max_health = self.health
         self.damageAttack = 8
@@ -6499,5 +6552,169 @@ class MonkeyMummy:
         if self.destructionAnimation < 30:
             alpha = int(255 * (1 - self.destructionAnimation / 30))
             img = self.mummy1.copy() if self.direction < 0 else self.mummy2.copy()
+            img.set_alpha(alpha)
+            self.screen.blit(img, (self.x, self.y))
+
+
+class Lion:
+    def __init__(self, x, y, screen):
+        self.x = x
+        self.y = y
+        self.screen = screen
+        self.width = 90
+        self.height = 70
+        self.health = int(25 * 1.20)
+        self.max_health = self.health
+        self.speed = 5
+        self.direction = -1 if random.random() > 0.5 else 1
+        self.stunned = 0
+        self.damageReceived = 0
+        self.exp = 20
+        self.damageAttack = 10
+        self.isHurtTimer = 0
+        self.destructionAnimation = 0
+        self.startDestructionAnimation = False
+        self.walk_timer = 0
+        self.change_direction_timer = random.randint(60, 140)
+        self.charge_speed = 8
+        self.is_charging = False
+        self.charge_timer = 0
+
+        try:
+            self.lion_img = pygame.image.load("Game/Images/lion.png")
+            self.lion_img = pygame.transform.scale(self.lion_img, (self.width, self.height))
+            self.lion_img_left = pygame.transform.flip(self.lion_img, True, False)
+        except (FileNotFoundError, Exception):
+            self.lion_img = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            pygame.draw.ellipse(self.lion_img, (210, 160, 60), (5, 15, 80, 45))
+            pygame.draw.ellipse(self.lion_img, (180, 130, 40), (5, 15, 80, 45), 2)
+            pygame.draw.circle(self.lion_img, (230, 180, 80), (70, 25), 18)
+            pygame.draw.circle(self.lion_img, (200, 150, 50), (70, 25), 18, 2)
+            pygame.draw.circle(self.lion_img, (40, 40, 40), (74, 22), 4)
+            pygame.draw.circle(self.lion_img, (255, 255, 255), (73, 21), 1)
+            self.lion_img_left = pygame.transform.flip(self.lion_img, True, False)
+
+    def setXPosition(self, x):
+        self.x = x
+
+    def getXPosition(self):
+        return self.x
+
+    def setYPosition(self, y):
+        self.y = y
+
+    def getYPosition(self):
+        return self.y
+
+    def setHealth(self, health):
+        self.health = health
+
+    def getHealth(self):
+        return self.health
+
+    def getWidth(self):
+        return self.width
+
+    def getHeight(self):
+        return self.height
+
+    def setStunned(self, value):
+        self.stunned = value
+
+    def getStunned(self):
+        return self.stunned
+
+    def setDamageReceived(self, damage):
+        self.damageReceived = damage
+
+    def getDamageReceived(self):
+        return self.damageReceived
+
+    def getExp(self):
+        return self.exp
+
+    def getName(self):
+        return "lion"
+
+    def setHurtTimer(self, timer):
+        self.isHurtTimer = timer
+
+    def getHurtTimer(self):
+        return self.isHurtTimer
+
+    def getStartDestructionAnimationStatus(self):
+        return self.startDestructionAnimation
+
+    def setStartDestructionAnimation(self, v):
+        self.startDestructionAnimation = v
+
+    def getDestructionAnimationCount(self):
+        return self.destructionAnimation
+
+    def displayDamageOnMonster(self, damage):
+        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+
+        font = get_font('damage')
+        if font:
+            render_damage_text(self.screen, font, damage,
+                             self.getXPosition() + 45, self.getYPosition() - 30,
+                             alpha=alpha)
+            render_enemy_health_bar(self.screen,
+                                   self.getXPosition() + 45, self.getYPosition() - 30,
+                                   self.getHealth(), self.max_health)
+
+    def drawMonster(self):
+        if self.stunned == 0:
+            img = self.lion_img if self.direction > 0 else self.lion_img_left
+            self.screen.blit(img, (self.x, self.y))
+
+            self.walk_timer += 1
+
+            if not self.is_charging and random.random() < 0.008:
+                self.is_charging = True
+                self.charge_timer = random.randint(30, 60)
+
+            if self.is_charging:
+                self.x += self.direction * self.charge_speed
+                self.charge_timer -= 1
+                if self.charge_timer <= 0:
+                    self.is_charging = False
+            else:
+                self.x += self.direction * self.speed
+
+            if self.walk_timer >= self.change_direction_timer:
+                self.direction *= -1
+                self.walk_timer = 0
+                self.change_direction_timer = random.randint(60, 140)
+
+            if self.x < -50:
+                self.x = 900
+            elif self.x > 900:
+                self.x = -50
+        else:
+            self.stunned += 1
+            img = self.lion_img if self.direction > 0 else self.lion_img_left
+            hurt_img = img.copy()
+            red_overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            red_overlay.fill((255, 0, 0, 100))
+            hurt_img.blit(red_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            self.screen.blit(hurt_img, (self.x, self.y))
+
+            if self.stunned >= 15:
+                self.stunned = 0
+
+    def drawDestruction(self, damage):
+        self.destructionAnimation += 1
+        self.displayDamageOnMonster(damage)
+
+        if self.destructionAnimation < 30:
+            alpha = int(255 * (1 - self.destructionAnimation / 30))
+            img = self.lion_img.copy()
             img.set_alpha(alpha)
             self.screen.blit(img, (self.x, self.y))
