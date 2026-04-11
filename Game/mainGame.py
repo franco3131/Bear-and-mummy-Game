@@ -494,6 +494,9 @@ class mainGame:
         self.bearWalking4 = pygame.image.load("Game/Images/Bear/bearWalking4.png")
         self.bearWalking4 = pygame.transform.scale(self.bearWalking4, (120, 115))
 
+        self.bearWalking1_opp = self._make_opposite_stride(self.bearWalking1)
+        self.bearWalking3_opp = self._make_opposite_stride(self.bearWalking3)
+
         self.screen.fill((255, 255, 255))
         pygame.display.update()
 
@@ -501,6 +504,8 @@ class mainGame:
         self.bearWalkingLeft2 = pygame.transform.flip(self.bearWalking2, True, False)
         self.bearWalkingLeft3 = pygame.transform.flip(self.bearWalking3, True, False)
         self.bearWalkingLeft4 = pygame.transform.flip(self.bearWalking4, True, False)
+        self.bearWalkingLeft1_opp = pygame.transform.flip(self.bearWalking1_opp, True, False)
+        self.bearWalkingLeft3_opp = pygame.transform.flip(self.bearWalking3_opp, True, False)
 
         self.bearAttacking = pygame.image.load("Game/Images/Bear/bearAttacking.png")
         self.bearAttacking = pygame.transform.scale(self.bearAttacking, (210, 105))
@@ -719,16 +724,26 @@ class mainGame:
                 self.screen.blit(self.standingBearLeft,
                                  (bear.getXPosition(), bear.getYPosition()))
 
+    @staticmethod
+    def _make_opposite_stride(surface):
+        w, h = surface.get_size()
+        split_y = int(h * 0.48)
+        result = surface.copy()
+        bottom = pygame.Surface((w, h - split_y), pygame.SRCALPHA)
+        bottom.blit(surface, (0, 0), (0, split_y, w, h - split_y))
+        bottom_flipped = pygame.transform.flip(bottom, True, False)
+        result.fill((0, 0, 0, 0), (0, split_y, w, h - split_y))
+        result.blit(bottom_flipped, (0, split_y))
+        return result
+
     def _get_bear_walk_frame(self, animation_counter, facing_left=False):
-        # 4-frame cycle at 8 engine-frames per step → ~3 full strides/sec at 60 fps
-        # Frames alternate clear left/right leg contact for obvious stride readability.
         walk_index = (animation_counter // 8) % 4
         if facing_left:
-            frames = (self.bearWalkingLeft1, self.bearWalkingLeft2,
-                      self.bearWalkingLeft3, self.bearWalkingLeft4)
+            frames = (self.bearWalkingLeft1, self.bearWalkingLeft1_opp,
+                      self.bearWalkingLeft3, self.bearWalkingLeft3_opp)
         else:
-            frames = (self.bearWalking1, self.bearWalking2,
-                      self.bearWalking3, self.bearWalking4)
+            frames = (self.bearWalking1, self.bearWalking1_opp,
+                      self.bearWalking3, self.bearWalking3_opp)
         return frames[walk_index]
 
     def runGame(self):
@@ -3494,10 +3509,14 @@ class mainGame:
         self.bearWalking2 = self._tint_silver(self.bearWalking2)
         self.bearWalking3 = self._tint_silver(self.bearWalking3)
         self.bearWalking4 = self._tint_silver(self.bearWalking4)
+        self.bearWalking1_opp = self._tint_silver(self.bearWalking1_opp)
+        self.bearWalking3_opp = self._tint_silver(self.bearWalking3_opp)
         self.bearWalkingLeft1 = self._tint_silver(self.bearWalkingLeft1)
         self.bearWalkingLeft2 = self._tint_silver(self.bearWalkingLeft2)
         self.bearWalkingLeft3 = self._tint_silver(self.bearWalkingLeft3)
         self.bearWalkingLeft4 = self._tint_silver(self.bearWalkingLeft4)
+        self.bearWalkingLeft1_opp = self._tint_silver(self.bearWalkingLeft1_opp)
+        self.bearWalkingLeft3_opp = self._tint_silver(self.bearWalkingLeft3_opp)
         self.bearAttacking = self._tint_silver(self.bearAttacking)
         self.bearAttackingLeft = self._tint_silver(self.bearAttackingLeft)
         self.hurtBear = self._tint_silver(self.hurtBear)
