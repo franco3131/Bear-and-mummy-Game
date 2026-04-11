@@ -106,12 +106,12 @@ _MONSTER_SIZES = {
     "greenBlob":      (100, 100),
     "bigGreenBlob":   (300, 400),
     "spikes":         (600, 60),
-    "frankenbears":   (400, 350),
+    "frankenbears":   (300, 300),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
-    "snake":          (80,  60),
-    "monkeyMummy":    (70,  80),
-    "lion":           (90, 70),
+    "snake":          (120,  80),
+    "monkeyMummy":    (120, 140),
+    "lion":           (140, 100),
 }
 
 BEAR_W = 80
@@ -494,9 +494,6 @@ class mainGame:
         self.bearWalking4 = pygame.image.load("Game/Images/Bear/bearWalking4.png")
         self.bearWalking4 = pygame.transform.scale(self.bearWalking4, (120, 115))
 
-        self.bearWalking1_opp = self._make_opposite_stride(self.bearWalking1)
-        self.bearWalking3_opp = self._make_opposite_stride(self.bearWalking3)
-
         self.screen.fill((255, 255, 255))
         pygame.display.update()
 
@@ -504,8 +501,6 @@ class mainGame:
         self.bearWalkingLeft2 = pygame.transform.flip(self.bearWalking2, True, False)
         self.bearWalkingLeft3 = pygame.transform.flip(self.bearWalking3, True, False)
         self.bearWalkingLeft4 = pygame.transform.flip(self.bearWalking4, True, False)
-        self.bearWalkingLeft1_opp = pygame.transform.flip(self.bearWalking1_opp, True, False)
-        self.bearWalkingLeft3_opp = pygame.transform.flip(self.bearWalking3_opp, True, False)
 
         self.bearAttacking = pygame.image.load("Game/Images/Bear/bearAttacking.png")
         self.bearAttacking = pygame.transform.scale(self.bearAttacking, (210, 105))
@@ -727,26 +722,14 @@ class mainGame:
                 self.screen.blit(self.standingBearLeft,
                                  (bear.getXPosition(), bear.getYPosition()))
 
-    @staticmethod
-    def _make_opposite_stride(surface):
-        w, h = surface.get_size()
-        split_y = int(h * 0.45)
-        flipped_full = pygame.transform.flip(surface, True, False)
-        result = surface.copy()
-        result.fill((0, 0, 0, 0), (0, split_y, w, h - split_y))
-        bottom_flipped = pygame.Surface((w, h - split_y), pygame.SRCALPHA)
-        bottom_flipped.blit(flipped_full, (0, 0), (0, split_y, w, h - split_y))
-        result.blit(bottom_flipped, (0, split_y))
-        return result
-
     def _get_bear_walk_frame(self, animation_counter, facing_left=False):
         walk_index = (animation_counter // 8) % 4
         if facing_left:
-            frames = (self.bearWalkingLeft1, self.bearWalkingLeft1_opp,
-                      self.bearWalkingLeft3, self.bearWalkingLeft3_opp)
+            frames = (self.bearWalkingLeft1, self.bearWalkingLeft2,
+                      self.bearWalkingLeft3, self.bearWalkingLeft4)
         else:
-            frames = (self.bearWalking1, self.bearWalking1_opp,
-                      self.bearWalking3, self.bearWalking3_opp)
+            frames = (self.bearWalking1, self.bearWalking2,
+                      self.bearWalking3, self.bearWalking4)
         return frames[walk_index]
 
     def showStartMenu(self):
@@ -758,14 +741,21 @@ class mainGame:
             pass
 
         clock = pygame.time.Clock()
-        title_font = pygame.font.SysFont(None, 72, bold=True)
-        subtitle_font = pygame.font.SysFont(None, 36)
-        button_font = pygame.font.SysFont(None, 48, bold=True)
-        info_font = pygame.font.SysFont(None, 24)
+        button_font = pygame.font.SysFont(None, 44, bold=True)
+        info_font = pygame.font.SysFont(None, 22)
 
         selected = 0
         menu_running = True
         anim_tick = 0
+        _sparkles = []
+        for _i in range(25):
+            _sparkles.append({
+                'x': random.randint(0, 900),
+                'y': random.randint(0, 700),
+                'speed': random.uniform(0.2, 0.8),
+                'size': random.randint(1, 3),
+                'phase': random.randint(0, 120),
+            })
 
         while menu_running:
             anim_tick += 1
@@ -781,65 +771,58 @@ class mainGame:
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         menu_running = False
 
-            self.screen.fill((12, 8, 18))
+            self.screen.fill((18, 12, 28))
 
-            for i in range(60):
-                sx = (i * 47 + anim_tick) % 900
-                sy = (i * 31 + anim_tick * (i % 3 + 1) // 4) % 700
-                brightness = 40 + int(30 * abs(((anim_tick + i * 7) % 120) / 60.0 - 1.0))
-                pygame.draw.circle(self.screen, (brightness, brightness, brightness + 20), (sx, sy), 1)
+            for sp in _sparkles:
+                sp['y'] -= sp['speed']
+                if sp['y'] < -5:
+                    sp['y'] = 710
+                    sp['x'] = random.randint(0, 900)
+                twinkle = abs(((anim_tick + sp['phase']) % 120) / 60.0 - 1.0)
+                brightness = int(100 + 155 * twinkle)
+                color = (brightness, brightness, int(min(255, brightness + 40)))
+                pygame.draw.circle(self.screen, color, (int(sp['x']), int(sp['y'])), sp['size'])
 
-            pulse = abs(((anim_tick % 120) / 60.0) - 1.0)
-
-            title_text = title_font.render("BEAR FIGHTER", True, (220, 180, 80))
-            title_shadow = title_font.render("BEAR FIGHTER", True, (80, 40, 10))
-            tx = 450 - title_text.get_width() // 2
-            ty = 120
-            self.screen.blit(title_shadow, (tx + 3, ty + 3))
-            self.screen.blit(title_text, (tx, ty))
-
-            subtitle_text = subtitle_font.render("Curse of the Crypt", True,
-                                                  (int(140 + 60 * pulse), 100, int(180 + 40 * pulse)))
-            sx = 450 - subtitle_text.get_width() // 2
-            self.screen.blit(subtitle_text, (sx, ty + 75))
+            pulse = abs(((anim_tick % 100) / 50.0) - 1.0)
 
             try:
                 bear_img = self.standingBear
-                self.screen.blit(bear_img, (400, 250))
+                bx_pos = 450 - bear_img.get_width() // 2
+                by_pos = 160
+                glow_r = int(70 + 15 * pulse)
+                glow_surf = pygame.Surface((glow_r * 2, glow_r * 2), pygame.SRCALPHA)
+                pygame.draw.circle(glow_surf, (80, 60, 140, int(40 + 25 * pulse)),
+                                   (glow_r, glow_r), glow_r)
+                self.screen.blit(glow_surf,
+                                 (bx_pos + bear_img.get_width() // 2 - glow_r,
+                                  by_pos + bear_img.get_height() // 2 - glow_r))
+                self.screen.blit(bear_img, (bx_pos, by_pos))
             except Exception:
                 pass
 
-            buttons = ["NORMAL MODE", "HARD MODE"]
-            descriptions = [
-                "Standard difficulty - recommended for first playthrough",
-                "Faster enemies, +50% damage early, +40% HP & damage after boss"
-            ]
+            buttons = ["NORMAL", "HARD"]
+            btn_colors_sel = [(100, 180, 120), (220, 80, 80)]
+            btn_colors_unsel = [(60, 90, 65), (100, 50, 50)]
             for i, btn_text in enumerate(buttons):
                 bx = 450
-                by = 420 + i * 90
+                by = 380 + i * 80
                 is_selected = (i == selected)
 
                 if is_selected:
-                    glow_alpha = int(60 + 40 * pulse)
-                    glow_surf = pygame.Surface((360, 65), pygame.SRCALPHA)
-                    glow_color = (80, 50, 160, glow_alpha) if i == 0 else (160, 50, 50, glow_alpha)
-                    glow_surf.fill(glow_color)
-                    self.screen.blit(glow_surf, (bx - 180, by - 32))
+                    glow_alpha = int(50 + 30 * pulse)
+                    glow_surf = pygame.Surface((280, 55), pygame.SRCALPHA)
+                    glow_surf.fill((*btn_colors_sel[i], glow_alpha))
+                    self.screen.blit(glow_surf, (bx - 140, by - 27))
 
-                box_color = (120, 80, 200) if (i == 0 and is_selected) else \
-                            (200, 60, 60) if (i == 1 and is_selected) else (80, 70, 90)
-                pygame.draw.rect(self.screen, box_color, (bx - 170, by - 28, 340, 56), 3, border_radius=8)
+                box_color = btn_colors_sel[i] if is_selected else btn_colors_unsel[i]
+                pygame.draw.rect(self.screen, box_color, (bx - 130, by - 24, 260, 48), 3, border_radius=12)
 
-                text_color = (255, 255, 255) if is_selected else (150, 140, 160)
+                text_color = (255, 255, 255) if is_selected else (130, 125, 140)
                 btn_surf = button_font.render(btn_text, True, text_color)
                 self.screen.blit(btn_surf, (bx - btn_surf.get_width() // 2, by - btn_surf.get_height() // 2))
 
-                if is_selected:
-                    desc_surf = info_font.render(descriptions[i], True, (170, 160, 180))
-                    self.screen.blit(desc_surf, (bx - desc_surf.get_width() // 2, by + 32))
-
-            controls_text = info_font.render("UP/DOWN to select  -  ENTER to start", True, (100, 95, 110))
-            self.screen.blit(controls_text, (450 - controls_text.get_width() // 2, 650))
+            controls_text = info_font.render("UP / DOWN to select  -  ENTER to start", True, (90, 85, 105))
+            self.screen.blit(controls_text, (450 - controls_text.get_width() // 2, 560))
 
             pygame.display.update()
             clock.tick(60)
@@ -2501,56 +2484,53 @@ class mainGame:
                         hurtTimer = 0
 
             # ---- Snake poison contact detection ----------------------------
-            for snake in self.snakes:
-                if snake.getHealth() > 0:
-                    if hasattr(snake, 'update_poison_cooldown'):
-                        snake.update_poison_cooldown()
-                    snake_rect = pygame.Rect(snake.getXPosition(), snake.getYPosition(), snake.width, snake.height)
-                    bear_rect = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
-                    if snake_rect.colliderect(bear_rect) and snake.get_poison_cooldown() == 0:
-                        bear.set_poison(30)
-                        snake.set_poison_cooldown(120)  # 2-second cooldown between repoisons
-            # Update bear poison once per frame (outside snake loop)
-            if hasattr(bear, 'update_poison'):
-                _hp_pre = bear.getHp()
-                bear.update_poison()
-                # When poison tick fires, push a floating "-2" damage number
-                if bear.getHp() < _hp_pre:
-                    self._poison_floats.append({
-                        'x': bear.getXPosition() + random.randint(-15, 15),
-                        'y': bear.getYPosition() - 10,
-                        'timer': 55
-                    })
+            try:
+                for snake in self.snakes:
+                    if snake.getHealth() > 0:
+                        if hasattr(snake, 'update_poison_cooldown'):
+                            snake.update_poison_cooldown()
+                        snake_rect = pygame.Rect(snake.getXPosition(), snake.getYPosition(), snake.width, snake.height)
+                        bear_rect = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
+                        if snake_rect.colliderect(bear_rect) and snake.get_poison_cooldown() == 0:
+                            bear.set_poison(30)
+                            snake.set_poison_cooldown(120)
+                if hasattr(bear, 'update_poison') and hasattr(bear, 'poison_timer') and bear.poison_timer > 0:
+                    _hp_pre = bear.getHp()
+                    bear.update_poison()
+                    if bear.getHp() < _hp_pre:
+                        self._poison_floats.append({
+                            'x': bear.getXPosition() + random.randint(-15, 15),
+                            'y': bear.getYPosition() - 10,
+                            'timer': 55
+                        })
 
-            # Draw & advance all active poison-damage floats
-            _fin_font = get_font('damage')
-            for _pf in self._poison_floats:
-                _pf['y'] -= 1          # drift upward
-                _pf['timer'] -= 1
-                _alpha = int(255 * (_pf['timer'] / 55.0))
-                if _fin_font:
-                    _dmg_str = '-2'
-                    _fs = _fin_font.render(_dmg_str, True, (80, 230, 80))
-                    _fs.set_alpha(_alpha)
-                    self.screen.blit(_fs, (int(_pf['x']), int(_pf['y'])))
-            self._poison_floats = [f for f in self._poison_floats if f['timer'] > 0]
+                _fin_font = get_font('damage')
+                for _pf in self._poison_floats:
+                    _pf['y'] -= 1
+                    _pf['timer'] -= 1
+                    _alpha = max(0, int(255 * (_pf['timer'] / 55.0)))
+                    if _fin_font:
+                        _fs = _fin_font.render('-2', True, (80, 230, 80))
+                        _fs.set_alpha(_alpha)
+                        self.screen.blit(_fs, (int(_pf['x']), int(_pf['y'])))
+                self._poison_floats = [f for f in self._poison_floats if f['timer'] > 0]
 
-            # Show POISONED indicator + green tint overlay on bear while active
-            if hasattr(bear, 'is_poisoned') and bear.is_poisoned():
-                # Green pulsing overlay on the bear (triangle-wave, no math import needed)
-                _ptick = getattr(bear, 'poison_damage_tick', 0)
-                _pulse = (_ptick % 30) / 30.0          # 0.0 → 1.0 cycle
-                _p_alpha = int(45 + 45 * (1 - abs(2 * _pulse - 1)))  # 45..90..45
-                _p_ov = pygame.Surface((80, 100), pygame.SRCALPHA)
-                _p_ov.fill((40, 220, 40, _p_alpha))
-                self.screen.blit(_p_ov, (bear.getXPosition(), bear.getYPosition()),
-                                 special_flags=pygame.BLEND_RGBA_ADD)
-                # "POISONED" label above bear (pulsing brightness)
-                _poi_alpha = int(160 + 95 * (1 - abs(2 * _pulse - 1)))   # 160..255..160
-                _poi_font = _FONT_HUD_VAL or pygame.font.SysFont(None, 20, bold=True)
-                _poi_surf = _poi_font.render('POISONED', True, (80, 230, 80))
-                _poi_surf.set_alpha(_poi_alpha)
-                self.screen.blit(_poi_surf, (bear.getXPosition() - 10, bear.getYPosition() - 32))
+                if hasattr(bear, 'is_poisoned') and bear.is_poisoned():
+                    _ptick = getattr(bear, 'poison_damage_tick', 0)
+                    _pulse = (_ptick % 30) / 30.0
+                    _p_alpha = int(45 + 45 * (1 - abs(2 * _pulse - 1)))
+                    _p_ov = pygame.Surface((80, 100), pygame.SRCALPHA)
+                    _p_ov.fill((40, 220, 40, _p_alpha))
+                    self.screen.blit(_p_ov, (bear.getXPosition(), bear.getYPosition()),
+                                     special_flags=pygame.BLEND_RGBA_ADD)
+                    _poi_font = pygame.font.SysFont(None, 20, bold=True)
+                    _poi_surf = _poi_font.render('POISONED', True, (80, 230, 80))
+                    _poi_alpha = int(160 + 95 * (1 - abs(2 * _pulse - 1)))
+                    _poi_surf.set_alpha(_poi_alpha)
+                    self.screen.blit(_poi_surf, (bear.getXPosition() - 10, bear.getYPosition() - 32))
+            except Exception as _poison_err:
+                print(f"Poison error: {_poison_err}")
+                pass
 
             if (totalDistance > 30000 and not getattr(self, '_checkpoint_saved', False)
                     and bear.getEndText() and not self.escape):
@@ -3613,9 +3593,13 @@ class mainGame:
                     if hasattr(_m, 'walk_speed'):
                         _m.walk_speed = max(_m.walk_speed + 1, round(_m.walk_speed * 1.3))
                     if hasattr(_m, 'rand'):
-                        _m.rand = max(1, int(_m.rand * 0.7))
+                        _m.rand = int(_m.rand * 1.8)
                     if hasattr(_m, 'speed'):
                         _m.speed = max(_m.speed + 1, round(_m.speed * 1.3))
+                    if hasattr(_m, 'change_direction_timer'):
+                        _m.change_direction_timer = int(_m.change_direction_timer * 1.8)
+                    if hasattr(_m, 'changeDirectionX'):
+                        _m.changeDirectionX = 0
 
             if not getattr(self, '_hms_post_boss_applied', False) and self._bigMummyDefeated:
                 self._hms_post_boss_applied = True
@@ -3648,14 +3632,10 @@ class mainGame:
         self.bearWalking2 = self._tint_silver(self.bearWalking2)
         self.bearWalking3 = self._tint_silver(self.bearWalking3)
         self.bearWalking4 = self._tint_silver(self.bearWalking4)
-        self.bearWalking1_opp = self._tint_silver(self.bearWalking1_opp)
-        self.bearWalking3_opp = self._tint_silver(self.bearWalking3_opp)
         self.bearWalkingLeft1 = self._tint_silver(self.bearWalkingLeft1)
         self.bearWalkingLeft2 = self._tint_silver(self.bearWalkingLeft2)
         self.bearWalkingLeft3 = self._tint_silver(self.bearWalkingLeft3)
         self.bearWalkingLeft4 = self._tint_silver(self.bearWalkingLeft4)
-        self.bearWalkingLeft1_opp = self._tint_silver(self.bearWalkingLeft1_opp)
-        self.bearWalkingLeft3_opp = self._tint_silver(self.bearWalkingLeft3_opp)
         self.bearAttacking = self._tint_silver(self.bearAttacking)
         self.bearAttackingLeft = self._tint_silver(self.bearAttackingLeft)
         self.hurtBear = self._tint_silver(self.hurtBear)
@@ -6087,9 +6067,9 @@ class FrankenBear():
                 self.blinkTimer = 0
             if self.attacked:
                 if self.health <= 3:
-                    self.randomAttack = random.randint(40, 70)
-                else:
                     self.randomAttack = random.randint(60, 100)
+                else:
+                    self.randomAttack = random.randint(90, 140)
                 self.attackTimer = 0
                 self.blinkTimer = 0
                 self.flipped = random.randint(1, 2)

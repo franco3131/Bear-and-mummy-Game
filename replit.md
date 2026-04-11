@@ -134,6 +134,9 @@ python main.py
 - **FrankenBear hitbox bigger** — increased from 300×300 to 400×350 for easier hitting
 - **FrankenBear fire rate slower** — normal: 60-100 frames (was 40-70), enraged: 40-70 (was 25-50)
 - **75% difficulty scaling** — at Zone 7 (75% of level 1), all enemies get 2× HP and 2× ATK
-- **Start menu** — title screen with animated starfield, "BEAR FIGHTER - Curse of the Crypt" title, Normal/Hard mode selection; own spooky theme song (menu_theme.wav)
-- **Hard mode** — enemies 30% faster, +50% damage pre-boss, +40% HP and damage post-mummy-boss; "HARD MODE" HUD indicator
-- **Bear stride animation** — walk cycle now properly alternates legs using upper-body-preserved flipped frames; 4-frame cycle: right-leg→left-leg→right-leg-alt→left-leg-alt
+- **Start menu** — cute title screen with floating sparkles, bear character with purple glow, "NORMAL" and "HARD" mode buttons; own spooky theme song (menu_theme.wav, 45s); no title text or descriptions
+- **Hard mode** — enemies move faster (+30% speed, +1 minimum), travel longer distances before turning (1.8× rand/change_direction_timer), +50% damage pre-boss, +40% HP and damage post-mummy-boss; "HARD MODE" HUD indicator
+- **All songs extended** — every music track extended to 50-60+ seconds with seamless crossfade repeats to reduce noticeable looping
+- **FrankenBear fire rate decreased** — normal: 90-140 frames (was 60-100), enraged: 60-100 (was 40-70)
+- **Bear stride reverted** — back to original 4-frame walk cycle using all 4 walking sprites in sequence
+- **FrankenBear hitbox reverted** — back to original 300×300
