@@ -1,13 +1,25 @@
 # -*- coding: utf-8 -*-
+"""Main game class and game loop."""
 import pygame
 import random
-
-# ---------------------------------------------------------------------------
-# Movement step – pixels per frame for walking/world-scroll
-# Smaller value = smoother, slower feel. Jump step is kept separate.
-# ---------------------------------------------------------------------------
-STEP = 8
-JUMP_STEP = 7
+import json
+import os
+from Game.constants import (
+    STEP, JUMP_STEP, _MONSTER_SIZES, BEAR_W, BEAR_H,
+    init_fonts, get_font
+)
+from Game.collision import (
+    get_position_relative_to_monster,
+    is_bear_hurt, is_monster_hurt, is_monster_forehead_hit
+)
+from Game.rendering import (
+    render_damage_text, render_enemy_health_bar,
+    render_hud_panel, render_hud_bar, render_hud_text_outlined,
+    render_water
+)
+from Game.graphics import (
+    scale_image_to_box, create_outline_surface
+)
 
 # ---------------------------------------------------------------------------
 # Module-level font cache – created once after pygame.init(), reused every frame
@@ -21,7 +33,7 @@ _FONT_HUD_VAL = None
 _FONT_HUD_LVL = None
 
 
-def _init_fonts():
+def init_fonts():
     global _FONT_DAMAGE, _FONT_HUD, _FONT_BOSS_DAMAGE, _FONT_POPUP
     global _FONT_HUD_LABEL, _FONT_HUD_VAL, _FONT_HUD_LVL
     _FONT_DAMAGE = pygame.font.SysFont("Italic", 40)
@@ -33,13 +45,13 @@ def _init_fonts():
     _FONT_HUD_LVL = pygame.font.SysFont(None, 38, bold=True)
 
 
-def _hud_panel(screen, x, y, w, h, border_color, border=3):
+def render_hud_panel(screen, x, y, w, h, border_color, border=3):
     inner = pygame.Rect(x, y, w, h)
     pygame.draw.rect(screen, (18, 14, 26), inner, border_radius=6)
     pygame.draw.rect(screen, border_color, inner, border, border_radius=6)
 
 
-def _hud_bar(screen, x, y, w, h, ratio, fill_color):
+def render_hud_bar(screen, x, y, w, h, ratio, fill_color):
     track = pygame.Rect(x, y, w, h)
     pygame.draw.rect(screen, (40, 30, 40), track, border_radius=4)
     fill_w = max(0, int(w * ratio))
@@ -49,10 +61,38 @@ def _hud_bar(screen, x, y, w, h, ratio, fill_color):
     pygame.draw.rect(screen, (200, 200, 200), track, 1, border_radius=4)
 
 
-def _hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0)):
+def render_hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0)):
     for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
         screen.blit(font.render(text, True, outline), (x + dx, y + dy))
     screen.blit(font.render(text, True, color), (x, y))
+
+
+def render_enemy_health_bar(screen, x, y, health, max_health, w=120, h=12):
+    """Draw a small temporary health bar beside a damage popup.
+    x,y should be the damage-text origin; the bar is drawn offset from there.
+    """
+    try:
+        if max_health is None or max_health <= 0:
+            return
+        ratio = max(0.0, min(1.0, float(health) / float(max_health)))
+    except Exception:
+        return
+    bar_x = x + 10
+    # place the bar below the damage text to avoid overlap
+    bar_y = y + 36
+    track = pygame.Rect(bar_x, bar_y, w, h)
+    pygame.draw.rect(screen, (40, 30, 40), track, border_radius=3)
+    fill_w = max(0, int(w * ratio))
+    if fill_w > 0:
+        if ratio > 0.6:
+            fill_color = (60, 200, 60)
+        elif ratio > 0.3:
+            fill_color = (220, 200, 60)
+        else:
+            fill_color = (220, 60, 60)
+        fill = pygame.Rect(bar_x, bar_y, fill_w, h)
+        pygame.draw.rect(screen, fill_color, fill, border_radius=3)
+    pygame.draw.rect(screen, (200, 200, 200), track, 1, border_radius=3)
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +115,7 @@ BEAR_W = 80
 BEAR_H = 100
 
 
-def scale_to_box(img, target_w, target_h):
+def scale_image_to_box(img, target_w, target_h):
     """Scale img so height == target_h preserving aspect ratio,
     then crop (centred) or pad width to target_w.
     Returns a surface of exactly (target_w, target_h)."""
@@ -93,7 +133,7 @@ def scale_to_box(img, target_w, target_h):
     return surf
 
 
-def make_outline_surf(sprite, color=(255, 255, 255, 220)):
+def create_outline_surface(sprite, color=(255, 255, 255, 220)):
     """Return a surface with a white outline matching the sprite's silhouette."""
     mask = pygame.mask.from_surface(sprite)
     w, h = sprite.get_size()
@@ -105,7 +145,7 @@ def make_outline_surf(sprite, color=(255, 255, 255, 220)):
     return out
 
 
-def positionRelativeToMonster(bearXPosition, bearYPosition, mummyXPosition,
+def get_position_relative_to_monster(bearXPosition, bearYPosition, mummyXPosition,
                               mummyYPosition):
     if ((bearXPosition > mummyXPosition
          and bearXPosition < mummyXPosition + 100)
@@ -117,7 +157,7 @@ def positionRelativeToMonster(bearXPosition, bearYPosition, mummyXPosition,
         return "RIGHT"
 
 
-def isBearHurt(positionRelative, bearXPosition, bearYPosition,
+def is_bear_hurt(positionRelative, bearXPosition, bearYPosition,
                objectXPosition, objectYPosition, objectName):
     """Return True if the bear's hitbox overlaps with the named object."""
     if objectName not in _MONSTER_SIZES:
@@ -129,7 +169,7 @@ def isBearHurt(positionRelative, bearXPosition, bearYPosition,
     return bear_rect.colliderect(obj_rect)
 
 
-def isMonsterHurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition,
+def is_monster_hurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition,
                   facingLeft, monsterType):
     """Return True if the bear's attack hitbox overlaps with the monster."""
     if monsterType == "frankenbears":
@@ -154,11 +194,11 @@ def isMonsterHurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition,
     return attack_rect.colliderect(monster_rect)
 
 
-def isMonsterForeheadHit(bearXPosition, bearYPosition, mummyXPosition,
+def is_monster_forehead_hit(bearXPosition, bearYPosition, mummyXPosition,
                          mummyYPosition, facingLeft):
     """Return True only if the attack hits the big mummy's forehead (top 30%)."""
-    # Forehead zone: center 120px wide, top 90px of the 200x300 sprite
-    forehead_rect = pygame.Rect(mummyXPosition + 40, mummyYPosition, 120, 90)
+    # Forehead zone scaled for 260x360 sprite: 52px inset, 156px wide, 108px tall
+    forehead_rect = pygame.Rect(mummyXPosition + 52, mummyYPosition, 156, 108)
     if not facingLeft:
         attack_rect = pygame.Rect(bearXPosition, bearYPosition + 10, 190, 80)
     else:
@@ -170,16 +210,36 @@ def isMonsterForeheadHit(bearXPosition, bearYPosition, mummyXPosition,
 # ---------------------------------------------------------------------------
 # Damage text helper – drawn once instead of duplicated across every class
 # ---------------------------------------------------------------------------
-def _render_damage_text(screen, font, damage, x, y):
-    black = pygame.Color(0, 0, 0)
-    white = pygame.Color(255, 255, 255)
-    outline = font.render(str(damage), True, black)
+def render_damage_text(screen, font, damage, x, y, alpha=255):
+    """Render damage text with an outlined style and optional alpha fade.
+    Uses italic fonts (set in _init_fonts) for cursive look.
+    alpha: 0-255 for transparency.
+    """
+    txt = str(damage)
+    # base surfaces
+    col_black = (0, 0, 0)
+    col_white = (255, 255, 255)
+    # Create a temp surface sized for outline offsets
+    w, h = font.size(txt)
+    pad = 6
+    surf = pygame.Surface((w + pad * 2, h + pad * 2), pygame.SRCALPHA)
+    # draw outline by blitting black text at offsets
+    outline_surf = font.render(txt, True, col_black)
+    ox = pad
+    oy = pad
     for dx, dy in ((-2, -2), (2, -2), (2, 2), (-2, 2)):
-        screen.blit(outline, (x + dx, y + dy))
-    screen.blit(font.render(str(damage), True, white), (x, y))
+        surf.blit(outline_surf, (ox + dx, oy + dy))
+    # draw main white text
+    main_surf = font.render(txt, True, col_white)
+    surf.blit(main_surf, (ox, oy))
+    # apply alpha
+    if alpha < 255:
+        surf.set_alpha(alpha)
+    # blit at provided x,y (use x,y as top-left of original text)
+    screen.blit(surf, (x - pad, y - pad))
 
 
-def _draw_water(screen, offset):
+def render_water(screen, offset):
     """Animated scrolling stream drawn just below the floor (y=400)."""
     pygame.draw.rect(screen, (15, 70, 190), (0, 534, 900, 166))
     bands = [
@@ -363,6 +423,24 @@ class mainGame:
             self.beam_sound = _make_snd(_smp)
             self.beam_sound.set_volume(0.80)
 
+            # ── Coin collect: bright two-tone metallic ding ────────────────
+            _n = int(_RATE * 0.38)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                # Two tones: root + fifth (880 Hz + 1320 Hz)
+                _tone1 = _math.sin(2 * _math.pi * 880 * _t)
+                _tone2 = _math.sin(2 * _math.pi * 1320 * _t) * 0.65
+                # Add shimmer harmonics
+                _tone3 = _math.sin(2 * _math.pi * 1760 * _t) * 0.25
+                _tone4 = _math.sin(2 * _math.pi * 2640 * _t) * 0.12
+                # Sharp attack, exponential decay
+                _env = (min(1.0, _i / (_RATE * 0.003))  # 3 ms attack
+                        * _math.exp(-_t * 7.5))           # decay
+                _smp.append(max(-1.0, min(1.0, (_tone1 + _tone2 + _tone3 + _tone4) * _env * 0.55)))
+            self.coin_sound = _make_snd(_smp)
+            self.coin_sound.set_volume(0.70)
+
         except Exception:
             self.thud_sound = None
             self.fire_sound = None
@@ -386,7 +464,8 @@ class mainGame:
             self.boss_hit_sound = None
             self.crit_sound = None
             self.beam_sound = None
-        _init_fonts()
+            self.coin_sound = None
+        init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
         self.clock = pygame.time.Clock()
@@ -394,6 +473,14 @@ class mainGame:
         self.standingBear = pygame.image.load("Game/Images/Bear/standBear2.png")
         self.standingBear = pygame.transform.scale(self.standingBear, (105, 100))
         self.standingBearLeft = pygame.transform.flip(self.standingBear, True, False)
+        self.standingBearBlink = self.standingBear.copy()
+        pygame.draw.rect(self.standingBearBlink, (40, 30, 20), (28, 22, 50, 8), border_radius=4)
+        self.standingBearLeftBlink = self.standingBearLeft.copy()
+        pygame.draw.rect(self.standingBearLeftBlink, (40, 30, 20), (28, 22, 50, 8), border_radius=4)
+
+        # Create crouch sprite by scaling standing bear to crouch pose
+        self.crouchBear = pygame.transform.scale(self.standingBear, (105, 65))
+        self.crouchBearLeft = pygame.transform.flip(self.crouchBear, True, False)
 
         self.bearWalking1 = pygame.image.load("Game/Images/Bear/bearWalking1.png")
         self.bearWalking1 = pygame.transform.scale(self.bearWalking1, (120, 115))
@@ -442,6 +529,19 @@ class mainGame:
         self.miniFrankenBears = []
         self.lasers = []
         self.waterfalls = []
+        self.snakes = []
+        self.coins = []
+        self.destroyable_blocks = []
+        self.active_weapon = None
+        self.weapon_cooldown = 0
+        self._secret_attack_unlocked = False
+        self.lightning_cooldown = 0
+        self.lightning_charge = 0.0
+        self.lightning_anim = 0
+        self.lightning_x = 0
+        self.lightning2_targets = []
+        self.lightning2_cooldown = 0
+        self.monkey_mummies = []
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -506,17 +606,125 @@ class mainGame:
         self._bigMummyDefeated = False
         self._hardMode = False
         self.beamProjectiles = []
+        self.checkpoint_file = os.path.join('Game', 'checkpoint.json')
+        self._checkpoint_saved = False
+        self._checkpoint_used = False
+        self._checkpoint_data = None
+        self._easter_egg_42 = False
+        self._easter_egg_13 = False
+        self._easter_egg_5555 = False
+        self._jungle_unlocked = False
+        self._monkey_level_active = False
+        self._triggerJungleTransition = False
+        self._triggerNewGamePlus = False
+        self._intro_shown = False
+        self._100_coin_milestone = False
+        self._last_coin_milestone = 0
+        self._first_coin_popup_shown = False
+        self._beam_ever_shown = False
+        self._post_boss_platform_popup_shown = False
+        self._boss_door_passed = False
+        self._poison_floats = []   # [{x, y, timer}] floating "-2" numbers while poisoned
+
+    # -----------------------------------------------------------------------
+    def _save_checkpoint(self, backgroundScrollX, totalDistance, bear):
+        self._checkpoint_saved = True
+        self._checkpoint_used = False
+        self._checkpoint_data = {
+            'x': bear.getXPosition(),
+            'y': bear.getYPosition(),
+            'hp': bear.getHp(),
+            'max_hp': bear.getMaxHp(),
+            'exp': bear.getCurrentExp(),
+            'level': bear.getLevel(),
+            'coins': bear.getCoins(),
+            'has_shield': getattr(bear, 'has_shield', False),
+            'has_aimer': getattr(bear, 'has_aimer', False),
+            'has_50pct_protection': getattr(bear, 'has_50pct_protection', False),
+            'totalDistance': totalDistance,
+            'backgroundScrollX': backgroundScrollX
+        }
+        try:
+            with open(self.checkpoint_file, 'w') as _cf:
+                json.dump(self._checkpoint_data, _cf)
+        except Exception:
+            pass
+
+    def _restore_checkpoint(self, bear, background, totalDistance):
+        if not getattr(self, '_checkpoint_saved', False) or not self._checkpoint_data:
+            return totalDistance, background.getBackgroundX()
+        checkpoint = self._checkpoint_data
+        saved_distance = checkpoint.get('totalDistance', totalDistance)
+        delta = saved_distance - totalDistance
+        if delta != 0:
+            all_movable = [
+                self.mummys, self.witches, self.greenBlobs, self.door,
+                self.keys, self.spikes, getattr(self, 'bossFires', []),
+                self.playerFires, self.shadowShamans, self.miniFrankenBears,
+                self.lasers, self.snakes, self.monkey_mummies, self.coins,
+                self.destroyable_blocks, self.fires
+            ]
+            for group in all_movable:
+                for obj in group:
+                    if hasattr(obj, 'setXPosition') and hasattr(obj, 'getXPosition'):
+                        obj.setXPosition(obj.getXPosition() + delta)
+                    elif hasattr(obj, 'setblockXPosition') and hasattr(obj, 'getBlockXPosition'):
+                        obj.setblockXPosition(obj.getBlockXPosition() + delta)
+            for block in self.blocks:
+                block.setblockXPosition(block.getBlockXPosition() + delta)
+            for bp in self.beamProjectiles:
+                if isinstance(bp, dict) and 'x' in bp:
+                    bp['x'] += delta
+        bear.setXPosition(checkpoint.get('x', bear.getXPosition()))
+        bear.setYPosition(checkpoint.get('y', bear.getYPosition()))
+        bear.setHp(checkpoint.get('hp', bear.getHp()))
+        bear.setMaxHp(checkpoint.get('max_hp', bear.getMaxHp()))
+        bear.setCurrentExp(checkpoint.get('exp', bear.getCurrentExp()))
+        bear.setLevel(checkpoint.get('level', bear.getLevel()))
+        bear.setCoins(checkpoint.get('coins', bear.getCoins()))
+        bear.has_shield = checkpoint.get('has_shield', False)
+        bear.has_aimer = checkpoint.get('has_aimer', False)
+        bear.has_50pct_protection = checkpoint.get('has_50pct_protection', False)
+        totalDistance = saved_distance
+        background.setXPosition(checkpoint.get('backgroundScrollX', background.getBackgroundX()))
+        return totalDistance, background.getBackgroundX()
 
     # -----------------------------------------------------------------------
     # Helper: draw the bear idle sprite (used to fill animation gaps)
     # -----------------------------------------------------------------------
     def _draw_idle_bear(self, bear):
-        if not bear.getLeftDirection():
-            self.screen.blit(self.standingBear,
-                             (bear.getXPosition(), bear.getYPosition()))
+        if bear.get_crouch():
+            # Draw crouch sprite with bottom aligned to the standing sprite
+            if not bear.getLeftDirection():
+                if bear.crouch_sprite:
+                    offset_y = self.standingBear.get_height() - bear.crouch_sprite.get_height()
+                    self.screen.blit(bear.crouch_sprite,
+                                     (bear.getXPosition(), bear.getYPosition() + offset_y))
+            else:
+                if bear.crouch_sprite_left:
+                    offset_y = self.standingBearLeft.get_height() - bear.crouch_sprite_left.get_height()
+                    self.screen.blit(bear.crouch_sprite_left,
+                                     (bear.getXPosition(), bear.getYPosition() + offset_y))
         else:
-            self.screen.blit(self.standingBearLeft,
-                             (bear.getXPosition(), bear.getYPosition()))
+            # Draw standing sprite
+            if not bear.getLeftDirection():
+                self.screen.blit(self.standingBear,
+                                 (bear.getXPosition(), bear.getYPosition()))
+            else:
+                self.screen.blit(self.standingBearLeft,
+                                 (bear.getXPosition(), bear.getYPosition()))
+
+    def _get_bear_walk_frame(self, animation_counter, facing_left=False):
+        # 4-frame cycle at 8 engine-frames per step → ~3 full strides/sec at 60 fps
+        # Frames alternate clear left/right leg contact for obvious stride readability.
+        walk_index = (animation_counter // 8) % 4
+        if facing_left:
+            frames = (self.bearWalkingLeft1, self.bearWalkingLeft2,
+                      self.bearWalkingLeft3, self.bearWalkingLeft4)
+        else:
+            frames = (self.bearWalking1, self.bearWalking2,
+                      self.bearWalking3, self.bearWalking4)
+        return frames[walk_index]
 
     def runGame(self):
         self.triggerFire = False
@@ -528,6 +736,11 @@ class mainGame:
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
         bear.level_up_sound = getattr(self, 'level_up_sound', None)
         bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
+        bear.has_lightning = False
+        bear.has_lightning_2 = False
+        # Assign crouch sprites
+        bear.crouch_sprite = self.crouchBear
+        bear.crouch_sprite_left = self.crouchBearLeft
         bear.setJumpStatus(False)
         bear.setLeftJumpStatus(False)
 
@@ -543,7 +756,7 @@ class mainGame:
 
         # Pre-load Zone 1 assets now so there is no stutter when the player
         # reaches that area. These objects sit idle until the zone triggers.
-        self._z1_mummy       = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
+        self._z1_mummy       = Mummy(1000, 20, 260, 360, self.mummy1, self.mummy2, self.screen)
         self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
         self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
         self._z1_door        = Door(self.screen, 1650)
@@ -579,11 +792,27 @@ class mainGame:
         deflectTimer = 0
         deflectPos = (0, 0)
         waterOffset = 0
+        shop_open = False
+        shop_selection = 0
+        shop_message = ""
+        shop_message_timer = 0
+        shop_last_weapon_bought = None
         self._current_music = "normal"
         self._footstep_counter = 0
         self._mummy_groan_timer = 0
         beamCharge = 0.0
         beamCooldown = 0
+        beamReadyPopupShown = False
+        _s_key_prev = False  # track fresh S press for lightning
+
+        # Show intro popup once at game start
+        if not self._intro_shown:
+            self._intro_shown = True
+            bear.setArrayText(['Welcome to the Bear Adventure!', '',
+                               'Press RETURN to open the SHOP.',
+                               'Buy upgrades and power-ups!',
+                               'Press "s" to continue'])
+            bear.setEndText(False)
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -603,9 +832,161 @@ class mainGame:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        shop_open = not shop_open
+                        if shop_open:
+                            shop_selection = 0
+                            shop_message = ''
+                            shop_message_timer = 0
+                    elif shop_open:
+                        shop_items = []
+                        shop_items.append(('health', 30, 'Health restore purchased! +20% HP restored.'))
+                        if not bear.has_shield:
+                            shop_items.append(('shield', 40, 'Shield purchased! 20% damage reduction.'))
+                        if not bear.has_aimer:
+                            shop_items.append(('aimer', 50, 'Aimer purchased! Use UP/DOWN to aim fireballs.'))
+                        if not getattr(bear, 'has_lightning', False):
+                            shop_items.append(('lightning', 60, 'Lightning bolt purchased! Press S to strike!'))
+                        if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
+                            shop_items.append(('lightning2', 80, 'Lightning 2! Press S for 3 bolts!'))
+                        if not getattr(bear, 'has_50pct_protection', False):
+                            shop_items.append(('50pct', 100, 'Protection unlocked! 50% damage reduction!'))
+                        if not getattr(bear, 'has_big_fireball', False):
+                            shop_items.append(('big_fireball', 60, 'Big Fireball! 30% larger fireballs!'))
+                        shop_selection = min(shop_selection, max(len(shop_items) - 1, 0))
+                        if event.key == pygame.K_UP:
+                            shop_selection = max(0, shop_selection - 1)
+                        elif event.key == pygame.K_DOWN:
+                            shop_selection = min(max(len(shop_items) - 1, 0), shop_selection + 1)
+                        elif event.key == pygame.K_x:
+                            if shop_selection < len(shop_items):
+                                item_type, cost, msg = shop_items[shop_selection]
+                                if bear.getCoins() >= cost:
+                                    bear.setCoins(bear.getCoins() - cost)
+                                    if item_type == 'health':
+                                        heal = int(bear.getMaxHp() * 0.20)
+                                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + heal))
+                                    elif item_type == 'shield':
+                                        bear.has_shield = True
+                                    elif item_type == 'aimer':
+                                        bear.has_aimer = True
+                                        shop_last_weapon_bought = 'aimer'
+                                    elif item_type == 'lightning':
+                                        bear.has_lightning = True
+                                        shop_last_weapon_bought = 'lightning'
+                                    elif item_type == 'lightning2':
+                                        bear.has_lightning_2 = True
+                                        shop_last_weapon_bought = 'lightning2'
+                                    elif item_type == '50pct':
+                                        bear.has_50pct_protection = True
+                                    elif item_type == 'big_fireball':
+                                        bear.has_big_fireball = True
+                                        shop_last_weapon_bought = 'big_fireball'
+                                    shop_message = msg
+                                else:
+                                    shop_message = 'Not enough coins.'
+                                shop_message_timer = 120
+                        elif event.key == pygame.K_ESCAPE:
+                            shop_open = False
+                            if shop_last_weapon_bought == 'lightning':
+                                bear.setArrayText(['Lightning bought!',
+                                    'Press S to call a lightning strike!',
+                                    'Press "s" to continue'])
+                                bear.setEndText(False)
+                            elif shop_last_weapon_bought == 'lightning2':
+                                bear.setArrayText(['Lightning 2 bought!',
+                                    'Press S to unleash 3 lightning bolts!',
+
+                                    'Press "s" to continue'])
+                                bear.setEndText(False)
+                            elif shop_last_weapon_bought == 'aimer':
+                                bear.setArrayText(['Aimer bought!',
+                                    'Hold UP/DOWN while pressing X',
+                                    'to aim your fireballs!',
+                                    'Press "s" to continue'])
+                                bear.setEndText(False)
+                            elif shop_last_weapon_bought == 'big_fireball':
+                                bear.setArrayText(['Big Fireball bought!',
+                                    'Press X to launch a larger,',
+                                    'harder-hitting fireball!',
+                                    'Press "s" to continue'])
+                                bear.setEndText(False)
+                            shop_last_weapon_bought = None
 
             background.render(totalDistance)
-            _draw_water(self.screen, waterOffset)
+            if shop_open:
+                # ── Cute shop overlay ──────────────────────────────────────
+                # Dark semi-transparent backdrop
+                _overlay = pygame.Surface((900, 700), pygame.SRCALPHA)
+                _overlay.fill((0, 0, 0, 160))
+                self.screen.blit(_overlay, (0, 0))
+
+                panel = pygame.Rect(80, 50, 640, 520)
+                # Gradient-style background (two rects)
+                pygame.draw.rect(self.screen, (28, 18, 52), panel, border_radius=18)
+                pygame.draw.rect(self.screen, (44, 30, 78), pygame.Rect(panel.x+4, panel.y+4, panel.width-8, panel.height//2), border_radius=14)
+                # Gold border + inner highlight
+                pygame.draw.rect(self.screen, (220, 170, 60), panel, 4, border_radius=18)
+                pygame.draw.rect(self.screen, (255, 230, 120), pygame.Rect(panel.x+6, panel.y+6, panel.width-12, 3))
+
+                # Title banner
+                _title_rect = pygame.Rect(panel.x + 160, panel.y - 22, 320, 44)
+                pygame.draw.rect(self.screen, (180, 130, 40), _title_rect, border_radius=10)
+                pygame.draw.rect(self.screen, (255, 220, 100), _title_rect, 3, border_radius=10)
+                render_hud_text_outlined(self.screen, _FONT_HUD, '✨  SHOP  ✨', _title_rect.x + 30, _title_rect.y + 8, (255, 245, 180))
+
+                shop_items = []
+                shop_items.append(('health', 30, '❤ Heal 20%', 'Restore 20% of max HP  [X] to buy'))
+                if not bear.has_shield:
+                    shop_items.append(('shield', 40, '🛡 Shield', 'Press X to buy - 20% damage block'))
+                if not bear.has_aimer:
+                    shop_items.append(('aimer', 50, '🎯 Aimer', 'Press X to buy - UP/DOWN to aim fireballs'))
+                if not getattr(bear, 'has_lightning', False):
+                    shop_items.append(('lightning', 60, '⚡ Lightning', 'Press X to buy - Press S to strike'))
+                if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
+                    shop_items.append(('lightning2', 80, '⚡⚡ Lightning 2', 'Press X to buy - S fires 3 bolts ahead'))
+                if not getattr(bear, 'has_50pct_protection', False):
+                    shop_items.append(('50pct', 100, '✦ Protection', 'Press X to buy - 50% damage reduction'))
+                if not getattr(bear, 'has_big_fireball', False):
+                    shop_items.append(('big_fireball', 60, '🔥 Big Fireball', 'Press X to buy - 30% larger fireballs'))
+                shop_selection = min(shop_selection, max(len(shop_items) - 1, 0))
+
+                if not shop_items:
+                    render_hud_text_outlined(self.screen, _FONT_HUD, '🌟 All items owned! 🌟', panel.x + 180, panel.y + 220, (200, 255, 200))
+                for idx, (item_id, cost, title, subtitle) in enumerate(shop_items):  # type: ignore
+                    item_y = panel.y + 38 + idx * 62
+                    option_rect = pygame.Rect(panel.x + 18, item_y, panel.width - 36, 54)
+                    if shop_selection == idx:
+                        pygame.draw.rect(self.screen, (80, 50, 130), option_rect, border_radius=12)
+                        pygame.draw.rect(self.screen, (200, 160, 255), option_rect, 2, border_radius=12)
+                    else:
+                        pygame.draw.rect(self.screen, (38, 26, 68), option_rect, border_radius=12)
+                        pygame.draw.rect(self.screen, (90, 70, 120), option_rect, 1, border_radius=12)
+                    render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, f'{title}  —  {cost} coins',
+                                               option_rect.x + 14, option_rect.y + 6, (255, 245, 210) if shop_selection == idx else (220, 210, 180))
+                    render_hud_text_outlined(self.screen, _FONT_HUD_VAL, subtitle,
+                                               option_rect.x + 14, option_rect.y + 32, (210, 190, 255) if shop_selection == idx else (160, 150, 190))
+
+                # Coin count
+                _coin_y = panel.y + panel.height - 60
+                pygame.draw.circle(self.screen, (255, 215, 0), (panel.x + 34, _coin_y + 12), 12)
+                pygame.draw.circle(self.screen, (255, 245, 130), (panel.x + 34, _coin_y + 12), 6)
+                render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, f'{bear.getCoins()} coins',
+                                           panel.x + 52, _coin_y, (255, 230, 80))
+                render_hud_text_outlined(self.screen, _FONT_HUD_VAL,
+                                           '[UP/DOWN] select   [X] buy   [ESC] close',
+                                           panel.x + 280, _coin_y + 4, (200, 185, 230))
+                if shop_message_timer > 0:
+                    _msg_rect = pygame.Rect(panel.x + 18, panel.y + panel.height - 90, panel.width - 36, 28)
+                    pygame.draw.rect(self.screen, (60, 40, 20), _msg_rect, border_radius=8)
+                    render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, shop_message,
+                                               _msg_rect.x + 10, _msg_rect.y + 4, (255, 255, 140))
+                pygame.display.flip()
+                self.clock.tick(60)
+                continue
+
+            render_water(self.screen, waterOffset)
             waterOffset = (waterOffset + 2) % 60
 
             global STEP
@@ -632,6 +1013,8 @@ class mainGame:
                 if (keys[pygame.K_x]
                         and playerFireCooldown == 0):
                     _base_cd = 30
+                    if getattr(bear, 'has_aimer', False):
+                        _base_cd = 12
                     _lvl_cd = bear.getLevel()
                     if _lvl_cd >= 14:
                         _base_cd = max(5, int(_base_cd * (0.70 ** (_lvl_cd - 13))))
@@ -642,7 +1025,20 @@ class mainGame:
                     if _lvl >= 12:
                         _boost *= 2.5
                     _fb_speed = int(10 * (1.15 ** (_eff_lvl // 2)) * _boost)
-                    vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
+                    if getattr(bear, 'has_aimer', False):
+                        dx = -1 if keys[pygame.K_LEFT] else (1 if keys[pygame.K_RIGHT] else (-1 if bear.getLeftDirection() else 1))
+                        dy = -1 if keys[pygame.K_UP] else (1 if keys[pygame.K_DOWN] else 0)
+                        if dx == 0 and dy == 0:
+                            dx = -1 if bear.getLeftDirection() else 1
+                        if dx != 0 and dy != 0:
+                            angle_factor = 0.75
+                        else:
+                            angle_factor = 1.0
+                        vel_x = int(_fb_speed * dx * angle_factor)
+                        vel_y = int(_fb_speed * dy * angle_factor)
+                    else:
+                        vel_x = -_fb_speed if bear.getLeftDirection() else _fb_speed
+                        vel_y = 0
                     fb_x = (bear.getXPosition() - 60
                             if bear.getLeftDirection()
                             else bear.getXPosition() + 100)
@@ -662,8 +1058,12 @@ class mainGame:
                     else:
                         _fb_img = self.fireBossBall
                     self.playerFires.append(
-                        FireBall(fb_x, fb_y, vel_x, 0,
-                                 _fb_img, self.screen))
+                        FireBall(fb_x, fb_y, vel_x, vel_y,
+                                 _fb_img,
+                                 self.screen,
+                                 size=(78, 78) if getattr(bear, 'has_big_fireball', False) else (60, 60)))
+                    if getattr(bear, 'has_big_fireball', False):
+                        self.playerFires[-1].damageAttack = int(self.playerFires[-1].damageAttack * 1.2)
                     if _lvl >= 10 and self.fire_sound_silver:
                         self.fire_sound_silver.play()
                     elif self.fire_sound:
@@ -673,9 +1073,15 @@ class mainGame:
                 # ---- C: beam super attack ---------------------------------
                 beamCooldown = max(0, beamCooldown - 1)
                 beamCharge = min(100.0, beamCharge + 0.10)
+                if beamCharge >= 100.0 and not beamReadyPopupShown and not self._beam_ever_shown:
+                    beamReadyPopupShown = True
+                    self._beam_ever_shown = True
+                    bear.setArrayText(['BEAM READY!', 'Press C to fire the beam!', 'Press "s" to continue'])
+                    bear.setEndText(False)
                 if keys[pygame.K_c] and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
                     beamCooldown = 60
+                    beamReadyPopupShown = False
                     _beam_dmg = bear.getDamageAttack() * 4
                     _beam_vx = -18 if bear.getLeftDirection() else 18
                     _beam_x = (bear.getXPosition() - 100
@@ -690,6 +1096,109 @@ class mainGame:
                     if self.beam_sound:
                         self.beam_sound.play()
                     attackingAnimationCounter = 1
+
+                # ---- D: shockwave attack (also crouches on floor when not attacking) ----------------
+                self.weapon_cooldown = max(0, self.weapon_cooldown - 1)
+                if keys[pygame.K_d] and self.weapon_cooldown == 0:
+                    self.weapon_cooldown = 60
+                    shock_x = bear.getXPosition() + 50
+                    shock_y = bear.getYPosition() + 50
+                    if getattr(self, '_secret_attack_unlocked', False):
+                        shock_radius = 240
+                        shock_damage = int(bear.getDamageAttack() * 2.2)
+                    else:
+                        shock_radius = 150
+                        shock_damage = int(bear.getDamageAttack() * 1.5)
+                    
+                    # Draw expanding circle effect
+                    for r in range(0, shock_radius, 20):
+                        pygame.draw.circle(self.screen, (100, 200, 255), (int(shock_x), int(shock_y)), r, 2)
+                    
+                    if self.explosion_sound:
+                        self.explosion_sound.play()
+                    
+                    # Damage enemies in radius
+                    enemies = (self.mummys + self.witches + self.greenBlobs +
+                              self.shadowShamans + self.miniFrankenBears + self.snakes)
+                    for enemy in enemies:
+                        if hasattr(enemy, 'getHealth') and enemy.getHealth() > 0:
+                            ex = enemy.getXPosition() + 40
+                            ey = enemy.getYPosition() + 50
+                            dist = ((ex - shock_x) ** 2 + (ey - shock_y) ** 2) ** 0.5
+                            if dist < shock_radius:
+                                enemy.setDamageReceived(shock_damage)
+                                enemy.setStunned(3)
+                                enemy.setHealth(enemy.getHealth() - shock_damage)
+                elif keys[pygame.K_d] and self.weapon_cooldown > 0:
+                    # D not on cooldown for attack: crouch only on floor
+                    if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
+                            and bear.getYPosition() + 100 >= 400):
+                        bear.set_crouch(True)
+                    else:
+                        bear.set_crouch(False)
+                else:
+                    bear.set_crouch(False)
+
+                # ---- S: lightning strike in front of player ----------------
+                # Recharge: fills 1 charge in ~200 frames (~3.3 s); max 2 charges
+                if getattr(bear, 'has_lightning', False):
+                    self.lightning_charge = min(2.0, self.lightning_charge + 0.005)
+                _s_key_down = keys[pygame.K_s]
+                _s_key_fresh = _s_key_down and not _s_key_prev
+                _s_key_prev = _s_key_down
+                if (_s_key_fresh and getattr(bear, 'has_lightning', False)
+                        and self.lightning_charge >= 1.0
+                        and bear.getEndText() and not shop_open):
+                    self.lightning_charge -= 1.0  # consume one charge
+                    # Strike point: directly in front of the bear
+                    if not bear.getLeftDirection():
+                        _lx = bear.getXPosition() + 140
+                    else:
+                        _lx = bear.getXPosition() - 80
+                    if getattr(bear, 'has_lightning_2', False):
+                        # Lightning 2: 3 successive bolts each 120 px further
+                        _offsets = [0, 120, 240] if not bear.getLeftDirection() else [0, -120, -240]
+                        for _bi, _off in enumerate(_offsets):
+                            self.lightning2_targets.append({
+                                'x': int(_lx + _off),
+                                'anim': 0,
+                                'delay': _bi * 12,
+                                'dmg': int(bear.getDamageAttack() * 2.5)
+                            })
+                        # Apply damage for each bolt
+                        _lene = (self.mummys + self.witches + self.greenBlobs +
+                                 self.shadowShamans + self.miniFrankenBears +
+                                 self.snakes + self.monkey_mummies)
+                        for _bi, _off in enumerate(_offsets):
+                            _bx = int(_lx + _off)
+                            _ldmg = int(bear.getDamageAttack() * 2.5)
+                            _lrect = pygame.Rect(_bx - 45, 0, 90, 450)
+                            for _le in _lene:
+                                if hasattr(_le, 'getHealth') and _le.getHealth() > 0:
+                                    _er = pygame.Rect(_le.getXPosition(), _le.getYPosition(), 100, 100)
+                                    if _lrect.colliderect(_er):
+                                        _le.setHealth(_le.getHealth() - _ldmg)
+                                        _le.setDamageReceived(_ldmg)
+                                        if hasattr(_le, 'setStunned'):
+                                            _le.setStunned(6)
+                    else:
+                        self.lightning_x = int(_lx)
+                        self.lightning_anim = 28  # frames of animation
+                        _ldmg = int(bear.getDamageAttack() * 2.5)
+                        _lrect = pygame.Rect(self.lightning_x - 45, 0, 90, 450)
+                        _lene = (self.mummys + self.witches + self.greenBlobs +
+                                 self.shadowShamans + self.miniFrankenBears +
+                                 self.snakes + self.monkey_mummies)
+                        for _le in _lene:
+                            if hasattr(_le, 'getHealth') and _le.getHealth() > 0:
+                                _er = pygame.Rect(_le.getXPosition(), _le.getYPosition(), 100, 100)
+                                if _lrect.colliderect(_er):
+                                    _le.setHealth(_le.getHealth() - _ldmg)
+                                    _le.setDamageReceived(_ldmg)
+                                    if hasattr(_le, 'setStunned'):
+                                        _le.setStunned(6)
+                    if self.explosion_sound:
+                        self.explosion_sound.play()
 
                 # ---- Z + RIGHT: jump-right --------------------------------
                 if keys[pygame.K_z] and keys[pygame.K_RIGHT]:
@@ -732,9 +1241,13 @@ class mainGame:
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
                                                self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
+                                for coin in self.coins:
+                                    coin.setXPosition(coin.getXPosition() - STEP)
+                                for db in self.destroyable_blocks:
+                                    db.setblockXPosition(db.getBlockXPosition() - STEP)
                                 for _bp in self.beamProjectiles:
                                     _bp["x"] -= STEP
                                 for block in self.blocks:
@@ -771,9 +1284,13 @@ class mainGame:
                                 moveObjects = (self.mummys + self.fires + self.witches +
                                                self.greenBlobs + self.door + self.keys + self.spikes +
                                                self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                                 for obj in moveObjects:
                                     obj.setXPosition(obj.getXPosition() - STEP)
+                                for coin in self.coins:
+                                    coin.setXPosition(coin.getXPosition() - STEP)
+                                for db in self.destroyable_blocks:
+                                    db.setblockXPosition(db.getBlockXPosition() - STEP)
                                 for _bp in self.beamProjectiles:
                                     _bp["x"] -= STEP
                                 for block in self.blocks:
@@ -802,16 +1319,16 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears)
+                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                             continue
-                        if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
+                        if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
                             hurtTimer = 0
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
-                            bear.setHp(bear.getHp() - monster.getDamageAttack())
+                            bear.applyDamage(monster.getDamageAttack())
                             self.screen.blit(self.hurtBear,
                                              (bear.getXPosition(), bear.getYPosition()))
                             if bear.getXPosition() <= 400:
@@ -854,9 +1371,13 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
+                            for coin in self.coins:
+                                coin.setXPosition(coin.getXPosition() + STEP)
+                            for db in self.destroyable_blocks:
+                                db.setblockXPosition(db.getBlockXPosition() + STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] += STEP
                             for block in self.blocks:
@@ -887,7 +1408,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -918,16 +1439,16 @@ class mainGame:
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
-                                            self.frankenbear)
+                                            self.frankenbear + self.snakes + self.monkey_mummies)
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                                 continue
-                            if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
+                            if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
                                 hurtTimer = 0
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
-                                bear.setHp(bear.getHp() - monster.getDamageAttack())
+                                bear.applyDamage(monster.getDamageAttack())
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
                                 if bear.getXPosition() > self.leftBoundary:
@@ -976,16 +1497,16 @@ class mainGame:
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
                     for monster in monsters:
-                        if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
+                        if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
                             _base_dmg = bear.getDamageAttack()
                             _is_crit = random.random() < 0.20
                             _dmg = _base_dmg * 2 if _is_crit else _base_dmg
                             if monster.getName() == "bigMummy":
-                                if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
+                                if is_monster_forehead_hit(bear.getXPosition(), bear.getYPosition(),
                                                         monster.getXPosition(), monster.getYPosition(),
                                                         bear.getLeftDirection()):
                                     monster.setDamageReceived(_dmg)
@@ -1029,16 +1550,16 @@ class mainGame:
                     bear.setLeftDirection(True)
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
                     for monster in monsters:
-                        if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
+                        if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
                             _base_dmg = bear.getDamageAttack()
                             _is_crit = random.random() < 0.20
                             _dmg = _base_dmg * 2 if _is_crit else _base_dmg
                             if monster.getName() == "bigMummy":
-                                if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
+                                if is_monster_forehead_hit(bear.getXPosition(), bear.getYPosition(),
                                                         monster.getXPosition(), monster.getYPosition(),
                                                         bear.getLeftDirection()):
                                     monster.setDamageReceived(_dmg)
@@ -1094,9 +1615,13 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
+                            for coin in self.coins:
+                                coin.setXPosition(coin.getXPosition() - STEP)
+                            for db in self.destroyable_blocks:
+                                db.setblockXPosition(db.getBlockXPosition() - STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] -= STEP
                             for block in self.blocks:
@@ -1126,15 +1651,15 @@ class mainGame:
                                         self.greenBlobs + self.door + self.keys +
                                         self.spikes):
                                 obj.setXPosition(obj.getXPosition() + STEP)
+                            for coin in self.coins:
+                                coin.setXPosition(coin.getXPosition() + STEP)
                             for b in self.blocks:
                                 b.setblockXPosition(b.getBlockXPosition() + STEP)
                             totalDistance -= STEP
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        _walkFrame = (bearAnimation // 11) % 4
-                        _walkImgs = [self.bearWalking1, self.bearWalking2, self.bearWalking4, self.bearWalking3]
-                        self.screen.blit(_walkImgs[_walkFrame],
+                        self.screen.blit(self._get_bear_walk_frame(bearAnimation),
                                          (bear.getXPosition(), bear.getYPosition() - 10))
                         self._footstep_counter += 1
                         if self._footstep_counter % 11 == 0 and self.footstep_sound:
@@ -1142,16 +1667,16 @@ class mainGame:
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
-                                            self.frankenbear)
+                                            self.frankenbear + self.snakes + self.monkey_mummies)
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                                 continue
-                            if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
+                            if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
                                 hurtTimer = 0
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
-                                bear.setHp(bear.getHp() - monster.getDamageAttack())
+                                bear.applyDamage(monster.getDamageAttack())
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
                                 bear.setXPosition(bear.getXPosition() - STEP)
@@ -1192,9 +1717,13 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() - STEP)
+                            for coin in self.coins:
+                                coin.setXPosition(coin.getXPosition() - STEP)
+                            for db in self.destroyable_blocks:
+                                db.setblockXPosition(db.getBlockXPosition() - STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] -= STEP
                             for block in self.blocks:
@@ -1226,9 +1755,13 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.witches +
                                            self.greenBlobs + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
+                            for coin in self.coins:
+                                coin.setXPosition(coin.getXPosition() + STEP)
+                            for db in self.destroyable_blocks:
+                                db.setblockXPosition(db.getBlockXPosition() + STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] += STEP
                             for block in self.blocks:
@@ -1253,31 +1786,31 @@ class mainGame:
                                         self.greenBlobs + self.door + self.keys +
                                         self.spikes):
                                 obj.setXPosition(obj.getXPosition() - STEP)
+                            for coin in self.coins:
+                                coin.setXPosition(coin.getXPosition() - STEP)
                             for b in self.blocks:
                                 b.setblockXPosition(b.getBlockXPosition() - STEP)
                             totalDistance -= STEP
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        _walkFrame = (bearAnimation // 11) % 4
-                        _walkLeftImgs = [self.bearWalkingLeft1, self.bearWalkingLeft2, self.bearWalkingLeft4, self.bearWalkingLeft3]
                         self._footstep_counter += 1
                         if self._footstep_counter % 11 == 0 and self.footstep_sound:
                             self.footstep_sound.play()
-                        self.screen.blit(_walkLeftImgs[_walkFrame],
+                        self.screen.blit(self._get_bear_walk_frame(bearAnimation, facing_left=True),
                                          (bear.getXPosition(), bear.getYPosition() - 10))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
-                                            self.frankenbear)
+                                            self.frankenbear + self.snakes + self.monkey_mummies)
                         for monster in dangerousObjects:
                             if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                                 continue
-                            if (bear.isBearHurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
+                            if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
-                                bear.setHp(bear.getHp() - monster.getDamageAttack())
+                                bear.applyDamage(monster.getDamageAttack())
                                 hurtTimer = 0
                                 self.screen.blit(self.hurtBear,
                                                  (bear.getXPosition(), bear.getYPosition()))
@@ -1318,7 +1851,7 @@ class mainGame:
                             moveObjects = (self.mummys + self.fires + self.greenBlobs +
                                            self.witches + self.door + self.keys + self.spikes +
                                            self.playerFires + self.shadowShamans + self.miniFrankenBears +
-                                               self.lasers)
+                                               self.lasers + self.snakes + self.monkey_mummies)
                             for obj in moveObjects:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
@@ -1340,13 +1873,13 @@ class mainGame:
                     attackCounterReady = 0
                     if self.thud_sound: self.thud_sound.play()
                     if self.attack_sound: self.attack_sound.play()
-                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears
+                    monsters = self.mummys + self.witches + self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
                     for monster in monsters:
-                        if isMonsterHurt(bear.getXPosition(), bear.getYPosition(),
+                        if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
                             if monster.getName() == "bigMummy":
-                                if isMonsterForeheadHit(bear.getXPosition(), bear.getYPosition(),
+                                if is_monster_forehead_hit(bear.getXPosition(), bear.getYPosition(),
                                                         monster.getXPosition(), monster.getYPosition(),
                                                         bear.getLeftDirection()):
                                     monster.setDamageReceived(bear.getDamageAttack())
@@ -1385,19 +1918,19 @@ class mainGame:
 
                     dangerousObjects = (self.mummys + self.fires + self.witches +
                                         self.greenBlobs + self.spikes + self.bossFires +
-                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears)
+                                        self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
                     for monster in dangerousObjects:
                         if hasattr(monster, 'getHealth') and monster.getHealth() <= 0:
                             continue
-                        if (bear.isBearHurt("LEFT", bear.getXPosition(), bear.getYPosition(),
+                        if (bear.is_bear_hurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
-                            bear.setHp(bear.getHp() - monster.getDamageAttack())
+                            bear.applyDamage(monster.getDamageAttack())
                             hurtTimer = 0
                             self.screen.blit(self.hurtBear,
                                              (bear.getXPosition(), bear.getYPosition()))
-                            rel = positionRelativeToMonster(
+                            rel = get_position_relative_to_monster(
                                 bear.getXPosition(), bear.getYPosition(),
                                 monster.getXPosition(), monster.getYPosition())
                             if rel == "RIGHT":
@@ -1449,6 +1982,7 @@ class mainGame:
             elif bear.getLeftJumpStatus():
                 bear.leftJump(self.blocks)
 
+
             # ---- Boundary and timer updates ------------------------------
             bear.boundaryExtraCheck()
             jumpTimer += 1
@@ -1456,12 +1990,43 @@ class mainGame:
             # ---- Draw blocks first so monsters render in front of them --
             for block in self.blocks:
                 block.drawRectangle()
+            
+            # ---- Draw and update destroyable blocks -----
+            destroyable_to_remove = []
+            for db in self.destroyable_blocks:
+                if db.getHealth() > 0:
+                    db.drawRectangle()
+                elif (db.getHealth() <= 0
+                      and db.getDestructionAnimationCount() < 20
+                      and not db.getStartDestructionAnimationStatus()):
+                    db.setStartDestructionAnimation(True)
+                elif db.getStartDestructionAnimationStatus():
+                    db.destructionAnimation += 1
+                    if db.destructionAnimation >= 30:
+                        db.setStartDestructionAnimation(False)
+                        # Drop coin and weapon
+                        coin = Coin(db.getBlockXPosition() + 30, db.getBlockYPosition() + 30, self.screen)
+                        self.coins.append(coin)
+                    if getattr(db, 'secret', False) and not self._secret_attack_unlocked:
+                        self._secret_attack_unlocked = True
+                        bear.setArrayText([
+                            'SECRET ATTACK UNLOCKED!',
+                            'Press "r" to unleash the shockwave.',
+                            'Greater range and stronger damage.',
+                            'Press "s" to continue'])
+                        bear.setEndText(False)
+            for db in destroyable_to_remove:
+                if db in self.destroyable_blocks:
+                    self.destroyable_blocks.remove(db)
 
             # ---- Monster lifecycle ---------------------------------------
             for mummy in self.mummys:
                 mummy.setBlocks(self.blocks)
+            
+            for mm in self.monkey_mummies:
+                mm.setBlocks(self.blocks)
 
-            monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans + self.miniFrankenBears
+            monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies
             to_remove = []
             for monster in monsters:
                 if monster.getHealth() > 0:
@@ -1487,6 +2052,10 @@ class mainGame:
             for monster in to_remove:
                 if monster in self.mummys:
                     self.mummys.remove(monster)
+                    # Drop 1-3 coins (randomised)
+                    for _ci in range(random.randint(1, 3)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
                     if len(self.mummys) == 0 and self.door and not self.doorPopupTriggered:
                         self.doorPopupTriggered = True
                         bear.setEndText(False)
@@ -1505,12 +2074,47 @@ class mainGame:
                         bear.text3 = ""
                 elif monster in self.witches:
                     self.witches.remove(monster)
+                    for _ci in range(random.randint(1, 3)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
                 elif monster in self.greenBlobs:
                     self.greenBlobs.remove(monster)
+                    for _ci in range(random.randint(1, 3)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
                 elif monster in self.shadowShamans:
                     self.shadowShamans.remove(monster)
+                    for _ci in range(random.randint(1, 3)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
                 elif monster in self.miniFrankenBears:
                     self.miniFrankenBears.remove(monster)
+                    for _ci in range(random.randint(1, 3)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
+                elif monster in self.snakes:
+                    self.snakes.remove(monster)
+                    for _ci in range(random.randint(1, 3)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
+                elif monster in self.monkey_mummies:
+                    self.monkey_mummies.remove(monster)
+                    for _ci in range(random.randint(1, 3)):
+                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                                               monster.getYPosition() + 30, self.screen))
+                    
+                    # Check if all monkeys are defeated - trigger New Game+
+                    if len(self.monkey_mummies) == 0 and getattr(self, '_monkey_level_active', False):
+                        self.newGamePlusLevel += 1
+                        bear.setArrayText([
+                            'MONKEY TEMPLE CONQUERED!', '',
+                            'NEW GAME + ' + str(self.newGamePlusLevel) + ' UNLOCKED!',
+                            '', 'Returning to the first level...', '',
+                            'Press "s" to continue'])
+                        bear.setEndText(False)
+                        self._monkey_level_active = False
+                        self._jungle_unlocked = False
+                        self._triggerNewGamePlus = True
 
                 if monster.getName() == "greenBlob" and monster.getHeight() == 100:
                     self.greenBlobs.append(
@@ -1520,6 +2124,10 @@ class mainGame:
                 elif monster.getName() == "bigMummy":
                     self.keys.append(
                         KeyItem(self.screen, monster.getXPosition(), monster.getYPosition()))
+                    # Boss drops 5 coins
+                    for _ci in range(5):
+                        self.coins.append(Coin(monster.getXPosition() + 10 + _ci * 28,
+                                               monster.getYPosition() + 80, self.screen))
                     self._bigMummyDefeated = True
                     self._switch_music("post_boss_normal")
 
@@ -1549,7 +2157,7 @@ class mainGame:
                             and hurtTimer > 25):
                         _laser_dmg = max(6, int(bear.getMaxHp() * 0.10))
                         bear.displayDamageOnBear(_laser_dmg, "laser")
-                        bear.setHp(bear.getHp() - _laser_dmg)
+                        bear.applyDamage(_laser_dmg)
                         hurtTimer = 0
                         laser_hit = True
                     
@@ -1584,12 +2192,9 @@ class mainGame:
                             _exp_gain = int(_exp_gain * 1.75)
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         boss_to_remove.append(monster)
-                        self.newGamePlusLevel += 1
                         bear.setArrayText([
-                            'NEW GAME + ' + str(self.newGamePlusLevel) + '!', '',
-                            'Press "s" to continue'])
-                        bear.setArrayText([
-                            'Enemies are stronger now...', '',
+                            'FINAL BOSS DEFEATED!', '',
+                            'NEW GAME + UNLOCKED!', '',
                             'Press "s" to continue'])
                         bear.setEndText(False)
                         self.isFinalBossDestroyed = True
@@ -1608,6 +2213,27 @@ class mainGame:
                     self.isDoor1Open = True
                     if self.key_pickup_sound: self.key_pickup_sound.play()
                     if self.door_open_sound: self.door_open_sound.play()
+
+            # ---- Coins (collectibles) -----------------------------------
+            coins_to_remove = []
+            for coin in self.coins:
+                coin.update()
+                coin.draw()
+                if coin.is_grabbed(bear.getXPosition(), bear.getYPosition()):
+                    coins_to_remove.append(coin)
+                    bear.setCoins(bear.getCoins() + 1)
+                    if getattr(self, 'coin_sound', None):
+                        self.coin_sound.play()
+                    if not self._first_coin_popup_shown:
+                        self._first_coin_popup_shown = True
+                        bear.setArrayText(['You got a coin!',
+                                           'Press RETURN to open the Shop',
+                                           'and spend your coins!',
+                                           'Press "s" to continue'])
+                        bear.setEndText(False)
+            for coin in coins_to_remove:
+                if coin in self.coins:
+                    self.coins.remove(coin)
 
             # ---- Witch fireballs (safe iteration) -----------------------
             fires_to_remove = []
@@ -1645,7 +2271,7 @@ class mainGame:
                     continue
                 pf_rect = pygame.Rect(pf_x, pf_y, 60, 60)
                 monsters = (self.mummys + self.witches +
-                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears)
+                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
                 for monster in monsters:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
@@ -1662,6 +2288,18 @@ class mainGame:
                         else:
                             _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
                             if _snd: _snd.play()
+                        pf_to_remove.append(pf)
+                        break
+                
+                # Check destroyable blocks too
+                for db in self.destroyable_blocks:
+                    db_rect = pygame.Rect(db.getBlockXPosition(), db.getBlockYPosition(),
+                                         db.getWidth(), db.getHeight())
+                    if pf_rect.colliderect(db_rect) and db.getHealth() > 0:
+                        db.setHealth(db.getHealth() - 1)
+                        db.setDamageReceived(1)
+                        if self.hit_sound:
+                            self.hit_sound.play()
                         pf_to_remove.append(pf)
                         break
             for pf in pf_to_remove:
@@ -1687,7 +2325,7 @@ class mainGame:
                     continue
                 bp_rect = pygame.Rect(bp["x"], _by, _bw, _bh)
                 monsters = (self.mummys + self.witches +
-                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears)
+                            self.greenBlobs + self.frankenbear + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies)
                 for monster in monsters:
                     _mid = id(monster)
                     if _mid in bp["hit_ids"]:
@@ -1702,9 +2340,101 @@ class mainGame:
                         monster.setDamageReceived(_beam_hit_dmg)
                         monster.setStunned(3)
                         monster.setHealth(monster.getHealth() - _beam_hit_dmg)
+                
+                # Check destroyable blocks too
+                for db in self.destroyable_blocks:
+                    if db.getHealth() > 0:
+                        db_rect = pygame.Rect(db.getBlockXPosition(), db.getBlockYPosition(),
+                                             db.getWidth(), db.getHeight())
+                        if bp_rect.colliderect(db_rect):
+                            db.setHealth(db.getHealth() - 1)
+                            db.setDamageReceived(1)
             for bp in bp_to_remove:
                 if bp in self.beamProjectiles:
                     self.beamProjectiles.remove(bp)
+
+            # ---- Snake poison contact detection ----------------------------
+            for snake in self.snakes:
+                if snake.getHealth() > 0:
+                    if hasattr(snake, 'update_poison_cooldown'):
+                        snake.update_poison_cooldown()
+                    snake_rect = pygame.Rect(snake.getXPosition(), snake.getYPosition(), 80, 60)
+                    bear_rect = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
+                    if snake_rect.colliderect(bear_rect) and snake.get_poison_cooldown() == 0:
+                        bear.set_poison(30)
+                        snake.set_poison_cooldown(120)  # 2-second cooldown between repoisons
+            # Update bear poison once per frame (outside snake loop)
+            if hasattr(bear, 'update_poison'):
+                _hp_pre = bear.getHp()
+                bear.update_poison()
+                # When poison tick fires, push a floating "-2" damage number
+                if bear.getHp() < _hp_pre:
+                    self._poison_floats.append({
+                        'x': bear.getXPosition() + random.randint(-15, 15),
+                        'y': bear.getYPosition() - 10,
+                        'timer': 55
+                    })
+
+            # Draw & advance all active poison-damage floats
+            _fin_font = get_font('damage')
+            for _pf in self._poison_floats:
+                _pf['y'] -= 1          # drift upward
+                _pf['timer'] -= 1
+                _alpha = int(255 * (_pf['timer'] / 55.0))
+                if _fin_font:
+                    _dmg_str = '-2'
+                    _fs = _fin_font.render(_dmg_str, True, (80, 230, 80))
+                    _fs.set_alpha(_alpha)
+                    self.screen.blit(_fs, (int(_pf['x']), int(_pf['y'])))
+            self._poison_floats = [f for f in self._poison_floats if f['timer'] > 0]
+
+            # Show POISONED indicator + green tint overlay on bear while active
+            if hasattr(bear, 'is_poisoned') and bear.is_poisoned():
+                # Green pulsing overlay on the bear (triangle-wave, no math import needed)
+                _ptick = getattr(bear, 'poison_damage_tick', 0)
+                _pulse = (_ptick % 30) / 30.0          # 0.0 → 1.0 cycle
+                _p_alpha = int(45 + 45 * (1 - abs(2 * _pulse - 1)))  # 45..90..45
+                _p_ov = pygame.Surface((80, 100), pygame.SRCALPHA)
+                _p_ov.fill((40, 220, 40, _p_alpha))
+                self.screen.blit(_p_ov, (bear.getXPosition(), bear.getYPosition()),
+                                 special_flags=pygame.BLEND_RGBA_ADD)
+                # "POISONED" label above bear (pulsing brightness)
+                _poi_alpha = int(160 + 95 * (1 - abs(2 * _pulse - 1)))   # 160..255..160
+                _poi_surf = _FONT_HUD_VAL.render('POISONED', True, (80, 230, 80))
+                _poi_surf.set_alpha(_poi_alpha)
+                self.screen.blit(_poi_surf, (bear.getXPosition() - 10, bear.getYPosition() - 32))
+
+            if (totalDistance > 30000 and not getattr(self, '_checkpoint_saved', False)
+                    and bear.getEndText() and not self.escape):
+                self._save_checkpoint(backgroundScrollX, totalDistance, bear)
+                bear.setArrayText(['GAME SAVED!', '',
+                                   'Checkpoint reached at 50%.',
+                                   'Press "s" to continue'])
+                bear.setEndText(False)
+
+            if bear.getCoins() == 42 and not self._easter_egg_42 and bear.getEndText():
+                self._easter_egg_42 = True
+                bear.setArrayText(['Nice, 42 coins!',
+                                   'The answer to life is hidden.',
+                                   'Press "s" to continue'])
+                bear.setEndText(False)
+            # Every 100 coins: full health restore + 100 max HP
+            if bear.getEndText():
+                _coin_milestone = bear.getCoins() // 100
+                if _coin_milestone > self._last_coin_milestone:
+                    self._last_coin_milestone = _coin_milestone
+                    bear.setMaxHp(bear.getMaxHp() + 100)
+                    bear.setHp(bear.getMaxHp())
+                    bear.setArrayText([str(_coin_milestone * 100) + ' COINS!',
+                                       '+100 Max HP! Full health restored!',
+                                       'Press "s" to continue'])
+                    bear.setEndText(False)
+            if bear.getLevel() == 13 and not self._easter_egg_13 and bear.getEndText():
+                self._easter_egg_13 = True
+                bear.setArrayText(['Lucky thirteen!',
+                                   'Magic seems to be smiling at you.',
+                                   'Press "s" to continue'])
+                bear.setEndText(False)
 
             hurtTimer += 1
 
@@ -1796,6 +2526,8 @@ class mainGame:
             triggerWitchFireBallAnimation += 1
             attackCounterReady += 1
 
+            keys = pygame.key.get_pressed()
+
             # ---- Platforms and gravity ----------------------------------
             for block in self.blocks:
                 # Only run boundary logic on the ground.  While airborne,
@@ -1805,6 +2537,35 @@ class mainGame:
                 # bear to fall straight through a platform it just landed on.
                 if not bear.getJumpStatus() and not bear.getLeftJumpStatus():
                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+
+            # ---- Drop-through platform (DOWN key) -----------------------
+            if (keys[pygame.K_DOWN]
+                    and not bear.getJumpStatus()
+                    and not bear.getLeftJumpStatus()
+                    and bear.getYPosition() + 100 < floorHeight):
+                _on_plat = [b for b in self.blocks if b.getOnPlatform()]
+                if _on_plat:
+                    bear.jumpVelocity = -2.0
+                    bear.setComingUpStatus(False)
+                    bear.setJumpStatus(True)
+                    for b in self.blocks:
+                        b.setDropStatus(False)
+                        b.setOnPlatform(False)
+                    bear.sourceBlock = _on_plat[0]
+                    bear._drop_timer = 40
+
+            # ---- Post-boss platform popup (first time landing on platform after door) --
+            if (self._boss_door_passed
+                    and not self._post_boss_platform_popup_shown
+                    and not bear.getJumpStatus()
+                    and not bear.getLeftJumpStatus()
+                    and any(b.getOnPlatform() for b in self.blocks)):
+                self._post_boss_platform_popup_shown = True
+                bear.setArrayText([
+                    'Tip: press DOWN while on',
+                    'a platform to drop through it!',
+                    'Press "s" to continue'])
+                bear.setEndText(False)
 
             # Walk-off-edge detection: if the bear is grounded (not in a jump),
             # not on the floor, and no platform is supporting it, the bear has
@@ -1866,32 +2627,41 @@ class mainGame:
 
             bear.displayBearHp()
             bear.displayBearExp()
+            bear.displayBearCoins()
             _bc_x, _bc_y, _bc_w, _bc_h = 624, 6, 180, 28
-            _hud_panel(self.screen, _bc_x, _bc_y, _bc_w, _bc_h, (30, 50, 100))
+            render_hud_panel(self.screen, _bc_x, _bc_y, _bc_w, _bc_h, (30, 50, 100))
             _bc_ratio = min(1.0, beamCharge / 100.0)
             if _bc_ratio >= 1.0:
                 _bc_col = (100, 200, 255)
             else:
                 _bc_col = (60, 100, 180)
-            _hud_bar(self.screen, _bc_x + 50, _bc_y + 5, _bc_w - 58, 14, _bc_ratio, _bc_col)
-            _hud_text_outlined(self.screen, _FONT_HUD_VAL, "BEAM",
+            render_hud_bar(self.screen, _bc_x + 50, _bc_y + 5, _bc_w - 58, 14, _bc_ratio, _bc_col)
+            render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "BEAM",
                                _bc_x + 6, _bc_y + 4, (100, 200, 255))
             if _bc_ratio >= 1.0:
                 _rdy = _FONT_HUD_VAL.render("C:READY", True, (255, 255, 100))
                 self.screen.blit(_rdy, (_bc_x + 52, _bc_y + 14))
-                if not getattr(self, '_beam_popup_shown', False):
-                    self._beam_popup_shown = True
-                    self._beam_popup_timer = 180
-                if getattr(self, '_beam_popup_timer', 0) > 0 and bear.getEndText():
-                    self._beam_popup_timer -= 1
-                    _flash = (pygame.time.get_ticks() // 400) % 2 == 0
-                    if _flash:
-                        _popup_txt = _FONT_DAMAGE.render("PRESS C FOR BEAM!", True, (100, 200, 255))
-                        _popup_bg = pygame.Surface((_popup_txt.get_width() + 16, _popup_txt.get_height() + 8), pygame.SRCALPHA)
-                        _popup_bg.fill((0, 0, 40, 180))
-                        _px = 450 - _popup_txt.get_width() // 2
-                        self.screen.blit(_popup_bg, (_px - 8, 80))
-                        self.screen.blit(_popup_txt, (_px, 84))
+            # ---- Lightning charge pips HUD (2 charges) ------------------
+            if getattr(bear, 'has_lightning', False):
+                _lc_x, _lc_y, _lc_w, _lc_h = 624, 38, 180, 26
+                render_hud_panel(self.screen, _lc_x, _lc_y, _lc_w, _lc_h, (30, 50, 100))
+                render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "S:ZAP",
+                                   _lc_x + 4, _lc_y + 3, (180, 240, 100))
+                _pip_w, _pip_h, _pip_gap = 55, 14, 6
+                _pip_start = _lc_x + 62
+                for _pi in range(2):
+                    _px = _pip_start + _pi * (_pip_w + _pip_gap)
+                    _py = _lc_y + 5
+                    if self.lightning_charge >= (_pi + 1):
+                        _pc = (160, 255, 80)
+                    elif self.lightning_charge >= _pi + 0.05:
+                        _frac = self.lightning_charge - _pi
+                        _fc = int(255 * _frac)
+                        _pc = (_fc // 2, _fc, 30)
+                    else:
+                        _pc = (40, 60, 30)
+                    pygame.draw.rect(self.screen, _pc, (_px, _py, _pip_w, _pip_h), border_radius=4)
+                    pygame.draw.rect(self.screen, (80, 120, 60), (_px, _py, _pip_w, _pip_h), 1, border_radius=4)
             if self.newGamePlusLevel > 0:
                 _ng_txt = _FONT_DAMAGE.render(
                     "NG+" + str(self.newGamePlusLevel), True, (255, 215, 0))
@@ -1929,7 +2699,10 @@ class mainGame:
                             self.triggerText3 = True
                             bear.setEndText(False)
                 else:
-                    # Door is unlocked — show text only once the bear reaches it
+                    # Door is unlocked — detect when bear fully passes through
+                    if self.isDoor1Open and bear.getXPosition() > door_x + 50:
+                        self._boss_door_passed = True
+                    # Show text only once the bear reaches it
                     if (not self.triggerText2
                             and door_x - 150 <= bear.getXPosition()):
                         self.triggerText2 = True
@@ -1952,18 +2725,29 @@ class mainGame:
                 bear.displayTextBox()
 
             if bear.getHealth() <= 0 and not self.triggerText4:
-                bear.setEndText(False)
-                self.triggerText4 = True
-                bear.setArrayText(['GAME OVER!', '',
-                                   'Press "s" to continue'])
-                bear.setArrayText(['Please try again.', '',
-                                   'Press "s" to continue'])
-                self.escape = True
+                if getattr(self, '_checkpoint_saved', False) and self._checkpoint_data:
+                    totalDistance, backgroundScrollX = self._restore_checkpoint(
+                        bear, background, totalDistance)
+                    bear.setArrayText(['Checkpoint restored!', '',
+                                       'Return to your last save.',
+                                       'Press "s" to continue'])
+                    bear.setEndText(False)
+                else:
+                    bear.setEndText(False)
+                    self.triggerText4 = True
+                    bear.setArrayText(['GAME OVER!', '',
+                                       'Press "s" to continue'])
+                    bear.setArrayText(['Please try again.', '',
+                                       'Press "s" to continue'])
+                    self.escape = True
             elif self.escape and bear.getEndText():
                 pygame.quit()
                 return
 
-            if getattr(self, '_triggerNewGamePlus', False) and bear.getEndText():
+            if bear.getEndText() and (getattr(self, '_triggerJungleTransition', False)
+                                      or getattr(self, '_triggerNewGamePlus', False)):
+                transition_mode = 'jungle' if getattr(self, '_triggerJungleTransition', False) else 'ng_plus'
+                self._triggerJungleTransition = False
                 self._triggerNewGamePlus = False
                 saved_level = bear.getLevel()
                 saved_exp = bear.getCurrentExp()
@@ -1971,12 +2755,21 @@ class mainGame:
                 saved_damage = bear.getDamageAttack()
                 saved_fireball_damage = getattr(bear, 'fireballDamage', 10)
                 saved_max_exp = bear.getMaxExp()
+                saved_coins = bear.getCoins()
+                saved_shield = getattr(bear, 'has_shield', False)
+                saved_aimer = getattr(bear, 'has_aimer', False)
+                saved_lightning = getattr(bear, 'has_lightning', False)
+                saved_lightning2 = getattr(bear, 'has_lightning_2', False)
+                saved_50pct = getattr(bear, 'has_50pct_protection', False)
+                saved_big_fireball = getattr(bear, 'has_big_fireball', False)
 
                 self.bossFires = []; self.mummys = []; self.fires = []
                 self.playerFires = []; self.greenBlobs = []; self.witches = []
                 self.shadowShamans = []; self.blocks = []; self.frankenbear = []
                 self.miniFrankenBears = []; self.lasers = []; self.waterfalls = []
                 self.door = []; self.keys = []; self.spikes = []
+                self.snakes = []; self.monkey_mummies = []; self.coins = []
+                self.destroyable_blocks = []; self.beamProjectiles = []
 
                 self.showBoss = True
                 self.triggerText1 = False; self.triggerText2 = False
@@ -1987,10 +2780,12 @@ class mainGame:
                 self.isFinalBossDestroyed = False
                 self.escape = False; self.triggerFire = False
                 self.isDoor1Open = False; self.bossTimerAnimation = 0
+                self._boss_door_passed = False
                 if self.water_sound and self._water_playing:
                     self.water_sound.stop()
                 self._water_playing = False
                 self.activeMonsters = [False] * 16
+                self._monkey_level_active = False
 
                 bear = Bear(150, 300, self.screen, self.thud_sound)
                 self._bear_ref = bear
@@ -1998,7 +2793,12 @@ class mainGame:
                 bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
                 bear.level_up_sound = getattr(self, 'level_up_sound', None)
                 bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
+                # Assign crouch sprites
+                bear.crouch_sprite = self.crouchBear
+                bear.crouch_sprite_left = self.crouchBearLeft
                 bear.setJumpStatus(False); bear.setLeftJumpStatus(False)
+                bear.crouch_sprite = self.crouchBear
+                bear.crouch_sprite_left = self.crouchBearLeft
                 bear.setLevel(saved_level)
                 bear.setCurrentExp(saved_exp)
                 bear.setMaxHp(saved_hp)
@@ -2006,67 +2806,25 @@ class mainGame:
                 bear.setDamageAttack(saved_damage)
                 bear.fireballDamage = saved_fireball_damage
                 bear.setMaxExp(saved_max_exp)
+                bear.setCoins(saved_coins)
+                bear.has_shield = saved_shield
+                bear.has_aimer = saved_aimer
+                bear.has_lightning = saved_lightning
+                bear.has_lightning_2 = saved_lightning2
+                bear.has_50pct_protection = saved_50pct
+                bear.has_big_fireball = saved_big_fireball
                 self._fireball_tutorial_shown = True
-                self._bigMummyDefeated = False
+                self._bigMummyDefeated = (transition_mode == 'jungle')
                 self._hardMode = False
                 self._hardMode80 = False
                 self._zone85_active = False
                 self._beam_popup_shown = False
-                self.beamProjectiles = []
-
-                import random as _ngr
-                _enemy_x_positions = sorted(_ngr.sample(range(600, 1800, 100), 5))
-                for x in _enemy_x_positions:
-                    _roll = _ngr.random()
-                    if _roll < 0.35:
-                        self.mummys.append(Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                    elif _roll < 0.55:
-                        self.witches.append(Witch(x, _ngr.randint(100, 250), self.witch, self.witch2, self.screen, self.fireball_sound))
-                    elif _roll < 0.75:
-                        self.greenBlobs.append(GreenBlob(x, 300, 100, 100, self.screen, self.blob_jump_sound))
-                    elif _roll < 0.90:
-                        self.shadowShamans.append(ShadowShaman(x, _ngr.randint(100, 200), self.witch, self.witch2, self.screen))
-                    else:
-                        self.miniFrankenBears.append(MiniFrankenBear(x, _ngr.randint(100, 200), self.screen))
-                _ng_hp_mult = 1.0 + 10.0 * self.newGamePlusLevel
-                _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
-                _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
-                _ng_spd_mult = 1.0 + 0.2 * self.newGamePlusLevel
-                for _ngm in (self.mummys + self.witches + self.greenBlobs +
-                             self.shadowShamans + self.miniFrankenBears):
-                    _ngm.health = int(_ngm.health * _ng_hp_mult)
-                    _ngm.damageAttack = int(_ngm.damageAttack * _ng_dmg_mult)
-                    _ngm.exp = int(_ngm.exp * _ng_exp_mult)
-                    if hasattr(_ngm, 'walk_speed'):
-                        _ngm.walk_speed = max(1, round(_ngm.walk_speed * _ng_spd_mult))
-                    if hasattr(_ngm, 'rand'):
-                        _ngm.rand = max(1, round(_ngm.rand * _ng_spd_mult))
-                    _ngm._ng_boosted = True
-
-                self._z1_mummy = Mummy(1000, 100, 200, 300, self.mummy1, self.mummy2, self.screen)
-                self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_mult)
-                self._z1_mummy.damageAttack = int(self._z1_mummy.damageAttack * _ng_dmg_mult)
-                self._z1_mummy.exp = int(self._z1_mummy.exp * _ng_exp_mult)
-                self._z1_mummy.rand = max(1, round(self._z1_mummy.rand * _ng_spd_mult))
-                self._z1_mummy._ng_boosted = True
-                self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
-                self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
-                self._z1_door = Door(self.screen, 1650)
-
-                block1 = Block(230,  340, 100, 60,  "red",     self.screen)
-                block2 = Block(500,  190, 100, 60,  "monster", self.screen)
-                block3 = Block(780,  190, 100, 60,  "red",     self.screen)
-                block5 = Block(1010, 190, 100, 60,  "red",     self.screen)
-                block7 = Block(1240, 190, 100, 60,  "monster", self.screen)
-                block6 = Block(1470, 190, 100, 60,  "monster", self.screen)
-                block8 = Block(1600, 100, 250, 300, "monster", self.screen)
-                self.blocks.extend([block1, block2, block3, block5, block6, block7, block8])
+                self.lightning2_targets = []
+                self.lightning2_cooldown = 0
+                background.reset()
 
                 background = Background(self.screen)
-                background._ng_blue = True
                 self._bg_ref = background
-                backgroundScrollX = bear.getXPosition()
-                totalDistance = 60
                 bear.setLeftDirection(False)
                 bearAnimation = 0; isBearHurtAnimation = 0
                 hurtTimer = 0; jumpTimer = 0
@@ -2075,7 +2833,108 @@ class mainGame:
                 waterOffset = 0; triggerWitchFireBallAnimation = 0
                 attackingAnimationCounter = 0; attackingLeftAnimtationCounter = 0
                 self._current_music = None
+
+                # Both jungle AND ng_plus transitions go to the jungle level
+                self._jungle_unlocked = True
+                _ng_hp_mult = 1.0 + 10.0 * self.newGamePlusLevel
+                _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
+                _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
+                _ng_spd_mult = 1.0 + 0.2 * self.newGamePlusLevel
+                self._z1_mummy = Mummy(1000, 20, 260, 360, self.mummy1, self.mummy2, self.screen)
+                self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_mult)
+                self._z1_mummy.damageAttack = int(self._z1_mummy.damageAttack * _ng_dmg_mult)
+                self._z1_mummy.exp = int(self._z1_mummy.exp * _ng_exp_mult)
+                self._z1_mummy.rand = max(1, round(self._z1_mummy.rand * _ng_spd_mult))
+                self._z1_mummy._ng_boosted = True
+                self._z1_block_left  = Block(0,    250, 130, 150, "monster", self.screen)
+                self._z1_block_right = Block(1800, 250, 130, 150, "monster", self.screen)
+                self._z1_door = Door(self.screen, 1650)
+                if transition_mode != 'jungle':
+                    background._ng_blue = True
+                # Restart from the very beginning with the same layout
+                self._jungle_unlocked = False
+                self._bigMummyDefeated = False
+                self._boss_door_passed = False
+                self._post_boss_platform_popup_shown = False
+                self._fireball_tutorial_shown = False
+                self._poison_floats = []
+                # Recreate initial blocks (identical to runGame)
+                _b1 = Block(230,  340, 100, 60,  "red",     self.screen)
+                _b2 = Block(500,  190, 100, 60,  "monster", self.screen)
+                _b3 = Block(780,  190, 100, 60,  "red",     self.screen)
+                _b5 = Block(1010, 190, 100, 60,  "red",     self.screen)
+                _b7 = Block(1240, 190, 100, 60,  "monster", self.screen)
+                _b6 = Block(1470, 190, 100, 60,  "monster", self.screen)
+                _b8 = Block(1600, 100, 250, 300, "monster", self.screen)
+                self.blocks.extend([_b1, _b2, _b3, _b5, _b6, _b7, _b8])
+                # Recreate initial mummies scaled for NG+
+                for _mx in [700, 900, 1100, 1300, 1500]:
+                    _m = Mummy(_mx, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
+                    _m.health = int(_m.health * _ng_hp_mult)
+                    _m.damageAttack = int(_m.damageAttack * _ng_dmg_mult)
+                    _m.rand = max(1, round(_m.rand * _ng_spd_mult))
+                    self.mummys.append(_m)
+                bear.setXPosition(150)
+                bear.setYPosition(300)
+                backgroundScrollX = 60
+                totalDistance = 60
+                background.setXPosition(backgroundScrollX)
                 self._switch_music("normal")
+
+            # ---- Lightning strike animation (drawn on top of everything) ----
+            if self.lightning_anim > 0:
+                self.lightning_anim -= 1
+                _lx = self.lightning_x
+                _bright = self.lightning_anim > 14
+                _rng_bolt = random.Random(self.lightning_anim)  # stable shape per frame
+                bx, by = _lx, 0
+                while by < 410:
+                    nbx = int(bx + _rng_bolt.randint(-22, 22))
+                    nby = min(410, by + _rng_bolt.randint(20, 38))
+                    _c_outer = (80, 180, 255) if _bright else (40, 90, 160)
+                    _c_core  = (255, 255, 80) if _bright else (160, 200, 80)
+                    pygame.draw.line(self.screen, _c_outer, (bx, by), (nbx, nby), 9)
+                    pygame.draw.line(self.screen, _c_core,  (bx, by), (nbx, nby), 4)
+                    pygame.draw.line(self.screen, (255, 255, 255), (bx, by), (nbx, nby), 1)
+                    bx, by = nbx, nby
+                if _bright:
+                    pygame.draw.circle(self.screen, (255, 255, 160), (_lx, 398), 50)
+                    pygame.draw.circle(self.screen, (255, 255, 220), (_lx, 398), 28)
+                    pygame.draw.circle(self.screen, (255, 255, 255), (_lx, 398), 14)
+                # Cooldown indicator: thin arc above bear when lightning charged
+                if self.lightning_cooldown == 0 and getattr(bear, 'has_lightning', False):
+                    _bxx = bear.getXPosition() + 50
+                    pygame.draw.circle(self.screen, (80, 200, 255),
+                                       (_bxx, bear.getYPosition() - 12), 8, 2)
+            # ---- Lightning 2 successive bolts animation ------------------
+            _l2_keep = []
+            for _l2b in self.lightning2_targets:
+                if _l2b['delay'] > 0:
+                    _l2b['delay'] -= 1
+                    _l2_keep.append(_l2b)
+                else:
+                    if _l2b['anim'] == 0:
+                        _l2b['anim'] = 28
+                    _l2b['anim'] -= 1
+                    if _l2b['anim'] > 0:
+                        _l2_keep.append(_l2b)
+                    _lx2 = _l2b['x']
+                    _bright2 = _l2b['anim'] > 14
+                    _rng2 = random.Random(_l2b['anim'] + _lx2)
+                    bx2, by2 = _lx2, 0
+                    while by2 < 410:
+                        nbx2 = int(bx2 + _rng2.randint(-18, 18))
+                        nby2 = min(410, by2 + _rng2.randint(20, 38))
+                        _co2 = (120, 220, 120) if _bright2 else (60, 140, 60)
+                        _cc2 = (200, 255, 80)  if _bright2 else (120, 200, 60)
+                        pygame.draw.line(self.screen, _co2, (bx2, by2), (nbx2, nby2), 9)
+                        pygame.draw.line(self.screen, _cc2, (bx2, by2), (nbx2, nby2), 4)
+                        pygame.draw.line(self.screen, (240, 255, 200), (bx2, by2), (nbx2, nby2), 1)
+                        bx2, by2 = nbx2, nby2
+                    if _bright2:
+                        pygame.draw.circle(self.screen, (200, 255, 160), (_lx2, 398), 45)
+                        pygame.draw.circle(self.screen, (220, 255, 200), (_lx2, 398), 24)
+            self.lightning2_targets = _l2_keep
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -2104,12 +2963,12 @@ class mainGame:
             self.activeMonsters[11] = True
             offset = 5000 - 2500  # 2 500 scroll-units of lead time
             self._z1_block_left.setblockXPosition(0    + offset)
-            self._z1_block_right.setblockXPosition(1800 + offset)
+            self._z1_block_right.setblockXPosition(1400 + offset)  # left of door (door at 1650)
             self._z1_door.setXPosition(1650 + offset)
             self._z1_mummy.setXPosition(1000 + offset)
             self.blocks.append(self._z1_block_left)
             self.blocks.append(self._z1_block_right)
-            self.mummys.append(self._z1_mummy)
+            # Boss mummy stays off-screen – added to self.mummys only when Zone 1 fires.
             self.door.append(self._z1_door)
             self.door1 = self._z1_door
 
@@ -2119,20 +2978,54 @@ class mainGame:
             self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
+            self._jungle_unlocked = True
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
+            self._z1_mummy.setXPosition(500)  # Place boss in centre of arena, clear of both wall blocks
             self.mummys.append(self._z1_mummy)
 
             self.door1 = self._z1_door
             self.door = [self.door1]  # replace list to avoid duplicate
             self.doorPopupTriggered = False
 
+        # ── Zone TEST @ 6 500 – "Monkey Temple" – Optional Challenge Level ──
+        # NOTE: Disabled from the automatic zone chain; reserved for a future
+        # explicit trigger so it does not override Zone 1.2's witch gauntlet.
+        if (backgroundScrollX > 1_000_000 and not getattr(self, '_monkey_level_active', False)
+            and self._jungle_unlocked):
+            self._monkey_level_active = True
+            # Keep post-boss music playing; only override to normal if not already post-boss
+            if getattr(self, '_current_music', None) not in ('post_boss_normal', 'enchanted_tomb'):
+                self._switch_music("normal")
+            self.mummys = []; self.witches = []; self.blocks = []
+            self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
+            self.monkey_mummies = []
+            
+            # Create random platforms for variety
+            import random as _rnd
+            platform_y_values = [100, 150, 200, 250, 300, 350]
+            
+            # Generate 8-10 random platforms
+            for i in range(_rnd.randint(8, 10)):
+                plat_x = 1050 + (i * 150)
+                plat_y = _rnd.choice(platform_y_values)
+                plat_width = _rnd.randint(60, 120)
+                plat_type = _rnd.choice(["checkered", "striped", "greyRock", "monster"])
+                platform = Block(plat_x, plat_y, plat_width, 50, plat_type, self.screen)
+                self.blocks.append(platform)
+            
+            # Add 3 MonkeyMummies as the challenge
+            monkey1 = MonkeyMummy(1150, 250, 70, 80, self.mummy1, self.mummy2, self.screen)
+            monkey2 = MonkeyMummy(1450, 180, 70, 80, self.mummy1, self.mummy2, self.screen)
+            monkey3 = MonkeyMummy(1750, 220, 70, 80, self.mummy1, self.mummy2, self.screen)
+            self.monkey_mummies.extend([monkey1, monkey2, monkey3])
+
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
         elif backgroundScrollX > 8000 and not self.activeMonsters[14]:
             self.activeMonsters[14] = True
-            self._switch_music("post_boss_normal" if self._bigMummyDefeated else "normal")
+            self._switch_music("enchanted_tomb")
             self.mummys = []; self.witches = []; self.blocks = []
-            self.greenBlobs = []; self.fires = []
+            self.greenBlobs = []; self.fires = []; self.snakes = []
 
             # Mystical floating platforms at varied heights
             plat1 = Block(1050, 250, 110, 50, "checkered", self.screen)
@@ -2142,17 +3035,14 @@ class mainGame:
             plat5 = Block(1850, 220, 110, 50, "striped",   self.screen)
             self.blocks.extend([plat1, plat2, plat3, plat4, plat5])
 
-            # Mystical enemies - witches and spellcasters
+            # Witch-heavy zone — no mummies
             witch1 = Witch(1100, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1500, 190, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(1800, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2, witch3])
-
-            # Mix of mummies for added challenge
-            self.mummys.extend([
-                Mummy(1300, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
-                Mummy(1700, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
-            ])
+            witch2 = Witch(1350, 280, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(1550, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch4 = Witch(1750, 230, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch5 = Witch(1950, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            self.witches.extend([witch1, witch2, witch3, witch4, witch5])
+            self.snakes.append(Snake(1500, 220, self.screen))
 
         # ── Zone 1.5 @ 11 000 – "Crumbling Ruins" gauntlet ───────────────────
         elif backgroundScrollX > 11000 and not self.activeMonsters[10]:
@@ -2285,6 +3175,9 @@ class mainGame:
                 x += 200
             self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen, self.blob_jump_sound))
             self.greenBlobs.append(GreenBlob(1700, 300, 100, 100, self.screen, self.blob_jump_sound))
+            self._secret_box_spawned = True
+            secret_block = DestroyableBlock(1570, 140, 80, 80, self.screen, secret=True)
+            self.destroyable_blocks.append(secret_block)
 
         # ── Zone 4.2 @ 29 000 – mini frankenbeares with rainbow lasers ────────
         elif backgroundScrollX > 29000 and not self.activeMonsters[12]:
@@ -2323,6 +3216,23 @@ class mainGame:
             witch2 = Witch(1750, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
             witch3 = Witch(2000,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3])
+
+        # ── Zone 5.5 @ 36 500 – snake encounter with platform gauntlet ────────
+        elif backgroundScrollX > 36500 and not getattr(self, '_zone55_active', False):
+            self._zone55_active = True
+            self.mummys = []; self.witches = []; self.blocks = []
+            self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
+
+            block1 = Block(1050, 280, 1500, 60, "monster", self.screen)
+            block2 = Block(1350, 220, 1000, 60, "greyRock", self.screen)
+            block3 = Block(1650, 280, 1200, 60, "monster", self.screen)
+            self.blocks.extend([block1, block2, block3])
+
+            # Snakes scattered across the platforms
+            snake1 = Snake(1200, 220, self.screen)
+            snake2 = Snake(1500, 160, self.screen)
+            snake3 = Snake(1800, 220, self.screen)
+            self.snakes.extend([snake1, snake2, snake3])
 
         # ── Zone 6 @ 39 500 – checkered gauntlet, blobs + mummies + miniFranken
         elif backgroundScrollX > 39500 and not self.activeMonsters[6]:
@@ -2561,16 +3471,18 @@ class mainGame:
             return
         self._current_music = track
         _files = {
-            "normal":          "Game/Sounds/spooky_peaceful.wav",
+            "normal":           "Game/Sounds/spooky_peaceful.wav",
             "post_boss_normal": "Game/Sounds/post_boss_jungle.wav",
-            "halfway":         "Game/Sounds/halfway_intense.wav",
-            "final_push":      "Game/Sounds/final_push.wav",
-            "boss_mummy":      "Game/Sounds/boss_spooky.wav",
-            "boss_final":      "Game/Sounds/boss_spooky.wav",
+            "enchanted_tomb":   "Game/Sounds/halfway_intense.wav",
+            "halfway":          "Game/Sounds/halfway_intense.wav",
+            "final_push":       "Game/Sounds/final_push.wav",
+            "boss_mummy":       "Game/Sounds/boss_spooky.wav",
+            "boss_final":       "Game/Sounds/boss_spooky.wav",
         }
         _volumes = {
             "normal": 0.40,
             "post_boss_normal": 0.45,
+            "enchanted_tomb": 0.50,
             "halfway": 0.45,
             "final_push": 0.50,
             "boss_mummy": 0.75,
@@ -2806,6 +3718,16 @@ class Background():
     def getStopBackground(self):
         return self.stopBackground
 
+    def reset(self):
+        self.stopBackground = False
+        self.isBlackBackground = False
+        self._black_latched = False
+        self._sway_timer = 0
+        self._sway_frame = 0
+        self.bgimage = self.bg_pairs[0][0]
+        self.bgX1 = 0
+        self.bgX2 = self.rectBGimg.width
+
     def getBackgroundX(self):
         return self.totalX
 
@@ -2930,28 +3852,30 @@ class Mummy():
         # White flash surface for hurt highlight (big mummy only)
         self.hurtFlash = None
 
-        if self.height > 100:
+        if height > 100:  # Big mummy – use dedicated art with forehead marker
             self.damageAttack = 10
             self.exp = 20
             self.health = int(24 * 1.20)
             raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
             raw_hurt = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
-            # Force-scale both walk frames from the same source so they are
-            # pixel-identical in size. Walk frame 2 is just frame 1 mirrored.
+            # Use the same art for both walk frames (flipped) so the character
+            # looks consistent – same forehead ring, same body shape.
             self.mummy1      = pygame.transform.scale(raw1,     (width, height))
             self.mummy2      = pygame.transform.flip(self.mummy1, True, False)
             self.hurtMummy   = pygame.transform.scale(raw_hurt, (width, height))
             self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
             self.changeDirection = random.randint(800, 1200)
-            self.mummy1Outline = make_outline_surf(self.mummy1)
-            self.mummy2Outline = make_outline_surf(self.mummy2)
+            self.mummy1Outline = create_outline_surface(self.mummy1)
+            self.mummy2Outline = create_outline_surface(self.mummy2)
             # Pre-create the white flash overlay (reused every hurt frame)
             self.hurtFlash = pygame.Surface((width, height), pygame.SRCALPHA)
             self.hurtFlash.fill((255, 255, 255, 140))
 
         # Outline surfaces built AFTER final hurt sprites are set
-        self.hurtOutline     = make_outline_surf(self.hurtMummy)
-        self.hurtLeftOutline = make_outline_surf(self.hurtLeftMummy)
+        self.hurtOutline     = create_outline_surface(self.hurtMummy)
+        self.hurtLeftOutline = create_outline_surface(self.hurtLeftMummy)
+        # Record maximum health for temporary health-bar rendering
+        self.max_health = self.health
 
     def setStartDestructionAnimation(self, v):
         self.startDestructionAnimation = v
@@ -3041,8 +3965,20 @@ class Mummy():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
-                            self.getXPosition() + 60, self.getYPosition() - 60)
+        # compute a fade-in alpha from the stunned counter (fade over 15 frames for obvious effect)
+        stunned_val = getattr(self, 'stunned', getattr(self, 'isHurtTimer', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60,
+                            alpha=alpha)
+        render_enemy_health_bar(self.screen,
+                                 self.getXPosition() + 60, self.getYPosition() - 60,
+                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -3150,6 +4086,7 @@ class Witch():
         self.fireball_sound = fireball_sound
         self.rand = 1
         self.health = int(random.randint(24, 42) * 1.20)
+        self.max_health = self.health
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.changeDirectionX = random.randint(400, 700)
@@ -3249,8 +4186,19 @@ class Witch():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
-                            self.getXPosition() + 60, self.getYPosition() - 60)
+        stunned_val = getattr(self, 'stunned', getattr(self, 'isHurtTimer', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60,
+                            alpha=alpha)
+        render_enemy_health_bar(self.screen,
+                                 self.getXPosition() + 60, self.getYPosition() - 60,
+                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -3301,14 +4249,14 @@ class Witch():
 
 # ---------------------------------------------------------------------------
 class FireBall():
-    def __init__(self, x, y, vel_x, vel_y, fireballImage, screen):
+    def __init__(self, x, y, vel_x, vel_y, fireballImage, screen, size=(60, 60)):
         self.x = x
         self.y = y
         self.vel_x = vel_x
         self.vel_y = -1 * vel_y
         self.screen = screen
         # Pre-scale once; reused every frame
-        self.fire = pygame.transform.scale(fireballImage, (60, 60))
+        self.fire = pygame.transform.scale(fireballImage, size)
         self.stunned = False
         self.health = 1
         self.damageAttack = 4
@@ -3407,6 +4355,9 @@ class GreenBlob():
             self.exp = 40
             self.damageAttack = 25
 
+        # record max health for temporary health-bar rendering
+        self.max_health = self.health
+
     def setStartDestructionAnimation(self, v):
         self.startDestructionAnimation = v
 
@@ -3486,8 +4437,19 @@ class GreenBlob():
         return self.destructionAnimation
 
     def displayDamageOnMonster(self, damage):
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
-                            self.getXPosition() + 60, self.getYPosition() - 60)
+        stunned_val = getattr(self, 'stunned', getattr(self, 'isHurtTimer', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60,
+                            alpha=alpha)
+        render_enemy_health_bar(self.screen,
+                                 self.getXPosition() + 60, self.getYPosition() - 60,
+                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -3553,6 +4515,7 @@ class Bear:
         self.y = y
         self.initialHeight = 300
         self.sourceBlock = None
+        self._drop_timer = 0         # frames remaining to skip sourceBlock (drop-through)
         self.jumping = False
         self.jumpLeft = False
         self.jumpVelocity = 0.0      # px/frame upward; positive = rising
@@ -3599,6 +4562,17 @@ class Bear:
         self.hurtTimer = 0
         self.leftDirection = False
         self.comingUp = False
+        self.coins = 0
+        self.has_shield = False
+        self.has_aimer = False
+        self.has_50pct_protection = False
+        # Crouch mechanic
+        self.is_crouching = False
+        self.crouch_sprite = None  # crouchBear.png not available
+        self.crouch_sprite_left = None
+        # Poison mechanic
+        self.poison_timer = 0
+        self.poison_damage_tick = 0
 
     def setArrayText(self, text):
         self.textArray.append(text)
@@ -3682,6 +4656,33 @@ class Bear:
     def getLevel(self):
         return self.level
 
+    def set_crouch(self, is_crouching):
+        """Set crouch state."""
+        self.is_crouching = is_crouching
+
+    def get_crouch(self):
+        """Check if currently crouching."""
+        return self.is_crouching
+
+    def set_poison(self, seconds):
+        """Apply poison for N seconds (30 default)."""
+        self.poison_timer = seconds * 60  # Convert to frames (60 fps)
+        self.poison_damage_tick = 0
+
+    def update_poison(self):
+        """Update poison timer, apply damage every 2 seconds."""
+        if self.poison_timer > 0:
+            self.poison_timer -= 1
+            self.poison_damage_tick += 1
+            # Apply 2 damage every 2 seconds (120 frames)
+            if self.poison_damage_tick >= 120:
+                self.hp = max(0, self.hp - 2)
+                self.poison_damage_tick = 0
+
+    def is_poisoned(self):
+        """Check if currently poisoned."""
+        return self.poison_timer > 0
+
     def startJump(self):
         """Kick off a new jump – sets initial upward velocity."""
         self.jumpVelocity = 16.8   # tuned so peak ≈ 217 px – clears y=190 blocks
@@ -3701,6 +4702,10 @@ class Bear:
         • Landing uses a frame-crossing check: did feet move from above to
           at/below a block's top surface this frame? Works at any fall speed.
         """
+        # Count down drop-through immunity timer
+        if self._drop_timer > 0:
+            self._drop_timer -= 1
+
         # Variable jump height – cut ascent when Z is released early
         if self.jumpVelocity > 3.0 and not pygame.key.get_pressed()[pygame.K_z]:
             self.jumpVelocity = 3.0
@@ -3786,8 +4791,8 @@ class Bear:
                     blx = block.getBlockXPosition()
                     brx = blx + block.getWidth()
                     
-                    # Skip sourceBlock ONLY if it's a walk-off (no upward movement)
-                    if block == self.sourceBlock and prev_feet == bty and feet == bty:
+                    # Skip sourceBlock during a drop-through or walk-off
+                    if block == self.sourceBlock and (self._drop_timer > 0 or (prev_feet == bty and feet == bty)):
                         continue
 
                     if (prev_feet <= bty and feet >= bty
@@ -3800,6 +4805,8 @@ class Bear:
                 for block in blocks:
                     block.isBoundaryPresent(self.x, self.y)
                     if block.getOnPlatform():
+                        if block == self.sourceBlock and self._drop_timer > 0:
+                            continue
                         bty = block.getBlockYPosition()
                         _land(block, bty)
                         return
@@ -3808,6 +4815,8 @@ class Bear:
         if self.jumpVelocity <= 0 and (self.getJumpStatus() or self.getLeftJumpStatus()):
             bx2 = self.x + 100
             for block in blocks:
+                if block == self.sourceBlock and self._drop_timer > 0:
+                    continue
                 bty = block.getBlockYPosition()
                 blx = block.getBlockXPosition()
                 brx = blx + block.getWidth()
@@ -3841,9 +4850,9 @@ class Bear:
         """Left-facing jump – identical physics, reuses jump()."""
         self.jump(blocks)
 
-    def isBearHurt(self, positionRelative, bearXPosition, bearYPosition,
+    def is_bear_hurt(self, positionRelative, bearXPosition, bearYPosition,
                    objectXPosition, objectYPosition, objectName):
-        return isBearHurt(positionRelative, bearXPosition, bearYPosition,
+        return is_bear_hurt(positionRelative, bearXPosition, bearYPosition,
                           objectXPosition, objectYPosition, objectName)
 
     def boundaryExtraCheck(self):
@@ -3865,7 +4874,7 @@ class Bear:
         return self.displayTimer
 
     def displayDamageOnBear(self, damage, source_name=None):
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60)
         if source_name == "spikes" and getattr(self, 'spike_hit_sound', None):
             self.spike_hit_sound.play()
@@ -3883,14 +4892,14 @@ class Bear:
             bar_color = (230, 210, 50)
         else:
             bar_color = (220, 55, 55)
-        _hud_panel(self.screen, PX, PY, PW, PH, (190, 40, 40))
-        _hud_text_outlined(self.screen, _FONT_HUD_LABEL, "HP",
+        render_hud_panel(self.screen, PX, PY, PW, PH, (190, 40, 40))
+        render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, "HP",
                            PX + 9, PY + 9, (255, 230, 50))
-        _hud_bar(self.screen, PX + 44, PY + 11, PW - 54, 18, ratio, bar_color)
+        render_hud_bar(self.screen, PX + 44, PY + 11, PW - 54, 18, ratio, bar_color)
         val = str(hp) + "/" + str(maxHp)
-        _hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
+        render_hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
                            PX + 44, PY + 34, (255, 255, 255))
-        _hud_text_outlined(self.screen, _FONT_HUD_VAL, "X:FIRE",
+        render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "X:FIRE",
                            PX + 124, PY + 34, (255, 140, 30))
 
     def displayBearExp(self):
@@ -3899,17 +4908,17 @@ class Bear:
         exp = self.getCurrentExp()
         maxExp = self.getMaxExp()
         ratio = max(0.0, min(1.0, exp / maxExp)) if maxExp > 0 else 0.0
-        _hud_panel(self.screen, EX, EY, EW, EH, (60, 100, 220))
-        _hud_text_outlined(self.screen, _FONT_HUD_LABEL, "EXP",
+        render_hud_panel(self.screen, EX, EY, EW, EH, (60, 100, 220))
+        render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, "EXP",
                            EX + 8, EY + 9, (120, 200, 255))
-        _hud_bar(self.screen, EX + 50, EY + 11, EW - 60, 18,
+        render_hud_bar(self.screen, EX + 50, EY + 11, EW - 60, 18,
                  ratio, (255, 195, 30))
         val = str(exp) + "/" + str(maxExp)
-        _hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
+        render_hud_text_outlined(self.screen, _FONT_HUD_VAL, val,
                            EX + 50, EY + 34, (255, 255, 255))
         LX, LY, LW, LH = 444, 6, 170, 60
-        _hud_panel(self.screen, LX, LY, LW, LH, (160, 60, 220))
-        _hud_text_outlined(self.screen, _FONT_HUD_VAL, "POWER LVL",
+        render_hud_panel(self.screen, LX, LY, LW, LH, (160, 60, 220))
+        render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "POWER LVL",
                            LX + 8, LY + 9, (200, 160, 255))
         lvl_surf = _FONT_HUD_LVL.render(str(self.level), True, (255, 230, 50))
         lvl_x = LX + (LW - lvl_surf.get_width()) // 2
@@ -3917,6 +4926,25 @@ class Bear:
         for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
             self.screen.blit(lvl_outline, (lvl_x + dx, LY + 28 + dy))
         self.screen.blit(lvl_surf, (lvl_x, LY + 28))
+
+    def displayBearCoins(self):
+        CX, CY, CW, CH = 8, 92, 280, 52
+        render_hud_panel(self.screen, CX, CY, CW, CH, (200, 180, 80))
+        pygame.draw.circle(self.screen, (255, 215, 0), (CX + 24, CY + 28), 12)
+        pygame.draw.circle(self.screen, (255, 245, 130), (CX + 24, CY + 28), 6)
+        render_hud_text_outlined(self.screen, _FONT_HUD, str(self.coins),
+                           CX + 50, CY + 8, (255, 255, 160))
+        extras = []
+        if getattr(self, 'has_shield', False):
+            extras.append('🛡')
+        if getattr(self, 'has_aimer', False):
+            extras.append('⚔')
+        if getattr(self, 'has_50pct_protection', False):
+            extras.append('✦')
+        if extras:
+            render_hud_text_outlined(self.screen, _FONT_HUD_VAL,
+                               ' '.join(extras), CX + 8, CY + 30,
+                               (200, 240, 200))
 
     def setMaxHp(self, maxHp):
         self.maxHp = maxHp
@@ -3929,6 +4957,32 @@ class Bear:
 
     def getCurrentExp(self):
         return self.exp
+
+    def setCoins(self, coins):
+        self.coins = max(0, coins)
+
+    def getCoins(self):
+        return self.coins
+
+    def setHasShield(self, value):
+        self.has_shield = bool(value)
+
+    def hasShield(self):
+        return getattr(self, 'has_shield', False)
+
+    def setHasAimer(self, value):
+        self.has_aimer = bool(value)
+
+    def hasAimer(self):
+        return getattr(self, 'has_aimer', False)
+
+    def applyDamage(self, amount):
+        if getattr(self, 'has_50pct_protection', False):
+            amount = max(1, int(round(amount * 0.5)))
+        elif getattr(self, 'has_shield', False):
+            amount = max(1, int(round(amount * 0.8)))
+        self.hp = max(0, self.hp - amount)
+        return amount
 
     def setMaxExp(self, maxExp):
         self.maxExp = maxExp
@@ -3965,9 +5019,8 @@ class Bear:
                 self.text1 = self.textArray[self.tupleIndex][0]
 
             self.blinkTimer += 1
-            _show_bear = (self.tupleIndex < len(self.showBearArray)
-                          and self.showBearArray[self.tupleIndex])
-            popup_img = self.talking if _show_bear else self.talkingNoBear
+            _show_bear = False  # Remove bear face from popup
+            popup_img = self.talkingNoBear
             self.screen.blit(popup_img, (0, 0))
             if self.blinkTimer > self.randomBlink:
                 self.randomBlink = random.randint(100, 250)
@@ -4228,6 +5281,7 @@ class ShadowShaman():
         self.screen = screen
         self.rand = 1
         self.health = int(random.randint(40, 60) * 1.20)
+        self.max_health = self.health
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.changeDirectionX = random.randint(200, 400)
@@ -4303,8 +5357,19 @@ class ShadowShaman():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
-                            self.getXPosition() + 60, self.getYPosition() - 60)
+        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.getXPosition() + 60, self.getYPosition() - 60,
+                            alpha=alpha)
+        render_enemy_health_bar(self.screen,
+                                 self.getXPosition() + 60, self.getYPosition() - 60,
+                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def setStunned(self, value):
         self.stunned = value
@@ -4495,6 +5560,7 @@ class MiniFrankenBear():
         self.y = y
         self.screen = screen
         self.health = int(45 * 1.20)
+        self.max_health = self.health
         self.direction = -1 if random.random() > 0.5 else 1
         self.walk_speed = 3
         self.walk_timer = 0
@@ -4602,8 +5668,19 @@ class MiniFrankenBear():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        _render_damage_text(self.screen, _FONT_DAMAGE, damage,
-                            self.x + 40, self.y - 40)
+        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                            self.x + 40, self.y - 40,
+                            alpha=alpha)
+        render_enemy_health_bar(self.screen,
+                                 self.x + 40, self.y - 40,
+                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def setStunned(self, value):
         self.stunned = value
@@ -4630,6 +5707,7 @@ class FrankenBear():
         self.screen = screen
         self.stunned = False
         self.health = int(1000 * 1.20)
+        self.max_health = self.health
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
@@ -4720,7 +5798,18 @@ class FrankenBear():
         return self.health
 
     def displayDamageOnMonster(self, damage):
-        _render_damage_text(self.screen, _FONT_BOSS_DAMAGE, damage, 450, 130)
+        # boss uses a larger font for bigger impact
+        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 12
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        render_damage_text(self.screen, _FONT_BOSS_DAMAGE, damage, 450, 130,
+                            alpha=alpha)
+        render_enemy_health_bar(self.screen, 450, 130,
+                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()), w=220, h=16)
 
     def _draw_boss_details(self):
         _bx, _by = 300, 40
@@ -4809,3 +5898,581 @@ class FrankenBear():
 
     def getExp(self):
         return self.exp
+# Temporary file with new classes - will be appended to mainGame.py
+
+class Snake:
+    """Snake enemy that poisons the player on contact."""
+    
+    def __init__(self, x, y, screen):
+        """Initialize a snake at position (x, y)."""
+        self.x = x
+        self.y = y
+        self.screen = screen
+        self.direction = -1 if random.random() > 0.5 else 1
+        self.width = 80
+        self.height = 60
+        self.health = int(15 * 1.20)
+        self.max_health = self.health
+        self.speed = 1
+        self.stunned = 0
+        self.damageReceived = 0
+        self.exp = 8
+        self.damageAttack = 0
+        self.isHurtTimer = 0
+        self.destructionAnimation = 0
+        
+        try:
+            self.snake_img = pygame.image.load("Game/Images/snake.png")
+            self.snake_img = pygame.transform.scale(self.snake_img, (self.width, self.height))
+            self.snake_img_left = pygame.transform.flip(self.snake_img, True, False)
+        except (FileNotFoundError, Exception):
+            # ── Redesigned viper / pit-viper sprite (80 × 60, procedural) ──
+            _sw, _sh = self.width, self.height   # 80 × 60
+            self.snake_img = pygame.Surface((_sw, _sh), pygame.SRCALPHA)
+
+            # --- Colour palette ---
+            _DARK   = (18, 72, 28)       # deep forest-green shadow
+            _MID    = (38, 120, 50)      # mid body green
+            _LIGHT  = (68, 185, 80)      # top-highlight stripe
+            _PAT    = (195, 165, 12)     # gold/amber zigzag diamonds
+            _PAT2   = (130, 105, 5)      # diamond outline
+            _HCOL   = (25, 88, 38)       # viper head colour
+            _EYE    = (215, 25, 12)      # red iris
+            _PUPIL  = (8, 4, 4)          # black vertical slit
+            _FANG   = (242, 242, 252)    # ivory fang
+            _TONGUE = (210, 18, 28)      # forked red tongue
+
+            # --- Body: sinuous S-curve using overlapping circles ---
+            # Segments: (cx, cy, radius), tail → neck (left to right)
+            _segs = [
+                (8,  45, 8),
+                (18, 41, 9),
+                (28, 36, 10),
+                (37, 29, 11),
+                (46, 25, 11),
+                (55, 29, 10),
+                (62, 34, 9),    # neck
+            ]
+            # Shadows first
+            for _cx, _cy, _r in _segs:
+                pygame.draw.circle(self.snake_img, _DARK, (_cx + 1, _cy + 2), _r)
+            # Body base + highlight
+            for _cx, _cy, _r in _segs:
+                pygame.draw.circle(self.snake_img, _MID,   (_cx, _cy), _r)
+                pygame.draw.circle(self.snake_img, _LIGHT, (_cx - 2, _cy - 3), max(2, _r // 3))
+
+            # --- Zigzag diamond pattern along the dorsal spine ---
+            _diamonds = [(22, 38), (37, 26), (52, 26), (61, 33)]
+            for _dx, _dy in _diamonds:
+                _pts = [(_dx, _dy - 7), (_dx + 7, _dy), (_dx, _dy + 7), (_dx - 7, _dy)]
+                pygame.draw.polygon(self.snake_img, _PAT,  _pts)
+                pygame.draw.polygon(self.snake_img, _PAT2, _pts, 1)
+
+            # --- Head: wide viper triangle ---
+            _head_pts = [
+                (62, 40),   # jaw-left-bottom
+                (67, 46),   # chin-front
+                (77, 46),   # lower-jaw
+                (80, 33),   # snout tip
+                (77, 20),   # upper-jaw
+                (67, 20),   # forehead-front
+                (62, 26),   # crown-back
+            ]
+            pygame.draw.polygon(self.snake_img, _HCOL,  _head_pts)
+            pygame.draw.polygon(self.snake_img, _DARK,  _head_pts, 2)
+            # Top-of-head highlight arc
+            pygame.draw.arc(self.snake_img, _LIGHT, (66, 22, 12, 9), 0.1, 3.05, 2)
+            # Subtle head stripe from crown to snout
+            pygame.draw.line(self.snake_img, _DARK, (68, 24), (79, 31), 1)
+            pygame.draw.line(self.snake_img, _DARK, (68, 42), (79, 35), 1)
+
+            # --- Eye: vivid red iris + black vertical-slit pupil ---
+            pygame.draw.circle(self.snake_img, _EYE,   (71, 31), 5)
+            pygame.draw.ellipse(self.snake_img, _PUPIL, (70, 27, 3, 8))
+            pygame.draw.circle(self.snake_img, (255, 200, 190), (70, 29), 1)  # shine
+
+            # --- Fangs: two ivory curved lines dropping from upper jaw ---
+            pygame.draw.line(self.snake_img, _FANG, (77, 40), (79, 47), 2)
+            pygame.draw.line(self.snake_img, _FANG, (74, 41), (75, 47), 2)
+
+            # --- Forked tongue from snout (within surface bounds) ---
+            pygame.draw.line(self.snake_img, _TONGUE, (79, 33), (75, 33), 2)   # stem
+            pygame.draw.line(self.snake_img, _TONGUE, (75, 33), (72, 29), 1)   # upper fork
+            pygame.draw.line(self.snake_img, _TONGUE, (75, 33), (72, 37), 1)   # lower fork
+
+            self.snake_img_left = pygame.transform.flip(self.snake_img, True, False)
+        
+        self.poison_cooldown = 0
+        self.walk_timer = 0
+        self.change_direction_timer = random.randint(100, 200)
+        self.startDestructionAnimation = False
+
+    def setXPosition(self, x):
+        self.x = x
+
+    def getXPosition(self):
+        return self.x
+
+    def setYPosition(self, y):
+        self.y = y
+
+    def getYPosition(self):
+        return self.y
+
+    def setHealth(self, health):
+        self.health = health
+
+    def getHealth(self):
+        return self.health
+
+    def getWidth(self):
+        return self.width
+
+    def getHeight(self):
+        return self.height
+
+    def setStunned(self, value):
+        self.stunned = value
+
+    def getStunned(self):
+        return self.stunned
+
+    def setDamageReceived(self, damage):
+        self.damageReceived = damage
+
+    def getDamageReceived(self):
+        return self.damageReceived
+
+    def getExp(self):
+        return self.exp
+
+    def getName(self):
+        return "snake"
+
+    def setHurtTimer(self, timer):
+        self.isHurtTimer = timer
+
+    def getHurtTimer(self):
+        return self.isHurtTimer
+
+    def getStartDestructionAnimationStatus(self):
+        return self.startDestructionAnimation
+
+    def setStartDestructionAnimation(self, v):
+        self.startDestructionAnimation = v
+
+    def getDestructionAnimationCount(self):
+        return self.destructionAnimation
+
+    def displayDamageOnMonster(self, damage):
+        """Display damage number above snake."""
+        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        
+        font = get_font('damage')
+        if font:
+            render_damage_text(self.screen, font, damage,
+                             self.getXPosition() + 40, self.getYPosition() - 40,
+                             alpha=alpha)
+            render_enemy_health_bar(self.screen,
+                                   self.getXPosition() + 40, self.getYPosition() - 40,
+                                   self.getHealth(), self.max_health)
+
+    def drawMonster(self):
+        """Draw the snake and handle movement."""
+        if self.stunned == 0:
+            img = self.snake_img if self.direction > 0 else self.snake_img_left
+            self.screen.blit(img, (self.x, self.y))
+            
+            self.x += self.direction * self.speed
+            self.walk_timer += 1
+            
+            if self.walk_timer >= self.change_direction_timer:
+                self.direction *= -1
+                self.walk_timer = 0
+                self.change_direction_timer = random.randint(100, 200)
+        else:
+            self.stunned += 1
+            img = self.snake_img if self.direction > 0 else self.snake_img_left
+            hurt_img = img.copy()
+            red_overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            red_overlay.fill((255, 0, 0, 100))
+            hurt_img.blit(red_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            self.screen.blit(hurt_img, (self.x, self.y))
+            
+            if self.stunned >= 20:
+                self.stunned = 0
+
+    def drawDestruction(self, damage):
+        """Draw snake destruction animation."""
+        self.destructionAnimation += 1
+        self.displayDamageOnMonster(damage)
+        
+        if self.destructionAnimation < 30:
+            alpha = int(255 * (1 - self.destructionAnimation / 30))
+            img = self.snake_img.copy()
+            img.set_alpha(alpha)
+            self.screen.blit(img, (self.x, self.y))
+
+    def get_poison_cooldown(self):
+        """Get current poison cooldown."""
+        return self.poison_cooldown
+
+    def set_poison_cooldown(self, value):
+        """Set poison cooldown."""
+        self.poison_cooldown = value
+
+    def update_poison_cooldown(self):
+        """Update poison cooldown timer."""
+        if self.poison_cooldown > 0:
+            self.poison_cooldown -= 1
+
+
+class Coin:
+    """Collectible coin item."""
+    
+    def __init__(self, x, y, screen):
+        self.x = x
+        self.y = y
+        self.screen = screen
+        self.width = 30
+        self.height = 30
+        self.bounce_height = 0
+        self.bounce_velocity = 0
+        self.gravity = 0.6
+        self.fall_speed = 0.0
+        
+        self.coin_img = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        pygame.draw.circle(self.coin_img, (255, 210, 0), (15, 15), 15)
+        pygame.draw.circle(self.coin_img, (255, 245, 120), (15, 15), 11)
+        pygame.draw.circle(self.coin_img, (255, 215, 60), (18, 12), 6)
+        pygame.draw.polygon(self.coin_img, (255, 255, 255), [(22, 8), (26, 10), (24, 14), (20, 12)])
+        pygame.draw.line(self.coin_img, (255, 255, 255), (10, 8), (18, 8), 2)
+        pygame.draw.line(self.coin_img, (255, 240, 150), (12, 4), (20, 4), 2)
+    
+    def getXPosition(self):
+        return self.x
+    
+    def getYPosition(self):
+        return int(self.y - self.bounce_height)
+    
+    def setXPosition(self, x):
+        self.x = x
+    
+    def setYPosition(self, y):
+        self.y = y
+    
+    def update(self):
+        """Update coin falling animation."""
+        floor_y = 400 - self.height
+        if self.y < floor_y:
+            self.fall_speed += self.gravity
+            self.y = min(floor_y, self.y + self.fall_speed)
+        else:
+            self.y = floor_y
+            self.fall_speed = 0
+        self.bounce_height += self.bounce_velocity
+        self.bounce_velocity += self.gravity if self.bounce_height > 0 else 0
+        if self.bounce_height <= 0:
+            self.bounce_height = 0
+            self.bounce_velocity = 0
+    
+    def draw(self):
+        """Draw the coin."""
+        self.screen.blit(self.coin_img, (self.x, self.getYPosition()))
+    
+    def is_grabbed(self, bear_x, bear_y, bear_w=100, bear_h=100):
+        """Check if coin is grabbed by bear."""
+        coin_rect = pygame.Rect(self.x, self.getYPosition(), self.width, self.height)
+        bear_rect = pygame.Rect(bear_x, bear_y, bear_w, bear_h)
+        return coin_rect.colliderect(bear_rect)
+
+
+class DestroyableBlock:
+    """Destructible block that drops a weapon on destruction."""
+    
+    def __init__(self, x, y, width, height, screen, secret=False):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.screen = screen
+        self.health = 1
+        self.max_health = 1
+        self.stunned = 0
+        self.damageReceived = 0
+        self.startDestructionAnimation = False
+        self.destructionAnimation = 0
+        self.isHurtTimer = 0
+        self.secret = secret
+    
+    def getBlockXPosition(self):
+        return self.x
+    
+    def getBlockYPosition(self):
+        return self.y
+    
+    def setblockXPosition(self, x):
+        self.x = x
+    
+    def setBlockYPosition(self, y):
+        self.y = y
+    
+    def getWidth(self):
+        return self.width
+    
+    def getHeight(self):
+        return self.height
+    
+    def getHealth(self):
+        return self.health
+    
+    def setHealth(self, health):
+        self.health = health
+    
+    def getStunned(self):
+        return self.stunned
+    
+    def setStunned(self, value):
+        self.stunned = value
+    
+    def setDamageReceived(self, damage):
+        self.damageReceived = damage
+    
+    def getDamageReceived(self):
+        return self.damageReceived
+    
+    def getStartDestructionAnimationStatus(self):
+        return self.startDestructionAnimation
+    
+    def setStartDestructionAnimation(self, v):
+        self.startDestructionAnimation = v
+    
+    def getDestructionAnimationCount(self):
+        return self.destructionAnimation
+    
+    def setHurtTimer(self, timer):
+        self.isHurtTimer = timer
+    
+    def getHurtTimer(self):
+        return self.isHurtTimer
+    
+    def getName(self):
+        return "destroyable_block"
+    
+    def getExp(self):
+        return 0
+    
+    def isBoundaryPresent(self, bear_x, bear_y):
+        """Check boundary for compatibility with existing code."""
+        pass
+    
+    def drawRectangle(self):
+        """Draw the destructible block."""
+        color = (180, 140, 220) if getattr(self, 'secret', False) else (200, 150, 100)
+        border = (140, 80, 190) if getattr(self, 'secret', False) else (150, 100, 50)
+        pygame.draw.rect(self.screen, color, (self.x, self.y, self.width, self.height))
+        pygame.draw.rect(self.screen, border, (self.x, self.y, self.width, self.height), 3)
+        pygame.draw.line(self.screen, (255, 255, 255) if getattr(self, 'secret', False) else (100, 80, 60),
+                         (self.x + 10, self.y + 10), (self.x + self.width - 10, self.y + self.height - 10), 2)
+        pygame.draw.line(self.screen, (255, 255, 255) if getattr(self, 'secret', False) else (100, 80, 60),
+                         (self.x + self.width - 10, self.y + 10), (self.x + 10, self.y + self.height - 10), 2)
+
+
+class MonkeyMummy:
+    """Agile monkey mummy enemy - faster and more erratic than regular mummies."""
+    
+    def __init__(self, x, y, width, height, mummy1Image, mummy2Image, screen):
+        self.startX = x
+        self.startY = y
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.screen = screen
+        self.mummy1 = mummy1Image
+        self.mummy2 = mummy2Image
+        self.health = int(20 * 1.15)
+        self.max_health = self.health
+        self.damageAttack = 8
+        self.walk_speed = 3  # Faster than regular mummy
+        self.rand = 40  # Changes direction more often
+        self.direction = 1
+        self.stunned = 0
+        self.blocks = []
+        self.damageReceived = 0
+        self.exp = 25
+        self.changeDirectionX = 0
+        self.isHurtTimer = 0
+        self.destructionAnimation = 0
+        self.startDestructionAnimation = False
+        self.jump_timer = 0
+        self.can_jump = True
+        self.jump_velocity = 0
+        self.gravity = 0.5
+    
+    def setXPosition(self, x):
+        self.x = x
+    
+    def getXPosition(self):
+        return self.x
+    
+    def setYPosition(self, y):
+        self.y = y
+    
+    def getYPosition(self):
+        return self.y
+    
+    def setHealth(self, health):
+        self.health = health
+    
+    def getHealth(self):
+        return self.health
+    
+    def getWidth(self):
+        return self.width
+    
+    def getHeight(self):
+        return self.height
+    
+    def setBlocks(self, blocks):
+        self.blocks = blocks
+    
+    def setStunned(self, stunned):
+        self.stunned = stunned
+    
+    def getStunned(self):
+        return self.stunned
+    
+    def setDamageReceived(self, damage):
+        self.damageReceived = damage
+    
+    def getDamageReceived(self):
+        return self.damageReceived
+    
+    def getExp(self):
+        return self.exp
+    
+    def getName(self):
+        return "monkeyMummy"
+    
+    def setHurtTimer(self, timer):
+        self.isHurtTimer = timer
+    
+    def getHurtTimer(self):
+        return self.isHurtTimer
+    
+    def getStartDestructionAnimationStatus(self):
+        return self.startDestructionAnimation
+    
+    def setStartDestructionAnimation(self, v):
+        self.startDestructionAnimation = v
+    
+    def getDestructionAnimationCount(self):
+        return self.destructionAnimation
+    
+    def displayDamageOnMonster(self, damage):
+        """Display damage number above monkey mummy."""
+        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        try:
+            s = int(stunned_val)
+        except Exception:
+            s = 1
+        fade_frames = 8
+        alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        
+        font = get_font('damage')
+        if font:
+            render_damage_text(self.screen, font, damage,
+                             self.getXPosition() + 40, self.getYPosition() - 40,
+                             alpha=alpha)
+            render_enemy_health_bar(self.screen,
+                                   self.getXPosition() + 40, self.getYPosition() - 40,
+                                   self.getHealth(), self.max_health)
+    
+    def drawMonster(self):
+        """Draw monkey mummy with jumping behavior."""
+        if self.stunned == 0:
+            # Draw normal
+            if self.direction < 0:
+                self.screen.blit(self.mummy1, (self.x, self.y))
+            else:
+                self.screen.blit(self.mummy2, (self.x, self.y))
+            
+            # Movement with jumping
+            self.changeDirectionX += 1
+            self.jump_timer += 1
+            
+            # Random jumping (more erratic than regular mummy)
+            if self.jump_timer > random.randint(20, 50):
+                self.jump_timer = 0
+                self.jump_velocity = -10
+            
+            # Apply gravity
+            self.jump_velocity += self.gravity
+            self.y += self.jump_velocity
+            
+            # Ground collision
+            for block in self.blocks:
+                block_rect = pygame.Rect(block.getBlockXPosition(),
+                                        block.getBlockYPosition(),
+                                        block.getWidth(),
+                                        block.getHeight())
+                bear_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+                
+                if bear_rect.colliderect(block_rect):
+                    if self.jump_velocity > 0:
+                        self.y = block_rect.top - self.height
+                        self.jump_velocity = 0
+                        self.can_jump = True
+            
+            # Floor collision
+            if self.y + self.height >= 400:
+                self.y = 400 - self.height
+                self.jump_velocity = 0
+                self.can_jump = True
+            
+            # Horizontal movement - faster and more random
+            if self.changeDirectionX > self.rand:
+                self.direction = random.randint(-1, 1)
+                self.changeDirectionX = 0
+                self.rand = random.randint(20, 60)
+            
+            self.x += self.direction * self.walk_speed
+            
+            # Screen boundaries
+            if self.x < -50:
+                self.x = 900
+            elif self.x > 900:
+                self.x = -50
+        else:
+            # Draw hurt state
+            self.stunned += 1
+            if self.direction < 0:
+                hurt_img = self.mummy1.copy()
+            else:
+                hurt_img = self.mummy2.copy()
+            
+            red_overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            red_overlay.fill((255, 0, 0, 100))
+            hurt_img.blit(red_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            self.screen.blit(hurt_img, (self.x, self.y))
+            
+            if self.stunned >= 15:
+                self.stunned = 0
+    
+    def drawDestruction(self, damage):
+        """Draw destruction animation."""
+        self.destructionAnimation += 1
+        self.displayDamageOnMonster(damage)
+        
+        if self.destructionAnimation < 30:
+            alpha = int(255 * (1 - self.destructionAnimation / 30))
+            img = self.mummy1.copy() if self.direction < 0 else self.mummy2.copy()
+            img.set_alpha(alpha)
+            self.screen.blit(img, (self.x, self.y))
