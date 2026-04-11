@@ -613,6 +613,9 @@ class mainGame:
         self._water_playing = False
         self._silver_applied = False
         self._bigMummyDefeated = False
+        self._hard_mode_selected = False
+        self._hms_pre_boss_applied = False
+        self._hms_post_boss_applied = False
         self._hardMode = False
         self._hardMode75 = False
         self.beamProjectiles = []
@@ -727,12 +730,12 @@ class mainGame:
     @staticmethod
     def _make_opposite_stride(surface):
         w, h = surface.get_size()
-        split_y = int(h * 0.48)
+        split_y = int(h * 0.45)
+        flipped_full = pygame.transform.flip(surface, True, False)
         result = surface.copy()
-        bottom = pygame.Surface((w, h - split_y), pygame.SRCALPHA)
-        bottom.blit(surface, (0, 0), (0, split_y, w, h - split_y))
-        bottom_flipped = pygame.transform.flip(bottom, True, False)
         result.fill((0, 0, 0, 0), (0, split_y, w, h - split_y))
+        bottom_flipped = pygame.Surface((w, h - split_y), pygame.SRCALPHA)
+        bottom_flipped.blit(flipped_full, (0, 0), (0, split_y, w, h - split_y))
         result.blit(bottom_flipped, (0, split_y))
         return result
 
@@ -745,6 +748,112 @@ class mainGame:
             frames = (self.bearWalking1, self.bearWalking1_opp,
                       self.bearWalking3, self.bearWalking3_opp)
         return frames[walk_index]
+
+    def showStartMenu(self):
+        try:
+            pygame.mixer.music.load("Game/Sounds/menu_theme.wav")
+            pygame.mixer.music.set_volume(0.35)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            pass
+
+        clock = pygame.time.Clock()
+        title_font = pygame.font.SysFont(None, 72, bold=True)
+        subtitle_font = pygame.font.SysFont(None, 36)
+        button_font = pygame.font.SysFont(None, 48, bold=True)
+        info_font = pygame.font.SysFont(None, 24)
+
+        selected = 0
+        menu_running = True
+        anim_tick = 0
+
+        while menu_running:
+            anim_tick += 1
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return None
+                if event.type == pygame.KEYDOWN:
+                    if event.key in (pygame.K_UP, pygame.K_w):
+                        selected = 0
+                    elif event.key in (pygame.K_DOWN, pygame.K_s):
+                        selected = 1
+                    elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        menu_running = False
+
+            self.screen.fill((12, 8, 18))
+
+            for i in range(60):
+                sx = (i * 47 + anim_tick) % 900
+                sy = (i * 31 + anim_tick * (i % 3 + 1) // 4) % 700
+                brightness = 40 + int(30 * abs(((anim_tick + i * 7) % 120) / 60.0 - 1.0))
+                pygame.draw.circle(self.screen, (brightness, brightness, brightness + 20), (sx, sy), 1)
+
+            pulse = abs(((anim_tick % 120) / 60.0) - 1.0)
+
+            title_text = title_font.render("BEAR FIGHTER", True, (220, 180, 80))
+            title_shadow = title_font.render("BEAR FIGHTER", True, (80, 40, 10))
+            tx = 450 - title_text.get_width() // 2
+            ty = 120
+            self.screen.blit(title_shadow, (tx + 3, ty + 3))
+            self.screen.blit(title_text, (tx, ty))
+
+            subtitle_text = subtitle_font.render("Curse of the Crypt", True,
+                                                  (int(140 + 60 * pulse), 100, int(180 + 40 * pulse)))
+            sx = 450 - subtitle_text.get_width() // 2
+            self.screen.blit(subtitle_text, (sx, ty + 75))
+
+            try:
+                bear_img = self.standingBear
+                self.screen.blit(bear_img, (400, 250))
+            except Exception:
+                pass
+
+            buttons = ["NORMAL MODE", "HARD MODE"]
+            descriptions = [
+                "Standard difficulty - recommended for first playthrough",
+                "Faster enemies, +50% damage early, +40% HP & damage after boss"
+            ]
+            for i, btn_text in enumerate(buttons):
+                bx = 450
+                by = 420 + i * 90
+                is_selected = (i == selected)
+
+                if is_selected:
+                    glow_alpha = int(60 + 40 * pulse)
+                    glow_surf = pygame.Surface((360, 65), pygame.SRCALPHA)
+                    glow_color = (80, 50, 160, glow_alpha) if i == 0 else (160, 50, 50, glow_alpha)
+                    glow_surf.fill(glow_color)
+                    self.screen.blit(glow_surf, (bx - 180, by - 32))
+
+                box_color = (120, 80, 200) if (i == 0 and is_selected) else \
+                            (200, 60, 60) if (i == 1 and is_selected) else (80, 70, 90)
+                pygame.draw.rect(self.screen, box_color, (bx - 170, by - 28, 340, 56), 3, border_radius=8)
+
+                text_color = (255, 255, 255) if is_selected else (150, 140, 160)
+                btn_surf = button_font.render(btn_text, True, text_color)
+                self.screen.blit(btn_surf, (bx - btn_surf.get_width() // 2, by - btn_surf.get_height() // 2))
+
+                if is_selected:
+                    desc_surf = info_font.render(descriptions[i], True, (170, 160, 180))
+                    self.screen.blit(desc_surf, (bx - desc_surf.get_width() // 2, by + 32))
+
+            controls_text = info_font.render("UP/DOWN to select  -  ENTER to start", True, (100, 95, 110))
+            self.screen.blit(controls_text, (450 - controls_text.get_width() // 2, 650))
+
+            pygame.display.update()
+            clock.tick(60)
+
+        self._hard_mode_selected = (selected == 1)
+
+        try:
+            pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
+            pygame.mixer.music.set_volume(0.35)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            pass
+
+        return selected
 
     def runGame(self):
         self.triggerFire = False
@@ -2383,7 +2492,7 @@ class mainGame:
             # ---- Lion drawing and contact detection ----------------------------
             for lion in self.lions:
                 if lion.getHealth() > 0:
-                    lion_rect = pygame.Rect(lion.getXPosition(), lion.getYPosition(), 90, 70)
+                    lion_rect = pygame.Rect(lion.getXPosition(), lion.getYPosition(), lion.width, lion.height)
                     bear_rect_l = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
                     if lion_rect.colliderect(bear_rect_l) and hurtTimer > 25:
                         _lion_dmg = lion.damageAttack
@@ -2396,7 +2505,7 @@ class mainGame:
                 if snake.getHealth() > 0:
                     if hasattr(snake, 'update_poison_cooldown'):
                         snake.update_poison_cooldown()
-                    snake_rect = pygame.Rect(snake.getXPosition(), snake.getYPosition(), 80, 60)
+                    snake_rect = pygame.Rect(snake.getXPosition(), snake.getYPosition(), snake.width, snake.height)
                     bear_rect = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
                     if snake_rect.colliderect(bear_rect) and snake.get_poison_cooldown() == 0:
                         bear.set_poison(30)
@@ -2438,7 +2547,8 @@ class mainGame:
                                  special_flags=pygame.BLEND_RGBA_ADD)
                 # "POISONED" label above bear (pulsing brightness)
                 _poi_alpha = int(160 + 95 * (1 - abs(2 * _pulse - 1)))   # 160..255..160
-                _poi_surf = _FONT_HUD_VAL.render('POISONED', True, (80, 230, 80))
+                _poi_font = _FONT_HUD_VAL or pygame.font.SysFont(None, 20, bold=True)
+                _poi_surf = _poi_font.render('POISONED', True, (80, 230, 80))
                 _poi_surf.set_alpha(_poi_alpha)
                 self.screen.blit(_poi_surf, (bear.getXPosition() - 10, bear.getYPosition() - 32))
 
@@ -2666,6 +2776,10 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
             bear.displayBearCoins()
+            if getattr(self, '_hard_mode_selected', False):
+                _hm_font = _FONT_HUD_VAL or pygame.font.SysFont(None, 20, bold=True)
+                _hm_surf = _hm_font.render('HARD MODE', True, (255, 80, 80))
+                self.screen.blit(_hm_surf, (810 - _hm_surf.get_width(), 680))
             _bc_x, _bc_y, _bc_w, _bc_h = 624, 6, 180, 28
             render_hud_panel(self.screen, _bc_x, _bc_y, _bc_w, _bc_h, (30, 50, 100))
             _bc_ratio = min(1.0, beamCharge / 100.0)
@@ -3020,7 +3134,6 @@ class mainGame:
             self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
-            self._jungle_unlocked = True
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
             self._z1_mummy.setXPosition(500)  # Place boss in centre of arena, clear of both wall blocks
@@ -3049,18 +3162,18 @@ class mainGame:
                 self.blocks.append(Block(plat_x, plat_y, plat_width, 50, plat_type, self.screen))
 
             self.monkey_mummies.extend([
-                MonkeyMummy(1150, 250, 70, 80, self.mummy1, self.mummy2, self.screen),
-                MonkeyMummy(1500, 180, 70, 80, self.mummy1, self.mummy2, self.screen),
-                MonkeyMummy(1850, 220, 70, 80, self.mummy1, self.mummy2, self.screen),
+                MonkeyMummy(1150, 260, 120, 140, self.mummy1, self.mummy2, self.screen),
+                MonkeyMummy(1500, 260, 120, 140, self.mummy1, self.mummy2, self.screen),
+                MonkeyMummy(1850, 260, 120, 140, self.mummy1, self.mummy2, self.screen),
             ])
             self.snakes.extend([
-                Snake(1200, 340, self.screen),
-                Snake(1600, 340, self.screen),
-                Snake(2000, 340, self.screen),
+                Snake(1200, 320, self.screen),
+                Snake(1600, 320, self.screen),
+                Snake(2000, 320, self.screen),
             ])
             self.lions.extend([
-                Lion(1350, 330, self.screen),
-                Lion(1750, 330, self.screen),
+                Lion(1350, 300, self.screen),
+                Lion(1750, 300, self.screen),
             ])
 
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
@@ -3489,6 +3602,32 @@ class mainGame:
                         _m.nextJumpTimer = max(20, int(_m.nextJumpTimer * 0.5))
                     if isinstance(_m, Witch):
                         _m.changeDirectionX = max(100, int(_m.changeDirectionX * 0.6))
+
+        if getattr(self, '_hard_mode_selected', False):
+            _all_enemies = (self.mummys + self.witches + self.greenBlobs +
+                            self.shadowShamans + self.miniFrankenBears + self.lions +
+                            self.monkey_mummies + self.snakes)
+            for _m in _all_enemies:
+                if not getattr(_m, '_hms_speed_boosted', False):
+                    _m._hms_speed_boosted = True
+                    if hasattr(_m, 'walk_speed'):
+                        _m.walk_speed = max(_m.walk_speed + 1, round(_m.walk_speed * 1.3))
+                    if hasattr(_m, 'rand'):
+                        _m.rand = max(1, int(_m.rand * 0.7))
+                    if hasattr(_m, 'speed'):
+                        _m.speed = max(_m.speed + 1, round(_m.speed * 1.3))
+
+            if not getattr(self, '_hms_post_boss_applied', False) and self._bigMummyDefeated:
+                self._hms_post_boss_applied = True
+
+            for _m in _all_enemies:
+                if not getattr(_m, '_hms_boosted', False):
+                    _m._hms_boosted = True
+                    if getattr(self, '_hms_post_boss_applied', False):
+                        _m.health = int(_m.health * 1.4)
+                        _m.damageAttack = int(_m.damageAttack * 1.4)
+                    else:
+                        _m.damageAttack = int(_m.damageAttack * 1.5)
 
     # -----------------------------------------------------------------------
     def _tint_silver(self, surface):
@@ -6001,8 +6140,8 @@ class Snake:
         self.y = y
         self.screen = screen
         self.direction = -1 if random.random() > 0.5 else 1
-        self.width = 80
-        self.height = 60
+        self.width = 120
+        self.height = 80
         self.health = int(15 * 1.20)
         self.max_health = self.health
         self.speed = 1
@@ -6411,6 +6550,7 @@ class MonkeyMummy:
         self.jump_timer = 0
         self.can_jump = True
         self.jump_velocity = 0
+        self.jump_h_speed = 0
         self.gravity = 0.5
     
     def setXPosition(self, x):
@@ -6505,42 +6645,43 @@ class MonkeyMummy:
             self.changeDirectionX += 1
             self.jump_timer += 1
             
-            # Random jumping (more erratic than regular mummy)
-            if self.jump_timer > random.randint(20, 50):
+            if self.jump_timer > random.randint(30, 70) and self.can_jump:
                 self.jump_timer = 0
-                self.jump_velocity = -10
-            
-            # Apply gravity
+                self.jump_velocity = random.uniform(-12, -8)
+                self.jump_h_speed = random.choice([-5, -3, 3, 5])
+                self.can_jump = False
+
             self.jump_velocity += self.gravity
             self.y += self.jump_velocity
-            
-            # Ground collision
+            if not self.can_jump:
+                self.x += getattr(self, 'jump_h_speed', 0)
+
             for block in self.blocks:
                 block_rect = pygame.Rect(block.getBlockXPosition(),
                                         block.getBlockYPosition(),
                                         block.getWidth(),
                                         block.getHeight())
-                bear_rect = pygame.Rect(self.x, self.y, self.width, self.height)
-                
-                if bear_rect.colliderect(block_rect):
+                monkey_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+
+                if monkey_rect.colliderect(block_rect):
                     if self.jump_velocity > 0:
                         self.y = block_rect.top - self.height
                         self.jump_velocity = 0
                         self.can_jump = True
-            
-            # Floor collision
+                        self.jump_h_speed = 0
+
             if self.y + self.height >= 400:
                 self.y = 400 - self.height
                 self.jump_velocity = 0
                 self.can_jump = True
-            
-            # Horizontal movement - faster and more random
-            if self.changeDirectionX > self.rand:
-                self.direction = random.randint(-1, 1)
-                self.changeDirectionX = 0
-                self.rand = random.randint(20, 60)
-            
-            self.x += self.direction * self.walk_speed
+                self.jump_h_speed = 0
+
+            if self.can_jump:
+                if self.changeDirectionX > self.rand:
+                    self.direction = random.choice([-1, 1])
+                    self.changeDirectionX = 0
+                    self.rand = random.randint(20, 60)
+                self.x += self.direction * self.walk_speed
             
             # Screen boundaries
             if self.x < -50:
@@ -6580,8 +6721,8 @@ class Lion:
         self.x = x
         self.y = y
         self.screen = screen
-        self.width = 90
-        self.height = 70
+        self.width = 140
+        self.height = 100
         self.health = int(25 * 1.20)
         self.max_health = self.health
         self.speed = 5

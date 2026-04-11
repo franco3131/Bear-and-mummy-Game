@@ -128,8 +128,12 @@ python main.py
 - **Fireball damage scales to max HP** — all enemy fireballs (witch + boss) now deal 5% of player's max HP (min 4); hard mode still applies 1.8× multiplier
 - **Zone spacing increased** — zones 5-9 and boss zone spread out significantly to prevent blocks from disappearing too soon (Zone 5: 34000, Zone 6: 39500, Zone 7: 45000, Zone 8: 50500, Zone 8.5: 53500, Zone 9: 56500, Boss: 60000)
 - **Jungle level** — after beating FrankenBear, transitions to a jungle zone with jungle background, featuring snakes (poison), monkeys (parabolic jumps), and lions/tigers (fast runners); clearing the jungle triggers NG+
-- **Lion enemy** — fast-running enemy (speed 5, charge speed 8) that dashes left and right with random charge bursts; uses tiger sprite; 90×70 hitbox
-- **MonkeyMummy uses monkey sprite** — now loads monkey.png instead of mummy sprites; jumps in unpredictable parabolic arcs
+- **Lion enemy** — fast-running enemy (speed 5, charge speed 8) that dashes left and right with random charge bursts; uses tiger sprite; 140×100 hitbox
+- **MonkeyMummy uses monkey sprite** — now loads monkey.png (120×140); jumps in proper parabolic arcs with horizontal velocity
+- **Snake enemy** — poisonous ground enemy (120×80); poisons player on contact for 30s damage over time
 - **FrankenBear hitbox bigger** — increased from 300×300 to 400×350 for easier hitting
 - **FrankenBear fire rate slower** — normal: 60-100 frames (was 40-70), enraged: 40-70 (was 25-50)
 - **75% difficulty scaling** — at Zone 7 (75% of level 1), all enemies get 2× HP and 2× ATK
+- **Start menu** — title screen with animated starfield, "BEAR FIGHTER - Curse of the Crypt" title, Normal/Hard mode selection; own spooky theme song (menu_theme.wav)
+- **Hard mode** — enemies 30% faster, +50% damage pre-boss, +40% HP and damage post-mummy-boss; "HARD MODE" HUD indicator
+- **Bear stride animation** — walk cycle now properly alternates legs using upper-body-preserved flipped frames; 4-frame cycle: right-leg→left-leg→right-leg-alt→left-leg-alt
