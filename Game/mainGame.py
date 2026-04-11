@@ -3659,8 +3659,6 @@ class Block():
 # ---------------------------------------------------------------------------
 class Background():
     def __init__(self, surface):
-        # Load 3 background colour themes × 2 sway variants (A and B)
-        # bg_pairs[i] = (frame_A, frame_B) for theme i
         self.bg_pairs = []
         for i in range(1, 4):
             a = pygame.image.load(f'Game/Images/background{i}.png')
@@ -3668,10 +3666,23 @@ class Background():
             b = pygame.image.load(f'Game/Images/background{i}_b.png')
             b = pygame.transform.scale(b, (900, 700))
             self.bg_pairs.append((a, b))
-        self.bgimage = self.bg_pairs[0][0]   # start with theme 0, frame A
-        self._sway_timer  = 0                # controls A↔B switching
-        self._sway_frame  = 0               # 0 = A, 1 = B
-        self._sway_period = 10              # frames per half-sway (~6 Hz flicker)
+
+        self.bg_alt_pairs = []
+        import os
+        for i in range(1, 4):
+            alt_path = f'Game/Images/background{i}_alt.png'
+            if os.path.exists(alt_path):
+                alt = pygame.image.load(alt_path)
+                alt = pygame.transform.scale(alt, (900, 700))
+            else:
+                alt = self.bg_pairs[i - 1][0]
+            self.bg_alt_pairs.append(alt)
+
+        self.bgimage = self.bg_pairs[0][0]
+        self.bgimage_alt = self.bg_alt_pairs[0]
+        self._sway_timer  = 0
+        self._sway_frame  = 0
+        self._sway_period = 10
 
         self.bgBlack  = pygame.image.load('Game/Images/black.png')
         self.bgBlack  = pygame.transform.scale(self.bgBlack, (900, 700))
@@ -3745,9 +3756,9 @@ class Background():
         self.floor = _tinted
 
     def render(self, total_distance=0):
-        # Choose theme and sway frame.
         if self.isBlackBackground:
             self.bgimage = self.bgBlack
+            self.bgimage_alt = self.bgBlack
             self._black_latched = True
             self.isBlackBackground = False
         elif not getattr(self, '_black_latched', False):
@@ -3755,30 +3766,44 @@ class Background():
             self._sway_timer += 1
             if self._sway_timer >= self._sway_period:
                 self._sway_timer = 0
-                self._sway_frame = 1 - self._sway_frame   # toggle A↔B
+                self._sway_frame = 1 - self._sway_frame
             self.bgimage = self.bg_pairs[bg_idx][self._sway_frame]
+            self.bgimage_alt = self.bg_alt_pairs[bg_idx]
 
         if getattr(self, '_ng_blue', False):
             self.surface.fill((15, 25, 60))
         else:
             self.surface.fill((0, 0, 0))
 
-        _bg_draw = self.bgimage
+        _bg_draw1 = self.bgimage
+        _bg_draw2 = self.bgimage_alt
         if getattr(self, '_ng_blue', False) and not getattr(self, '_black_latched', False):
-            _cache_key = id(self.bgimage)
-            if getattr(self, '_blue_cache_key', None) != _cache_key:
-                self._blue_cache_key = _cache_key
-                self._blue_cached = self.bgimage.copy()
-                _blue_ov = pygame.Surface(self._blue_cached.get_size(), pygame.SRCALPHA)
+            _cache_key1 = id(self.bgimage)
+            if getattr(self, '_blue_cache_key1', None) != _cache_key1:
+                self._blue_cache_key1 = _cache_key1
+                self._blue_cached1 = self.bgimage.copy()
+                _blue_ov = pygame.Surface(self._blue_cached1.get_size(), pygame.SRCALPHA)
                 _blue_ov.fill((80, 100, 200))
-                self._blue_cached.blit(_blue_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
-                _bright = pygame.Surface(self._blue_cached.get_size(), pygame.SRCALPHA)
+                self._blue_cached1.blit(_blue_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+                _bright = pygame.Surface(self._blue_cached1.get_size(), pygame.SRCALPHA)
                 _bright.fill((20, 30, 80))
-                self._blue_cached.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
-            _bg_draw = self._blue_cached
+                self._blue_cached1.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+            _bg_draw1 = self._blue_cached1
 
-        self.surface.blit(_bg_draw, (self.bgX1, self.bgY1))
-        self.surface.blit(_bg_draw, (self.bgX2 + 5, self.bgY2))
+            _cache_key2 = id(self.bgimage_alt)
+            if getattr(self, '_blue_cache_key2', None) != _cache_key2:
+                self._blue_cache_key2 = _cache_key2
+                self._blue_cached2 = self.bgimage_alt.copy()
+                _blue_ov = pygame.Surface(self._blue_cached2.get_size(), pygame.SRCALPHA)
+                _blue_ov.fill((80, 100, 200))
+                self._blue_cached2.blit(_blue_ov, (0, 0), special_flags=pygame.BLEND_RGB_MULT)
+                _bright = pygame.Surface(self._blue_cached2.get_size(), pygame.SRCALPHA)
+                _bright.fill((20, 30, 80))
+                self._blue_cached2.blit(_bright, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+            _bg_draw2 = self._blue_cached2
+
+        self.surface.blit(_bg_draw1, (self.bgX1, self.bgY1))
+        self.surface.blit(_bg_draw2, (self.bgX2 + 5, self.bgY2))
         self.surface.blit(self.floor, (self.bgX1, self.bgY1 + 400))
         self.surface.blit(self.floor, (self.bgX2 + 5, self.bgY2 + 400))
         self.surface.blit(self.water, (self.bgX1, self.bgY1 + 600))
