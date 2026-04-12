@@ -4065,24 +4065,41 @@ class mainGame:
         for _m in _all_for_variance:
             if not getattr(_m, '_speed_variance_applied', False):
                 _m._speed_variance_applied = True
-                _roll = random.random()
-                if _roll < 0.15:
-                    _mult = 1.5
-                elif _roll < 0.40:
-                    _mult = 1.2
-                elif _roll < 0.80:
-                    _mult = 1.1
+
+                _walk_roll = random.random()
+                if _walk_roll < 0.20:
+                    _walk_scale = 1.4
+                elif _walk_roll < 0.60:
+                    _walk_scale = 1.2
                 else:
-                    _mult = 1.0
-                if _mult > 1.0:
-                    if hasattr(_m, 'walk_speed'):
-                        _m.walk_speed = round(_m.walk_speed * _mult)
-                    if hasattr(_m, 'speed'):
-                        _m.speed = round(_m.speed * _mult)
-                    if hasattr(_m, 'charge_speed'):
-                        _m.charge_speed = round(_m.charge_speed * _mult)
-                    if hasattr(_m, 'rand') and _m.rand >= 2:
-                        _m.rand = max(2, round(_m.rand * _mult))
+                    _walk_scale = 1.1
+                if hasattr(_m, 'change_direction_timer'):
+                    _m.change_direction_timer = int(_m.change_direction_timer * _walk_scale)
+                    _m._turn_timer_scale = getattr(_m, '_turn_timer_scale', 1.0) * _walk_scale
+                if hasattr(_m, 'rand') and _m.rand >= 2:
+                    _m.rand = max(2, int(_m.rand * _walk_scale))
+
+                _stat_roll = random.random()
+                if _stat_roll < 0.05:
+                    _hp_mult = 2.0
+                    _atk_mult = 2.0
+                elif _stat_roll < 0.25:
+                    _hp_mult = 1.3
+                    _atk_mult = 1.3
+                elif _stat_roll < 0.65:
+                    _hp_mult = 1.1
+                    _atk_mult = 1.1
+                else:
+                    _hp_mult = 1.0
+                    _atk_mult = 1.0
+                if _hp_mult > 1.0:
+                    if hasattr(_m, 'health'):
+                        _m.health = int(_m.health * _hp_mult)
+                    if hasattr(_m, 'max_health'):
+                        _m.max_health = int(_m.max_health * _hp_mult)
+                if _atk_mult > 1.0:
+                    if hasattr(_m, 'damageAttack'):
+                        _m.damageAttack = int(_m.damageAttack * _atk_mult)
 
         if getattr(self, '_hard_mode_selected', False):
             _all_enemies = (self.mummys + self.witches + self.greenBlobs +
