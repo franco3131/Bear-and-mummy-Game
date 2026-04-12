@@ -713,22 +713,56 @@ class mainGame:
         bear.poison_damage_tick = 0
         self._poison_floats = []
 
+    _ZONE_THRESHOLDS = [
+        (2500,  11),
+        (5000,   1),
+        (8000,  14),
+        (11000, 10),
+        (14500,  3),
+        (18500,  2),
+        (22000, 13),
+        (25500,  4),
+        (29000, 12),
+        (34000,  5),
+        (36500, -1),
+        (39500,  6),
+        (45000,  7),
+        (50500,  8),
+        (53500, -2),
+        (56500, 15),
+        (60000,  9),
+    ]
+
+    def _find_zone_restart(self, dist):
+        restart_at = 0
+        for threshold, _ in self._ZONE_THRESHOLDS:
+            if dist >= threshold:
+                restart_at = threshold
+            else:
+                break
+        return restart_at
+
     def _save_checkpoint(self, backgroundScrollX, totalDistance, bear):
         self._checkpoint_saved = True
         self._checkpoint_used = False
         self._checkpoint_data = {
-            'x': bear.getXPosition(),
-            'y': bear.getYPosition(),
             'hp': bear.getHp(),
             'max_hp': bear.getMaxHp(),
             'exp': bear.getCurrentExp(),
             'level': bear.getLevel(),
             'coins': bear.getCoins(),
+            'damageAttack': bear.getDamageAttack(),
             'has_shield': getattr(bear, 'has_shield', False),
             'has_aimer': getattr(bear, 'has_aimer', False),
             'has_50pct_protection': getattr(bear, 'has_50pct_protection', False),
+            'has_lightning': getattr(bear, 'has_lightning', False),
+            'has_lightning_2': getattr(bear, 'has_lightning_2', False),
+            'has_big_fireball': getattr(bear, 'has_big_fireball', False),
             'totalDistance': totalDistance,
-            'backgroundScrollX': backgroundScrollX
+            'backgroundScrollX': backgroundScrollX,
+            'hardMode': getattr(self, '_hardMode', False),
+            'hardMode75': getattr(self, '_hardMode75', False),
+            'hardMode80': getattr(self, '_hardMode80', False),
         }
         try:
             with open(self.checkpoint_file, 'w') as _cf:
@@ -741,40 +775,80 @@ class mainGame:
             return totalDistance, background.getBackgroundX()
         checkpoint = self._checkpoint_data
         saved_distance = checkpoint.get('totalDistance', totalDistance)
-        delta = saved_distance - totalDistance
-        if delta != 0:
-            all_movable = [
-                self.mummys, self.witches, self.greenBlobs, self.door,
-                self.keys, self.spikes, getattr(self, 'bossFires', []),
-                self.playerFires, self.shadowShamans, self.miniFrankenBears,
-                self.lasers, self.snakes, self.monkey_mummies, self.lions, self.coins,
-                self.destroyable_blocks, self.fires
-            ]
-            for group in all_movable:
-                for obj in group:
-                    if hasattr(obj, 'setXPosition') and hasattr(obj, 'getXPosition'):
-                        obj.setXPosition(obj.getXPosition() + delta)
-                    elif hasattr(obj, 'setblockXPosition') and hasattr(obj, 'getBlockXPosition'):
-                        obj.setblockXPosition(obj.getBlockXPosition() + delta)
-            for block in self.blocks:
-                block.setblockXPosition(block.getBlockXPosition() + delta)
-            for bp in self.beamProjectiles:
-                if isinstance(bp, dict) and 'x' in bp:
-                    bp['x'] += delta
-        bear.setXPosition(checkpoint.get('x', bear.getXPosition()))
-        bear.setYPosition(checkpoint.get('y', bear.getYPosition()))
+
+        zone_start = self._find_zone_restart(saved_distance)
+        restart_dist = max(0, zone_start - 100)
+
+        self.mummys = []; self.witches = []; self.greenBlobs = []
+        self.fires = []; self.playerFires = []; self.bossFires = []
+        self.shadowShamans = []; self.miniFrankenBears = []; self.lasers = []
+        self.snakes = []; self.monkey_mummies = []; self.lions = []
+        self.coins = []; self.blocks = []; self.destroyable_blocks = []
+        self.beamProjectiles = []; self.waterfalls = []
+        self.spikes = []; self.door = []; self.keys = []
+        self.frankenbear = []
+
+        for i, (threshold, flag_idx) in enumerate(self._ZONE_THRESHOLDS):
+            if threshold >= zone_start:
+                if flag_idx >= 0 and flag_idx < len(self.activeMonsters):
+                    self.activeMonsters[flag_idx] = False
+                elif flag_idx == -1:
+                    self._zone55_active = False
+                elif flag_idx == -2:
+                    self._zone85_active = False
+        self._monkey_level_active = False
+        self._secret_box_spawned = False
+        self.isDoor1Open = False
+        self.doorPopupTriggered = False
+        self._bigMummyDefeated = False
+        self._boss_door_passed = False
+        self.showBoss = True
+        self.createdBoss = False
+        self.bossTimerAnimation = 0
+        self.leftBoundary = 180
+        self.rightBoundary = 300
+        self.triggerText1 = False
+        self.triggerText2 = False
+        self.triggerText3 = False
+        self.lightning_anim = 0
+        self.lightning_cooldown = 0
+        self.lightning2_targets = []
+        if hasattr(self, '_bg_ref') and self._bg_ref:
+            self._bg_ref.setStopBackground(False)
+            self._bg_ref.setBlackBackground(False)
+        if self.water_sound and getattr(self, '_water_playing', False):
+            self.water_sound.stop()
+            self._water_playing = False
+
+        bear.setXPosition(150)
+        bear.setYPosition(300)
+        bear.initialHeight = 300
+        bear.setJumpStatus(False)
+        bear.setLeftJumpStatus(False)
+        bear.jumpVelocity = 0.0
+        bear.sourceBlock = None
         bear.setHp(checkpoint.get('hp', bear.getHp()))
         bear.setMaxHp(checkpoint.get('max_hp', bear.getMaxHp()))
         bear.setCurrentExp(checkpoint.get('exp', bear.getCurrentExp()))
         bear.setLevel(checkpoint.get('level', bear.getLevel()))
         bear.setCoins(checkpoint.get('coins', bear.getCoins()))
+        bear.setDamageAttack(checkpoint.get('damageAttack', bear.getDamageAttack()))
         bear.has_shield = checkpoint.get('has_shield', False)
         bear.has_aimer = checkpoint.get('has_aimer', False)
         bear.has_50pct_protection = checkpoint.get('has_50pct_protection', False)
+        bear.has_lightning = checkpoint.get('has_lightning', False)
+        bear.has_lightning_2 = checkpoint.get('has_lightning_2', False)
+        bear.has_big_fireball = checkpoint.get('has_big_fireball', False)
         self._clear_poison(bear)
-        totalDistance = saved_distance
-        background.setXPosition(checkpoint.get('backgroundScrollX', background.getBackgroundX()))
-        return totalDistance, background.getBackgroundX()
+
+        self._hardMode = checkpoint.get('hardMode', False)
+        self._hardMode75 = checkpoint.get('hardMode75', False)
+        self._hardMode80 = checkpoint.get('hardMode80', False)
+
+        totalDistance = restart_dist
+        backgroundScrollX = restart_dist
+        background.setXPosition(backgroundScrollX)
+        return totalDistance, backgroundScrollX
 
     # -----------------------------------------------------------------------
     # Helper: draw the bear idle sprite (used to fill animation gaps)
