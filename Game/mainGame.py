@@ -3939,6 +3939,29 @@ class mainGame:
                     if isinstance(_m, Witch):
                         _m.changeDirectionX = max(100, int(_m.changeDirectionX * 0.6))
 
+        _all_for_variance = (self.mummys + self.witches + self.greenBlobs +
+                             self.shadowShamans + self.miniFrankenBears + self.lions +
+                             self.monkey_mummies + self.snakes)
+        for _m in _all_for_variance:
+            if not getattr(_m, '_speed_variance_applied', False):
+                _m._speed_variance_applied = True
+                _roll = random.random()
+                if _roll < 0.15:
+                    _mult = 1.5
+                elif _roll < 0.40:
+                    _mult = 1.2
+                else:
+                    _mult = 1.0
+                if _mult > 1.0:
+                    if hasattr(_m, 'walk_speed'):
+                        _m.walk_speed = round(_m.walk_speed * _mult)
+                    if hasattr(_m, 'speed'):
+                        _m.speed = round(_m.speed * _mult)
+                    if hasattr(_m, 'charge_speed'):
+                        _m.charge_speed = round(_m.charge_speed * _mult)
+                    if hasattr(_m, 'rand') and _m.rand >= 2:
+                        _m.rand = max(2, round(_m.rand * _mult))
+
         if getattr(self, '_hard_mode_selected', False):
             _all_enemies = (self.mummys + self.witches + self.greenBlobs +
                             self.shadowShamans + self.miniFrankenBears + self.lions +
