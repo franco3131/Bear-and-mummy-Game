@@ -4454,6 +4454,11 @@ class Background():
         self.bgBlack  = pygame.transform.scale(self.bgBlack, (900, 700))
         self.floor = pygame.image.load('Game/Images/wood.png')
         self.floor = pygame.transform.scale(self.floor, (900, 200))
+        try:
+            self.dirt_floor = pygame.image.load('Game/Images/dirt_floor.png')
+            self.dirt_floor = pygame.transform.scale(self.dirt_floor, (900, 200))
+        except (FileNotFoundError, Exception):
+            self.dirt_floor = self.floor
         self.roof  = pygame.image.load('Game/Images/cobstone.png')
         self.roof  = pygame.transform.scale(self.roof, (900, 20))
         self.water = pygame.image.load('Game/Images/water.png')
@@ -4574,12 +4579,15 @@ class Background():
 
         self.surface.blit(_bg_draw1, (self.bgX1, self.bgY1))
         self.surface.blit(_bg_draw2, (self.bgX2 + 5, self.bgY2))
-        self.surface.blit(self.floor, (self.bgX1, self.bgY1 + 400))
-        self.surface.blit(self.floor, (self.bgX2 + 5, self.bgY2 + 400))
+        _is_jungle = getattr(self, '_jungle_mode', False)
+        _cur_floor = self.dirt_floor if _is_jungle else self.floor
+        self.surface.blit(_cur_floor, (self.bgX1, self.bgY1 + 400))
+        self.surface.blit(_cur_floor, (self.bgX2 + 5, self.bgY2 + 400))
         self.surface.blit(self.water, (self.bgX1, self.bgY1 + 600))
         self.surface.blit(self.water, (self.bgX2, self.bgY2 + 600))
-        self.surface.blit(self.roof, (self.bgX1, self.bgY1))
-        self.surface.blit(self.roof, (self.bgX2, self.bgY2))
+        if not _is_jungle:
+            self.surface.blit(self.roof, (self.bgX1, self.bgY1))
+            self.surface.blit(self.roof, (self.bgX2, self.bgY2))
 
         # Fire is baked into background A/B images – no sprite overlay needed
 
