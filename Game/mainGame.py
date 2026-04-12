@@ -535,6 +535,67 @@ class mainGame:
             self.enemy_spawn_sound = _make_snd(_smp)
             self.enemy_spawn_sound.set_volume(0.35)
 
+            pygame.mixer.set_num_channels(16)
+
+            _LOOP_LEN = 4.0
+            _LN = int(_RATE * _LOOP_LEN)
+
+            _smp = []
+            for _i in range(_LN):
+                _t = _i / _RATE
+                _beat = _math.fmod(_t, 0.55)
+                _pulse = _math.exp(-_beat * 12) * _math.sin(2*_math.pi*42*_t) * 0.7
+                _pulse += _math.exp(-_beat * 8) * _math.sin(2*_math.pi*63*_t) * 0.3
+                _smp.append(max(-1.0, min(1.0, _pulse)))
+            self._layer_heartbeat = _make_snd(_smp)
+
+            _smp = []
+            for _i in range(_LN):
+                _t = _i / _RATE
+                _vib = _math.sin(2*_math.pi*5.5*_t) * 8
+                _s = (_math.sin(2*_math.pi*(196+_vib)*_t) * 0.35
+                      + _math.sin(2*_math.pi*(294+_vib)*_t) * 0.25
+                      + _math.sin(2*_math.pi*(370+_vib)*_t) * 0.15
+                      + _rnd.gauss(0, 0.04))
+                _fade = min(1.0, _i/(_RATE*0.3)) * min(1.0, (_LN-_i)/(_RATE*0.3))
+                _smp.append(max(-1.0, min(1.0, _s * _fade * 0.5)))
+            self._layer_strings = _make_snd(_smp)
+
+            _smp = []
+            for _i in range(_LN):
+                _t = _i / _RATE
+                _beat_pos = _math.fmod(_t, 0.4)
+                _sub = _math.fmod(_t, 0.2)
+                _kick = _math.exp(-_beat_pos*18) * _math.sin(2*_math.pi*55*_t) * 0.6
+                _snare = _math.exp(-max(0,_sub-0.1)*30) * _rnd.gauss(0, 0.4) * (1 if _sub > 0.1 else 0)
+                _tom = _math.exp(-_beat_pos*10) * _math.sin(2*_math.pi*90*_t) * 0.3
+                _smp.append(max(-1.0, min(1.0, _kick + _snare + _tom)))
+            self._layer_drums = _make_snd(_smp)
+
+            _smp = []
+            for _i in range(_LN):
+                _t = _i / _RATE
+                _slow = _math.sin(2*_math.pi*0.25*_t)
+                _s = (_math.sin(2*_math.pi*220*_t) * 0.25
+                      + _math.sin(2*_math.pi*330*_t) * 0.20
+                      + _math.sin(2*_math.pi*440*_t) * 0.12
+                      + _math.sin(2*_math.pi*277*_t) * 0.15)
+                _fade = min(1.0, _i/(_RATE*0.5)) * min(1.0, (_LN-_i)/(_RATE*0.5))
+                _smp.append(max(-1.0, min(1.0, _s * _fade * (0.4 + 0.15*_slow))))
+            self._layer_choir = _make_snd(_smp)
+
+            self._tension_layers = [
+                {'sound': self._layer_heartbeat, 'channel': pygame.mixer.Channel(12),
+                 'threshold': 500,  'max_vol': 0.18, 'current_vol': 0.0, 'active': False},
+                {'sound': self._layer_strings,   'channel': pygame.mixer.Channel(13),
+                 'threshold': 2000, 'max_vol': 0.14, 'current_vol': 0.0, 'active': False},
+                {'sound': self._layer_drums,     'channel': pygame.mixer.Channel(14),
+                 'threshold': 4000, 'max_vol': 0.16, 'current_vol': 0.0, 'active': False},
+                {'sound': self._layer_choir,     'channel': pygame.mixer.Channel(15),
+                 'threshold': 8000, 'max_vol': 0.13, 'current_vol': 0.0, 'active': False},
+            ]
+            self._tension_layers_ready = True
+
         except Exception:
             self.thud_sound = None
             self.fire_sound = None
@@ -571,6 +632,8 @@ class mainGame:
             self.enemy_spawn_sound = None
             self.monkey_screech_sound = None
             self.lion_roar_sound = None
+            self._tension_layers = []
+            self._tension_layers_ready = False
         init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -1551,6 +1614,7 @@ class mainGame:
                             bear.buffer_jump()
 
             background.render(totalDistance)
+            self._update_tension_layers(totalDistance)
             if shop_open:
                 _overlay = pygame.Surface((900, 700), pygame.SRCALPHA)
                 _overlay.fill((0, 0, 0, 170))
@@ -4431,10 +4495,45 @@ class mainGame:
         self.hurtBear = self._tint_silver(self.hurtBear)
 
     # -----------------------------------------------------------------------
+    def _update_tension_layers(self, totalDistance):
+        if not getattr(self, '_tension_layers_ready', False):
+            return
+        _FADE_SPEED = 0.003
+        for layer in self._tension_layers:
+            should_play = totalDistance >= layer['threshold']
+            if should_play and not layer['active']:
+                layer['channel'].play(layer['sound'], loops=-1)
+                layer['channel'].set_volume(0.0)
+                layer['active'] = True
+            if layer['active']:
+                if should_play:
+                    target = layer['max_vol']
+                else:
+                    target = 0.0
+                if layer['current_vol'] < target:
+                    layer['current_vol'] = min(target, layer['current_vol'] + _FADE_SPEED)
+                elif layer['current_vol'] > target:
+                    layer['current_vol'] = max(target, layer['current_vol'] - _FADE_SPEED * 2)
+                layer['channel'].set_volume(layer['current_vol'])
+                if layer['current_vol'] <= 0.0 and not should_play:
+                    layer['channel'].stop()
+                    layer['active'] = False
+
+    def _stop_tension_layers(self):
+        if not getattr(self, '_tension_layers_ready', False):
+            return
+        for layer in self._tension_layers:
+            if layer['active']:
+                layer['channel'].stop()
+                layer['active'] = False
+                layer['current_vol'] = 0.0
+
     def _switch_music(self, track):
         if getattr(self, '_current_music', None) == track:
             return
         self._current_music = track
+        if track in ("boss_mummy", "boss_final", "jungle", "post_boss_normal"):
+            self._stop_tension_layers()
         _files = {
             "normal":           "Game/Sounds/spooky_peaceful.wav",
             "post_boss_normal": "Game/Sounds/post_boss_march.wav",
