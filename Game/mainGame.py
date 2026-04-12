@@ -1855,7 +1855,7 @@ class mainGame:
                             continue
                         if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
-                                            monster.getName()) and hurtTimer > 25):
+                                            monster.getName()) and hurtTimer > 60):
                             hurtTimer = 0
                             if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
@@ -1975,7 +1975,7 @@ class mainGame:
                                 continue
                             if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
-                                                monster.getName()) and hurtTimer > 25):
+                                                monster.getName()) and hurtTimer > 60):
                                 hurtTimer = 0
                                 if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
@@ -2210,7 +2210,7 @@ class mainGame:
                                 continue
                             if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
-                                                monster.getName()) and hurtTimer > 25):
+                                                monster.getName()) and hurtTimer > 60):
                                 hurtTimer = 0
                                 if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
@@ -2348,7 +2348,7 @@ class mainGame:
                                 continue
                             if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
-                                                monster.getName()) and hurtTimer > 25):
+                                                monster.getName()) and hurtTimer > 60):
                                 if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.applyDamage(monster.getDamageAttack())
@@ -2465,7 +2465,7 @@ class mainGame:
                             continue
                         if (bear.is_bear_hurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
-                                            monster.getName()) and hurtTimer > 25):
+                                            monster.getName()) and hurtTimer > 60):
                             if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             bear.applyDamage(monster.getDamageAttack())
@@ -2709,7 +2709,7 @@ class mainGame:
                     
                     if (bear_feet > laser_rect_top and bear_top < laser_rect_bot
                             and bear_right > laser.getStartX() and bear_left < laser.getEndX()
-                            and hurtTimer > 25):
+                            and hurtTimer > 60):
                         _laser_dmg = max(6, int(bear.getMaxHp() * 0.10))
                         if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                         bear.displayDamageOnBear(_laser_dmg, "laser")
@@ -2919,7 +2919,7 @@ class mainGame:
                 if lion.getHealth() > 0:
                     lion_rect = pygame.Rect(lion.getXPosition(), lion.getYPosition(), lion.width, lion.height)
                     bear_rect_l = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
-                    if lion_rect.colliderect(bear_rect_l) and hurtTimer > 25:
+                    if lion_rect.colliderect(bear_rect_l) and hurtTimer > 60:
                         _lion_dmg = lion.damageAttack
                         bear.displayDamageOnBear(_lion_dmg, "lion")
                         bear.setHp(bear.getHp() - _lion_dmg)
@@ -4636,7 +4636,7 @@ class Mummy():
         self.hurtMummy = pygame.transform.scale(self.hurtMummy, (width, height))
         self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
         self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
-        self.damageAttack = 8
+        self.damageAttack = 9
         self.hp = 120
         self.height = height
         self.width = width
@@ -4657,7 +4657,7 @@ class Mummy():
         self.hurtFlash = None
 
         if height > 100:  # Big mummy – use dedicated art with forehead marker
-            self.damageAttack = 10
+            self.damageAttack = 11
             self.exp = 20
             self.health = int(24 * 1.20)
             raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
@@ -4903,7 +4903,7 @@ class Witch():
         self.directionY = 1
         self.setThrowsFireBall = False
         self.fireBallAnimationCounter = 0
-        self.damageAttack = 5
+        self.damageAttack = 6
         self.hp = 120
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
@@ -5067,7 +5067,7 @@ class FireBall():
         self.fire = pygame.transform.scale(fireballImage, size)
         self.stunned = False
         self.health = 1
-        self.damageAttack = 4
+        self.damageAttack = 5
         self.isHurtTimer = 0
 
     def setHurtTimer(self, timer):
@@ -5146,7 +5146,7 @@ class GreenBlob():
         self.hurtGreenBlob = pygame.transform.scale(self.hurtGreenBlob, (100, 100))
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
-        self.damageAttack = 12
+        self.damageAttack = 13
         self.hp = int(26 * 1.20)
         self.hurtTimer = 0
         self.isMonsterHurtAnimation = 0
@@ -5161,7 +5161,7 @@ class GreenBlob():
             self.width = 300
             self.health = int(60 * 1.20)
             self.exp = 40
-            self.damageAttack = 25
+            self.damageAttack = 28
 
         # record max health for temporary health-bar rendering
         self.max_health = self.health
@@ -6095,7 +6095,7 @@ class SpikeBlock():
         self.screen = screen
         self.stunned = False
         self.health = 1
-        self.damageAttack = random.randint(10, 20)
+        self.damageAttack = random.randint(11, 22)
         self.spike = pygame.image.load("Game/Images/spikes.png")
         self.spike = pygame.transform.scale(self.spike, (100, 60))
         self.isHurtAnimationStarted = False
@@ -6175,7 +6175,7 @@ class ShadowShaman():
         self.directionY = 1
         self.setThrowsFireBall = False
         self.fireBallAnimationCounter = 0
-        self.damageAttack = 10
+        self.damageAttack = 11
         self.hp = 120
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
@@ -6454,7 +6454,7 @@ class MiniFrankenBear():
         self.laser_interval = random.randint(40, 80)
         self.destructionAnimation = 0
         self.stunned = 0
-        self.damageAttack = 8
+        self.damageAttack = 9
         self.damageReceived = 0
         self.exp = 35
         self.isHurtAnimationStarted = False
@@ -6616,7 +6616,7 @@ class FrankenBear():
         self.attacked = False
         self.throwFireBallLeft = False
         self.throwFireBallRight = False
-        self.damageAttack = 15
+        self.damageAttack = 17
         self.damageReceived = 0
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (100, 100))
@@ -7268,7 +7268,7 @@ class MonkeyMummy:
         self._land_timer = 0
         self.health = int(20 * 1.15)
         self.max_health = self.health
-        self.damageAttack = 8
+        self.damageAttack = 9
         self.walk_speed = 3
         self.rand = 40
         self.direction = 1
@@ -7487,7 +7487,7 @@ class Lion:
         self.stunned = 0
         self.damageReceived = 0
         self.exp = 20
-        self.damageAttack = 10
+        self.damageAttack = 11
         self.isHurtTimer = 0
         self.destructionAnimation = 0
         self.startDestructionAnimation = False
