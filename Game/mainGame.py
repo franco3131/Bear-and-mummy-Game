@@ -887,6 +887,11 @@ class mainGame:
     # -----------------------------------------------------------------------
     # Helper: draw the bear idle sprite (used to fill animation gaps)
     # -----------------------------------------------------------------------
+    _idle_blink_timer = 0
+    _idle_blink_interval = 120
+    _idle_blink_frames = 0
+    _idle_hair_timer = 0
+
     def _draw_idle_bear(self, bear):
         if bear.get_crouch():
             if not bear.getLeftDirection():
@@ -900,20 +905,48 @@ class mainGame:
                     self.screen.blit(bear.crouch_sprite_left,
                                      (bear.getXPosition(), bear.getYPosition() + offset_y))
         else:
-            if not bear.getLeftDirection():
-                sprite = self.standingBear
+            self._idle_blink_timer += 1
+            self._idle_hair_timer += 1
+            is_blinking = False
+            if self._idle_blink_timer >= self._idle_blink_interval:
+                self._idle_blink_frames += 1
+                is_blinking = True
+                if self._idle_blink_frames >= 8:
+                    self._idle_blink_frames = 0
+                    self._idle_blink_timer = 0
+                    self._idle_blink_interval = random.randint(90, 200)
+                    is_blinking = False
+
+            if is_blinking:
+                if not bear.getLeftDirection():
+                    sprite = self.standingBearBlink
+                else:
+                    sprite = self.standingBearLeftBlink
             else:
-                sprite = self.standingBearLeft
+                if not bear.getLeftDirection():
+                    sprite = self.standingBear
+                else:
+                    sprite = self.standingBearLeft
+
+            hair_sway = math.sin(self._idle_hair_timer * 0.06) * 2.0
+            sw, sh = sprite.get_size()
+            hair_h = sh // 4
+            body_h = sh - hair_h
             ws, hs = bear.get_land_squash_scale()
+            bx = bear.getXPosition()
+            by = bear.getYPosition()
             if ws != 1.0 or hs != 1.0:
-                sw = int(sprite.get_width() * ws)
-                sh = int(sprite.get_height() * hs)
-                squashed = pygame.transform.scale(sprite, (sw, sh))
-                ox = (sprite.get_width() - sw) // 2
-                oy = sprite.get_height() - sh
-                self.screen.blit(squashed, (bear.getXPosition() + ox, bear.getYPosition() + oy))
+                ssw = int(sw * ws)
+                ssh = int(sh * hs)
+                squashed = pygame.transform.scale(sprite, (ssw, ssh))
+                ox = (sw - ssw) // 2
+                oy = sh - ssh
+                self.screen.blit(squashed, (bx + ox, by + oy))
             else:
-                self.screen.blit(sprite, (bear.getXPosition(), bear.getYPosition()))
+                hair_part = sprite.subsurface((0, 0, sw, hair_h))
+                body_part = sprite.subsurface((0, hair_h, sw, body_h))
+                self.screen.blit(body_part, (bx, by + hair_h))
+                self.screen.blit(hair_part, (bx + hair_sway, by))
 
     _WALK_BOB = (-2, 3, 5, 3)
     _WALK_LEAN = (0.0, 1.5, 0.0, -1.5)
