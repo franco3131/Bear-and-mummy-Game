@@ -79,11 +79,12 @@ def render_enemy_health_bar(screen, x, y, health, max_health, w=120, h=12):
     except Exception:
         return
     bar_x = x + 10
-    # place the bar below the damage text to avoid overlap
     bar_y = y + 36
     track = pygame.Rect(bar_x, bar_y, w, h)
     pygame.draw.rect(screen, (40, 30, 40), track, border_radius=3)
-    fill_w = max(0, int(w * ratio))
+    fill_w = max(0, min(w, int(round(w * ratio))))
+    if ratio < 1.0 and fill_w >= w:
+        fill_w = w - 1
     if fill_w > 0:
         if ratio > 0.6:
             fill_color = (60, 200, 60)
@@ -93,6 +94,10 @@ def render_enemy_health_bar(screen, x, y, health, max_health, w=120, h=12):
             fill_color = (220, 60, 60)
         fill = pygame.Rect(bar_x, bar_y, fill_w, h)
         pygame.draw.rect(screen, fill_color, fill, border_radius=3)
+    lost_w = w - fill_w
+    if lost_w > 0 and ratio < 1.0:
+        lost_rect = pygame.Rect(bar_x + fill_w, bar_y, lost_w, h)
+        pygame.draw.rect(screen, (80, 20, 20), lost_rect, border_radius=3)
     pygame.draw.rect(screen, (200, 200, 200), track, 1, border_radius=3)
 
 
@@ -110,8 +115,8 @@ _MONSTER_SIZES = {
     "frankenbears":   (300, 300),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
-    "snake":          (120, 100),
-    "monkeyMummy":    (120, 140),
+    "snake":          (120, 60),
+    "monkeyMummy":    (100, 100),
     "lion":           (140, 100),
 }
 
@@ -381,7 +386,7 @@ class mainGame:
             self.blob_jump_sound = pygame.mixer.Sound("Game/Sounds/blob_jump.wav")
             self.blob_jump_sound.set_volume(0.50)
             self.footstep_sound = pygame.mixer.Sound("Game/Sounds/footstep.wav")
-            self.footstep_sound.set_volume(0.30)
+            self.footstep_sound.set_volume(0.55)
             self.door_open_sound = pygame.mixer.Sound("Game/Sounds/door_open.wav")
             self.door_open_sound.set_volume(0.60)
             self.key_pickup_sound = pygame.mixer.Sound("Game/Sounds/key_pickup.wav")
@@ -1490,6 +1495,8 @@ class mainGame:
                 for e in _enemies_on_screen
             )
             _target_step = _base_step if _has_alive_enemy else int(_base_step * 1.5)
+            if bear.getLevel() >= 14:
+                _target_step = min(_target_step, 12)
             bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.12
             STEP = max(1, int(round(bear._speed_lerp)))
 
@@ -2973,7 +2980,17 @@ class mainGame:
                                    'Press "s" to continue'])
                 bear.setEndText(False)
 
-            hurtTimer += 1
+            if bear.getEndText():
+                hurtTimer += 1
+            else:
+                hurtTimer = 0
+
+            _was_in_popup = getattr(self, '_was_in_popup', False)
+            if not bear.getEndText():
+                self._was_in_popup = True
+            elif _was_in_popup:
+                self._was_in_popup = False
+                hurtTimer = -35
 
             self._mummy_groan_timer += 1
             if (self._mummy_groan_timer >= 180 and self.mummys
@@ -3015,7 +3032,7 @@ class mainGame:
 
                 if self.bossTimerAnimation > 170:
                     if self.showBoss:
-                        frankenbear = FrankenBear(300, 40, self.screen)
+                        frankenbear = FrankenBear(950, 40, self.screen)
                         self.frankenbear.append(frankenbear)
                         self.showBoss = False
                         if self.boss_entrance_sound: self.boss_entrance_sound.play()
@@ -3563,9 +3580,9 @@ class mainGame:
             _ms = self.monkey_screech_sound
             _lr = self.lion_roar_sound
             self.monkey_mummies.extend([
-                MonkeyMummy(1150, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(1600, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(2000, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1150, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1600, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(2000, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
             ])
             self.snakes.extend([
                 Snake(1300, 320, self.screen),
@@ -3596,10 +3613,10 @@ class mainGame:
                 _ms = self.monkey_screech_sound
                 _lr = self.lion_roar_sound
                 self.monkey_mummies.extend([
-                    MonkeyMummy(1100, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1400, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1700, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(2100, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1100, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1400, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1700, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(2100, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
                 ])
                 self.snakes.extend([
                     Snake(1200, 320, self.screen),
@@ -4054,6 +4071,8 @@ class mainGame:
                     _mult = 1.5
                 elif _roll < 0.40:
                     _mult = 1.2
+                elif _roll < 0.80:
+                    _mult = 1.1
                 else:
                     _mult = 1.0
                 if _mult > 1.0:
@@ -4083,7 +4102,8 @@ class mainGame:
                     if hasattr(_m, 'rand') and _m.rand >= 2:
                         _m.rand = max(2, round(_m.rand * 1.1))
                     if hasattr(_m, 'change_direction_timer'):
-                        _m.change_direction_timer = max(20, int(_m.change_direction_timer * 0.5))
+                        _m.change_direction_timer = int(_m.change_direction_timer * 1.8)
+                        _m._turn_timer_scale = 1.8
 
             for _m in _all_enemies:
                 if getattr(_m, '_hard_mode', False) and _m.getHealth() > 0 and getattr(_m, 'stunned', 0) == 0:
@@ -6381,7 +6401,9 @@ class MiniFrankenBear():
         if self.walk_timer > self.change_direction_timer:
             self.direction *= -1
             self.walk_timer = 0
-            self.change_direction_timer = random.randint(80, 150)
+            _base_timer = random.randint(80, 150)
+            _scale = getattr(self, '_turn_timer_scale', 1.0)
+            self.change_direction_timer = int(_base_timer * _scale)
     
     def update_laser_timer(self):
         self.laser_timer += 1
@@ -6610,7 +6632,7 @@ class FrankenBear():
                                  self.getHealth(), getattr(self, 'max_health', self.getHealth()), w=220, h=16)
 
     def _draw_boss_details(self):
-        _bx, _by = 300, 40
+        _bx, _by = int(self.x), int(self.y)
         pygame.draw.circle(self.screen, (160, 160, 160), (_bx + 70, _by + 100), 14)
         pygame.draw.circle(self.screen, (160, 160, 160), (_bx + 230, _by + 100), 14)
         pygame.draw.rect(self.screen, (140, 140, 140), (_bx + 64, _by + 90, 12, 20))
@@ -6634,18 +6656,24 @@ class FrankenBear():
         self.blinkTimer += 1
         self.attackTimer += 1
 
+        if self.x > 300:
+            self.x -= 3
+
+        _bx = int(self.x)
+        _by = int(self.y)
+
         if (self.blinkTimer < self.randomBlink
                 and self.attackTimer < self.randomAttack):
-            self.screen.blit(self.boss1, (300, 40))
+            self.screen.blit(self.boss1, (_bx, _by))
         elif (self.blinkTimer >= self.randomBlink
               and self.blinkTimer <= self.randomBlink + 10
               and not self.attacked):
-            self.screen.blit(self.boss2, (300, 40))
+            self.screen.blit(self.boss2, (_bx, _by))
             self.bossDisplay = self.boss2
             self.blinked = True
         elif (self.attackTimer >= self.randomAttack
               and self.attackTimer <= self.randomAttack + 30):
-            self.screen.blit(self.bossDisplay, (300, 40))
+            self.screen.blit(self.bossDisplay, (_bx, _by))
             self.attacked = True
         else:
             if self.blinked:
@@ -6667,7 +6695,7 @@ class FrankenBear():
                     self.bossDisplay = self.boss3Flipped
                     self.setThrowFireBallRight(True)
                 self.attacked = False
-            self.screen.blit(self.boss1, (300, 40))
+            self.screen.blit(self.boss1, (_bx, _by))
 
         self._draw_boss_details()
 
@@ -6711,7 +6739,7 @@ class Snake:
         self.screen = screen
         self.direction = -1 if random.random() > 0.5 else 1
         self.width = 120
-        self.height = 100
+        self.height = 60
         self.y = self.FLOOR_Y - self.height
         self.health = int(15 * 1.20)
         self.max_health = self.health
@@ -6759,7 +6787,7 @@ class Snake:
         _PUPIL  = (8, 4, 4)
         _FANG   = (242, 242, 252)
         _TONGUE = (210, 18, 28)
-        _oy = 20
+        _oy = 0
         _segs = [
             (8,  45+_oy, 9),
             (18, 41+_oy, 10),
@@ -6899,7 +6927,9 @@ class Snake:
             if self.walk_timer >= self.change_direction_timer:
                 self.direction *= -1
                 self.walk_timer = 0
-                self.change_direction_timer = random.randint(100, 200)
+                _base_timer = random.randint(100, 200)
+                _scale = getattr(self, '_turn_timer_scale', 1.0)
+                self.change_direction_timer = int(_base_timer * _scale)
         else:
             self.stunned += 1
             frame = self._get_current_frame()
@@ -7555,7 +7585,9 @@ class Lion:
             if self.walk_timer >= self.change_direction_timer:
                 self.direction *= -1
                 self.walk_timer = 0
-                self.change_direction_timer = random.randint(60, 140)
+                _base_timer = random.randint(60, 140)
+                _scale = getattr(self, '_turn_timer_scale', 1.0)
+                self.change_direction_timer = int(_base_timer * _scale)
 
             if self.y + self.height >= self.FLOOR_Y:
                 self.y = self.FLOOR_Y - self.height

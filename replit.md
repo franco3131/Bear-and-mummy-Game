@@ -157,5 +157,11 @@ python main.py
 - **Lion animation** — 5-frame walk cycle (base + ±3°/±5° lean rotations), charge frame (horizontally stretched), pounce attack (parabolic arc during charge), roar sound on charge start with 90-frame cooldown, body bob while walking
 - **Floor clamping** — all jungle monsters enforce FLOOR_Y=400 floor boundary; lions pounce and always land on floor; monkeys jump and land on floor or platforms
 - **Snake crash fix** — Snake, MonkeyMummy, and Lion were all missing `getDamageAttack()` methods; contact with any of them caused an AttributeError crash; all three now have the method
-- **Snake animation** — 2-frame loop (base + 4° tilt) alternating every 20 frames for slithering look; height increased from 80→100; floor-clamped to FLOOR_Y=400; `_MONSTER_SIZES` updated in both constants.py and mainGame.py
+- **Snake animation** — 2-frame loop (base + 4° tilt) alternating every 20 frames for slithering look; height reduced to 60px for proper ground contact; floor-clamped to FLOOR_Y=400; `_MONSTER_SIZES` updated in both constants.py and mainGame.py
 - **Two new music tracks** — "post_boss_march.wav" (triumphant victory march, 115 bpm, brass melody + spooky pad) plays after defeating the big mummy; "deep_crypt.wav" (dark driving descent, 125 bpm, minor pentatonic organ melody + tension risers) switches in at the 50% checkpoint
+- **Speed variance expanded** — 15% chance ×1.5, 25% chance ×1.2, 40% chance ×1.1 (10% faster), 20% chance ×1.0 (unchanged); applies to walk_speed, speed, charge_speed, rand at spawn
+- **Hard mode longer walking range** — enemies walk 1.8× longer before turning (up from halving timer); persistent via `_turn_timer_scale` attribute so timer resets in Snake/Lion/GreenBlob maintain the scale
+- **Enemy health bar fix** — bar now properly shows lost health as dark red; rounding prevents bar from appearing 100% full when enemy has taken damage
+- **Popup grace period** — hurtTimer frozen at 0 during popups; on popup close, hurtTimer set to -35 giving ~1 second invincibility before enemies can damage the player again
+- **Silver mode speed cap** — movement speed capped at 12 in silver mode (level 14+) regardless of dead-zone boost
+- **MonkeyMummy resized** — dimensions changed from 120×140 to 100×100 to match bear height; properly floor-clamped
