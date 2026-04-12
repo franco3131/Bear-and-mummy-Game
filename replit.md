@@ -23,6 +23,7 @@ Game/
                    Block, Background, Door, SpikeBlock, Waterfall,
                    KeyItem, HealthPowerItem entities
   Images/        - All graphical assets (PNG sprites organized by category)
+                   dirt_floor.png (jungle floor), jungle_bg.png (jungle background)
   Sounds/        - Audio assets: spooky_peaceful.wav (normal music),
                    halfway_intense.wav (halfway music),
                    boss_spooky.wav (boss music), fireball.wav,

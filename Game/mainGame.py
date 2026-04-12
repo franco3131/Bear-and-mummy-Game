@@ -970,6 +970,151 @@ class mainGame:
         walk_index = (animation_counter // 10) % 4
         return self._WALK_BOB[walk_index]
 
+    def _runTestRoom(self):
+        clock = pygame.time.Clock()
+        bear = Bear(150, 300, self.screen, self.thud_sound)
+        bear.grunt_sound = self.grunt_sound
+        bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
+        bear.level_up_sound = getattr(self, 'level_up_sound', None)
+        bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
+        bear.has_lightning = True
+        bear.has_lightning_2 = True
+        bear.crouch_sprite = self.crouchBear
+        bear.crouch_sprite_left = self.crouchBearLeft
+        bear.setJumpStatus(False)
+        bear.setLeftJumpStatus(False)
+        bear.setDamageAttack(50)
+
+        _ms = getattr(self, 'monkey_screech_sound', None)
+        _lr = getattr(self, 'lion_roar_sound', None)
+        monkey = MonkeyMummy(500, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms)
+        lion = Lion(700, 230, self.screen, _lr)
+
+        background = Background(self.screen)
+        background._jungle_mode = True
+        background._black_latched = False
+
+        hurtTimer = 61
+        attackingAnimationCounter = 0
+        attackingLeftAnimtationCounter = 0
+        attackCounterReady = 30
+        test_font = pygame.font.SysFont(None, 28, bold=True)
+        info_font = pygame.font.SysFont(None, 20)
+
+        try:
+            pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
+            pygame.mixer.music.set_volume(0.35)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            pass
+
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+
+            keys = pygame.key.get_pressed()
+            attackCounterReady += 1
+            hurtTimer += 1
+
+            if keys[pygame.K_RIGHT]:
+                bear.setLeftDirection(False)
+                bear.setXPosition(bear.getXPosition() + STEP)
+                if bear.getXPosition() > 800:
+                    bear.setXPosition(800)
+            if keys[pygame.K_LEFT]:
+                bear.setLeftDirection(True)
+                bear.setXPosition(bear.getXPosition() - STEP)
+                if bear.getXPosition() < 0:
+                    bear.setXPosition(0)
+
+            if keys[pygame.K_z] and not bear.getJumpStatus() and not bear.getLeftJumpStatus():
+                bear.startJump()
+                bear.setJumpStatus(True)
+
+            if bear.getJumpStatus() or bear.getLeftJumpStatus():
+                bear._jumpPhysics([])
+
+            if keys[pygame.K_a] and attackCounterReady > 20:
+                attackingAnimationCounter = 1
+                attackCounterReady = 0
+                if self.thud_sound: self.thud_sound.play()
+                for enemy in [monkey, lion]:
+                    if enemy.getHealth() > 0:
+                        if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
+                                         enemy.getXPosition(), enemy.getYPosition(),
+                                         bear.getLeftDirection(), enemy.getName()):
+                            _dmg = bear.getDamageAttack()
+                            enemy.setDamageReceived(_dmg)
+                            enemy.setStunned(1)
+                            enemy.setHealth(enemy.getHealth() - _dmg)
+
+            for enemy in [monkey, lion]:
+                if hasattr(enemy, 'getHealth') and enemy.getHealth() > 0:
+                    er = pygame.Rect(enemy.getXPosition(), enemy.getYPosition(),
+                                     enemy.width, enemy.height)
+                    br = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
+                    if er.colliderect(br) and hurtTimer > 60:
+                        _dmg = enemy.getDamageAttack()
+                        bear.setHp(bear.getHp() - _dmg)
+                        hurtTimer = 0
+
+            if attackingAnimationCounter > 0:
+                attackingAnimationCounter += 1
+                if attackingAnimationCounter > 15:
+                    attackingAnimationCounter = 0
+
+            background.render()
+            self.screen.blit(background.surface, (0, 0))
+
+            monkey.setBlocks([])
+            if monkey.getHealth() > 0:
+                monkey.drawMonster()
+            elif monkey.getStartDestructionAnimationStatus():
+                monkey.drawDestruction(monkey.getDamageReceived())
+            else:
+                monkey = MonkeyMummy(random.randint(300, 700), 220, 180, 180,
+                                     self.mummy1, self.mummy2, self.screen, _ms)
+
+            if lion.getHealth() > 0:
+                lion.drawMonster()
+            elif lion.startDestructionAnimation:
+                lion.drawDestruction(lion.getDamageReceived())
+            else:
+                lion = Lion(random.randint(300, 700), 230, self.screen, _lr)
+
+            if attackingAnimationCounter > 0:
+                attackingAnimationCounter += 1
+                if attackingAnimationCounter >= 12:
+                    attackingAnimationCounter = 0
+                if bear.getLeftDirection():
+                    self.screen.blit(self.bearAttackingLeft,
+                                     (bear.getXPosition() - 80, bear.getYPosition()))
+                else:
+                    self.screen.blit(self.bearAttacking,
+                                     (bear.getXPosition(), bear.getYPosition()))
+            else:
+                self._draw_idle_bear(bear)
+
+            label = test_font.render("TEST ROOM - Press ESC to exit", True, (255, 220, 100))
+            self.screen.blit(label, (450 - label.get_width() // 2, 10))
+            _mk_info = info_font.render(
+                f"Monkey HP: {monkey.getHealth()}/{monkey.max_health}  Y: {int(monkey.getYPosition())}  Floor: {monkey.FLOOR_Y}",
+                True, (200, 200, 200))
+            self.screen.blit(_mk_info, (10, 660))
+            _li_info = info_font.render(
+                f"Lion HP: {lion.getHealth()}/{lion.max_health}  Y: {int(lion.getYPosition())}  Floor: {lion.FLOOR_Y}",
+                True, (200, 200, 200))
+            self.screen.blit(_li_info, (10, 680))
+
+            pygame.display.update()
+            clock.tick(60)
+
     def showStartMenu(self):
         try:
             pygame.mixer.music.load("Game/Sounds/menu_theme.wav")
@@ -1008,6 +1153,9 @@ class mainGame:
                         selected = 1
                     elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                         menu_running = False
+                    elif event.key == pygame.K_p:
+                        self._runTestRoom()
+                        return None
 
             self.screen.fill((18, 12, 28))
 
@@ -4533,16 +4681,17 @@ class Background():
         self.floor = _tinted
 
     def render(self, total_distance=0):
-        if self.isBlackBackground:
+        if self.isBlackBackground and not getattr(self, '_jungle_mode', False):
             self.bgimage = self.bgBlack
             self.bgimage_alt = self.bgBlack
             self._black_latched = True
             self.isBlackBackground = False
+        elif getattr(self, '_jungle_mode', False):
+            self._black_latched = False
+            self.isBlackBackground = False
+            self.bgimage = self.jungle_bg
+            self.bgimage_alt = self.jungle_bg
         elif not getattr(self, '_black_latched', False):
-            if getattr(self, '_jungle_mode', False):
-                self.bgimage = self.jungle_bg
-                self.bgimage_alt = self.jungle_bg
-            else:
                 bg_idx = min(2, max(0, int(total_distance)) // 4500)
                 self._sway_timer += 1
                 if self._sway_timer >= self._sway_period:
@@ -7405,7 +7554,7 @@ class MonkeyMummy:
 
             if self.jump_timer > random.randint(30, 70) and self.can_jump:
                 self.jump_timer = 0
-                self.jump_velocity = random.uniform(-12, -8)
+                self.jump_velocity = random.uniform(-16, -11)
                 self.jump_h_speed = random.choice([-5, -3, 3, 5])
                 self.can_jump = False
                 if self.screech_sound and self._screech_cooldown <= 0:
