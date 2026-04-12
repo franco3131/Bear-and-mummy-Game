@@ -145,3 +145,7 @@ python main.py
 - **Boss explosions extended** — bigMummy: 60 frames with 2 fires, FrankenBear: 70 frames with 3→2 fires, both play boss_explosion_sound twice
 - **Coins land on platforms** — Coin class checks blocks list; coins settle on the nearest block surface above instead of always falling to floor; re-validates if blocks are removed
 - **Hard mode crash fixed** — changeDirectionX was being set to 0 causing ZeroDivisionError; now properly scaled ×1.8
+- **Coyote time** — 6-frame grace period after walking off a platform edge where you can still jump (Mario/Castlevania principle)
+- **Jump buffering** — pressing jump while airborne queues it; auto-jumps on landing within 8 frames (eliminates missed jumps)
+- **Landing squash** — brief visual squash-and-stretch effect on landing for weight/impact feel
+- **Smooth speed transitions** — combat/exploration speed change lerps gradually over ~10 frames instead of instantly snapping

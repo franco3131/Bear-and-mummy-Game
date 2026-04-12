@@ -773,7 +773,6 @@ class mainGame:
     # -----------------------------------------------------------------------
     def _draw_idle_bear(self, bear):
         if bear.get_crouch():
-            # Draw crouch sprite with bottom aligned to the standing sprite
             if not bear.getLeftDirection():
                 if bear.crouch_sprite:
                     offset_y = self.standingBear.get_height() - bear.crouch_sprite.get_height()
@@ -785,13 +784,20 @@ class mainGame:
                     self.screen.blit(bear.crouch_sprite_left,
                                      (bear.getXPosition(), bear.getYPosition() + offset_y))
         else:
-            # Draw standing sprite
             if not bear.getLeftDirection():
-                self.screen.blit(self.standingBear,
-                                 (bear.getXPosition(), bear.getYPosition()))
+                sprite = self.standingBear
             else:
-                self.screen.blit(self.standingBearLeft,
-                                 (bear.getXPosition(), bear.getYPosition()))
+                sprite = self.standingBearLeft
+            ws, hs = bear.get_land_squash_scale()
+            if ws != 1.0 or hs != 1.0:
+                sw = int(sprite.get_width() * ws)
+                sh = int(sprite.get_height() * hs)
+                squashed = pygame.transform.scale(sprite, (sw, sh))
+                ox = (sprite.get_width() - sw) // 2
+                oy = sprite.get_height() - sh
+                self.screen.blit(squashed, (bear.getXPosition() + ox, bear.getYPosition() + oy))
+            else:
+                self.screen.blit(sprite, (bear.getXPosition(), bear.getYPosition()))
 
     def _get_bear_walk_frame(self, animation_counter, facing_left=False):
         walk_index = (animation_counter // 8) % 4
@@ -1096,6 +1102,9 @@ class mainGame:
                                     'Press "s" to continue'])
                                 bear.setEndText(False)
                             shop_last_weapon_bought = None
+                    elif event.key == pygame.K_z:
+                        if bear.getJumpStatus() or bear.getLeftJumpStatus():
+                            bear.buffer_jump()
 
             background.render(totalDistance)
             if shop_open:
@@ -1183,7 +1192,13 @@ class mainGame:
                  -150 <= e.getXPosition() <= 950)
                 for e in _enemies_on_screen
             )
-            STEP = _base_step if _has_alive_enemy else int(_base_step * 1.5)
+            _target_step = _base_step if _has_alive_enemy else int(_base_step * 1.5)
+            bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.12
+            STEP = max(1, int(round(bear._speed_lerp)))
+
+            _on_ground = (not bear.getJumpStatus() and not bear.getLeftJumpStatus())
+            bear.update_coyote(_on_ground)
+            bear.tick_jump_buffer()
 
             if bear.getLevel() >= 14 and not self._silver_applied:
                 self._apply_silver_tint()
@@ -1441,7 +1456,6 @@ class mainGame:
                                         background.setXPosition(backgroundScrollX)
 
                     elif jumpTimer > 12:
-                        # ---- On the ground: start a new jump (cooldown gated) ----
                         totalDistance += STEP
                         _jump_moved = True
                         if bear.getXPosition() < self.rightBoundary:
@@ -1575,7 +1589,6 @@ class mainGame:
                             background.setXPosition(backgroundScrollX)
 
                     elif jumpTimer > 12:
-                        # ---- On the ground: start a new jump (cooldown gated) ----
                         totalDistance -= STEP
                         jumpTimer = 0
                         if bear.getXPosition() > self.leftBoundary:
@@ -1657,7 +1670,6 @@ class mainGame:
                     if _jump_left_moved or not airborne:
                         background.update(backgroundScrollX, bear.getYPosition())
 
-                # ---- Z only: vertical jump --------------------------------
                 elif (keys[pygame.K_z]
                       and not bear.getJumpStatus()
                       and not bear.getLeftJumpStatus()
@@ -1665,12 +1677,17 @@ class mainGame:
                     jumpTimer = 0
                     bear.setJumpStatus(True)
                     bear.setLeftJumpStatus(True)
-                    # Capture which block we're jumping from so _jumpPhysics can skip it
                     for block in self.blocks:
                         if block.getOnPlatform():
                             bear.sourceBlock = block
                             break
                     bear.startJump()
+                    background.update(backgroundScrollX, bear.getYPosition())
+                elif (keys[pygame.K_z] and bear.can_coyote_jump()
+                      and bear.jumpVelocity <= 0):
+                    bear.startJump()
+                    bear.setJumpStatus(True)
+                    jumpTimer = 0
                     background.update(backgroundScrollX, bear.getYPosition())
 
                 # ---- A + RIGHT: attack right ------------------------------
@@ -4883,6 +4900,17 @@ class Bear:
         # Poison mechanic
         self.poison_timer = 0
         self.poison_damage_tick = 0
+        self._move_speed = 0.0
+        self._move_accel = 0.25
+        self._move_friction = 0.35
+        self._coyote_timer = 0
+        self._coyote_max = 6
+        self._jump_buffer = 0
+        self._jump_buffer_max = 8
+        self._land_squash = 0
+        self._was_on_ground = True
+        self._move_dir = 0
+        self._speed_lerp = 8.0
 
     def setArrayText(self, text):
         self.textArray.append(text)
@@ -4993,11 +5021,70 @@ class Bear:
         """Check if currently poisoned."""
         return self.poison_timer > 0
 
+    def update_movement(self, moving, direction, max_step):
+        """Update horizontal velocity with acceleration/deceleration."""
+        if moving:
+            self._move_dir = direction
+            self._move_speed = min(max_step, self._move_speed + max_step * self._move_accel)
+        else:
+            self._move_speed = max(0.0, self._move_speed - max_step * self._move_friction)
+        if self._move_speed < 0.5:
+            self._move_speed = 0.0
+
+    def get_effective_step(self, max_step):
+        """Return integer step based on current velocity."""
+        return max(1, int(round(self._move_speed))) if self._move_speed > 0 else max_step
+
+    def update_coyote(self, on_ground):
+        """Track coyote time — grace period after leaving a ledge."""
+        if on_ground:
+            self._was_on_ground = True
+            self._coyote_timer = 0
+        else:
+            if self._was_on_ground:
+                self._coyote_timer = self._coyote_max
+                self._was_on_ground = False
+            if self._coyote_timer > 0:
+                self._coyote_timer -= 1
+
+    def can_coyote_jump(self):
+        """True if within coyote-time grace period (just left ground, not from a jump)."""
+        return self._coyote_timer > 0
+
+    def buffer_jump(self):
+        """Record that jump was pressed (for jump buffering). Only call on fresh key press."""
+        self._jump_buffer = self._jump_buffer_max
+
+    def consume_jump_buffer(self):
+        """Check and consume buffered jump. Returns True if a jump was buffered."""
+        if self._jump_buffer > 0:
+            self._jump_buffer = 0
+            return True
+        return False
+
+    def tick_jump_buffer(self):
+        """Decrement jump buffer timer each frame."""
+        if self._jump_buffer > 0:
+            self._jump_buffer -= 1
+
+    def trigger_land_squash(self, intensity=6):
+        """Trigger visual squash on landing."""
+        self._land_squash = intensity
+
+    def get_land_squash_scale(self):
+        """Returns (width_scale, height_scale) for squash-and-stretch."""
+        if self._land_squash > 0:
+            self._land_squash -= 1
+            t = self._land_squash / 6.0
+            return (1.0 + 0.15 * t, 1.0 - 0.12 * t)
+        return (1.0, 1.0)
+
     def startJump(self):
         """Kick off a new jump – sets initial upward velocity."""
         self.jumpVelocity = 16.8   # tuned so peak ≈ 217 px – clears y=190 blocks
         self.comingUp = True
-        # Play jump scream
+        self._coyote_timer = 0
+        self._jump_buffer = 0
         try:
             if hasattr(self, 'jump_scream_sound') and self.jump_scream_sound:
                 self.jump_scream_sound.play()
@@ -5052,10 +5139,14 @@ class Bear:
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
             self.initialHeight = self.y
-            self.sourceBlock = block   # remember which block we're on
+            self.sourceBlock = block
             self.jumpVelocity = 0.0
+            self.trigger_land_squash()
             if self.thud_sound:
                 self.thud_sound.play()
+            if self.consume_jump_buffer():
+                self.setJumpStatus(True)
+                self.startJump()
 
         # ------------------------------------------------------------------ #
         # Platform landing – downstroke only.                                 #
@@ -5135,15 +5226,18 @@ class Bear:
                     _land(block, bty)
                     return
         
-        # Floor landing – use sprite height (100) so bear sits flush on floor
         if self.y + 100 >= 400:
             self.y = 300
             self.setJumpStatus(False)
             self.setLeftJumpStatus(False)
             self.jumpVelocity = 0.0
             self.sourceBlock = None
+            self.trigger_land_squash()
             if self.thud_sound:
                 self.thud_sound.play()
+            if self.consume_jump_buffer():
+                self.setJumpStatus(True)
+                self.startJump()
 
     def jump(self, blocks):
         """Right-facing jump (also handles neutral/vertical jump)."""
