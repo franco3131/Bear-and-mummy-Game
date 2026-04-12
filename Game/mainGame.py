@@ -2657,7 +2657,6 @@ class mainGame:
                         self.coins.append(Coin(monster.getXPosition() + 10 + _ci * 28,
                                                monster.getYPosition() + 80, self.screen))
                     self._bigMummyDefeated = True
-                    self._switch_music("post_boss_normal")
 
             # ---- Mini FrankenBear laser generation and drawing ----------------
             for minibear in self.miniFrankenBears:
