@@ -156,3 +156,5 @@ python main.py
 - **Monkey animation** — 5-frame walk cycle (base + ±5°/±8° lean rotations), squash frame on landing (6 frames), stretch frame while airborne, vertical body bob (sin wave), screech sound effect on jump with 60-frame cooldown
 - **Lion animation** — 5-frame walk cycle (base + ±3°/±5° lean rotations), charge frame (horizontally stretched), pounce attack (parabolic arc during charge), roar sound on charge start with 90-frame cooldown, body bob while walking
 - **Floor clamping** — all jungle monsters enforce FLOOR_Y=400 floor boundary; lions pounce and always land on floor; monkeys jump and land on floor or platforms
+- **Snake crash fix** — Snake, MonkeyMummy, and Lion were all missing `getDamageAttack()` methods; contact with any of them caused an AttributeError crash; all three now have the method
+- **Snake animation** — 2-frame loop (base + 4° tilt) alternating every 20 frames for slithering look; height increased from 80→100; floor-clamped to FLOOR_Y=400; `_MONSTER_SIZES` updated in both constants.py and mainGame.py

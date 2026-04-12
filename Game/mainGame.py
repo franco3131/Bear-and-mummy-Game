@@ -110,7 +110,7 @@ _MONSTER_SIZES = {
     "frankenbears":   (300, 300),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
-    "snake":          (120,  80),
+    "snake":          (120, 100),
     "monkeyMummy":    (120, 140),
     "lion":           (140, 100),
 }
@@ -6554,15 +6554,17 @@ class FrankenBear():
 
 class Snake:
     """Snake enemy that poisons the player on contact."""
-    
+
+    FLOOR_Y = 400
+
     def __init__(self, x, y, screen):
         """Initialize a snake at position (x, y)."""
         self.x = x
-        self.y = y
         self.screen = screen
         self.direction = -1 if random.random() > 0.5 else 1
         self.width = 120
-        self.height = 80
+        self.height = 100
+        self.y = self.FLOOR_Y - self.height
         self.health = int(15 * 1.20)
         self.max_health = self.health
         self.speed = 1
@@ -6572,92 +6574,81 @@ class Snake:
         self.damageAttack = 0
         self.isHurtTimer = 0
         self.destructionAnimation = 0
-        
+        self._anim_timer = 0
+
         try:
-            self.snake_img = pygame.image.load("Game/Images/snake.png")
-            self.snake_img = pygame.transform.scale(self.snake_img, (self.width, self.height))
-            self.snake_img_left = pygame.transform.flip(self.snake_img, True, False)
+            _base = pygame.image.load("Game/Images/snake.png")
+            _base = pygame.transform.scale(_base, (self.width, self.height))
         except (FileNotFoundError, Exception):
-            # ── Redesigned viper / pit-viper sprite (80 × 60, procedural) ──
-            _sw, _sh = self.width, self.height   # 80 × 60
-            self.snake_img = pygame.Surface((_sw, _sh), pygame.SRCALPHA)
+            _base = self._draw_procedural_snake()
 
-            # --- Colour palette ---
-            _DARK   = (18, 72, 28)       # deep forest-green shadow
-            _MID    = (38, 120, 50)      # mid body green
-            _LIGHT  = (68, 185, 80)      # top-highlight stripe
-            _PAT    = (195, 165, 12)     # gold/amber zigzag diamonds
-            _PAT2   = (130, 105, 5)      # diamond outline
-            _HCOL   = (25, 88, 38)       # viper head colour
-            _EYE    = (215, 25, 12)      # red iris
-            _PUPIL  = (8, 4, 4)          # black vertical slit
-            _FANG   = (242, 242, 252)    # ivory fang
-            _TONGUE = (210, 18, 28)      # forked red tongue
+        self._frame1_right = _base
+        self._frame1_left = pygame.transform.flip(_base, True, False)
+        _f2 = pygame.transform.rotate(_base, 4)
+        _f2w, _f2h = _f2.get_size()
+        _f2_surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        _f2_surf.blit(_f2, ((self.width - _f2w) // 2, (self.height - _f2h) // 2))
+        self._frame2_right = _f2_surf
+        self._frame2_left = pygame.transform.flip(_f2_surf, True, False)
+        self.snake_img = _base
+        self.snake_img_left = self._frame1_left
 
-            # --- Body: sinuous S-curve using overlapping circles ---
-            # Segments: (cx, cy, radius), tail → neck (left to right)
-            _segs = [
-                (8,  45, 8),
-                (18, 41, 9),
-                (28, 36, 10),
-                (37, 29, 11),
-                (46, 25, 11),
-                (55, 29, 10),
-                (62, 34, 9),    # neck
-            ]
-            # Shadows first
-            for _cx, _cy, _r in _segs:
-                pygame.draw.circle(self.snake_img, _DARK, (_cx + 1, _cy + 2), _r)
-            # Body base + highlight
-            for _cx, _cy, _r in _segs:
-                pygame.draw.circle(self.snake_img, _MID,   (_cx, _cy), _r)
-                pygame.draw.circle(self.snake_img, _LIGHT, (_cx - 2, _cy - 3), max(2, _r // 3))
-
-            # --- Zigzag diamond pattern along the dorsal spine ---
-            _diamonds = [(22, 38), (37, 26), (52, 26), (61, 33)]
-            for _dx, _dy in _diamonds:
-                _pts = [(_dx, _dy - 7), (_dx + 7, _dy), (_dx, _dy + 7), (_dx - 7, _dy)]
-                pygame.draw.polygon(self.snake_img, _PAT,  _pts)
-                pygame.draw.polygon(self.snake_img, _PAT2, _pts, 1)
-
-            # --- Head: wide viper triangle ---
-            _head_pts = [
-                (62, 40),   # jaw-left-bottom
-                (67, 46),   # chin-front
-                (77, 46),   # lower-jaw
-                (80, 33),   # snout tip
-                (77, 20),   # upper-jaw
-                (67, 20),   # forehead-front
-                (62, 26),   # crown-back
-            ]
-            pygame.draw.polygon(self.snake_img, _HCOL,  _head_pts)
-            pygame.draw.polygon(self.snake_img, _DARK,  _head_pts, 2)
-            # Top-of-head highlight arc
-            pygame.draw.arc(self.snake_img, _LIGHT, (66, 22, 12, 9), 0.1, 3.05, 2)
-            # Subtle head stripe from crown to snout
-            pygame.draw.line(self.snake_img, _DARK, (68, 24), (79, 31), 1)
-            pygame.draw.line(self.snake_img, _DARK, (68, 42), (79, 35), 1)
-
-            # --- Eye: vivid red iris + black vertical-slit pupil ---
-            pygame.draw.circle(self.snake_img, _EYE,   (71, 31), 5)
-            pygame.draw.ellipse(self.snake_img, _PUPIL, (70, 27, 3, 8))
-            pygame.draw.circle(self.snake_img, (255, 200, 190), (70, 29), 1)  # shine
-
-            # --- Fangs: two ivory curved lines dropping from upper jaw ---
-            pygame.draw.line(self.snake_img, _FANG, (77, 40), (79, 47), 2)
-            pygame.draw.line(self.snake_img, _FANG, (74, 41), (75, 47), 2)
-
-            # --- Forked tongue from snout (within surface bounds) ---
-            pygame.draw.line(self.snake_img, _TONGUE, (79, 33), (75, 33), 2)   # stem
-            pygame.draw.line(self.snake_img, _TONGUE, (75, 33), (72, 29), 1)   # upper fork
-            pygame.draw.line(self.snake_img, _TONGUE, (75, 33), (72, 37), 1)   # lower fork
-
-            self.snake_img_left = pygame.transform.flip(self.snake_img, True, False)
-        
         self.poison_cooldown = 0
         self.walk_timer = 0
         self.change_direction_timer = random.randint(100, 200)
         self.startDestructionAnimation = False
+
+    def _draw_procedural_snake(self):
+        _sw, _sh = self.width, self.height
+        surf = pygame.Surface((_sw, _sh), pygame.SRCALPHA)
+        _DARK   = (18, 72, 28)
+        _MID    = (38, 120, 50)
+        _LIGHT  = (68, 185, 80)
+        _PAT    = (195, 165, 12)
+        _PAT2   = (130, 105, 5)
+        _HCOL   = (25, 88, 38)
+        _EYE    = (215, 25, 12)
+        _PUPIL  = (8, 4, 4)
+        _FANG   = (242, 242, 252)
+        _TONGUE = (210, 18, 28)
+        _oy = 20
+        _segs = [
+            (8,  45+_oy, 9),
+            (18, 41+_oy, 10),
+            (28, 36+_oy, 11),
+            (37, 29+_oy, 12),
+            (46, 25+_oy, 12),
+            (55, 29+_oy, 11),
+            (62, 34+_oy, 10),
+        ]
+        for _cx, _cy, _r in _segs:
+            pygame.draw.circle(surf, _DARK, (_cx + 1, _cy + 2), _r)
+        for _cx, _cy, _r in _segs:
+            pygame.draw.circle(surf, _MID,   (_cx, _cy), _r)
+            pygame.draw.circle(surf, _LIGHT, (_cx - 2, _cy - 3), max(2, _r // 3))
+        _diamonds = [(22, 38+_oy), (37, 26+_oy), (52, 26+_oy), (61, 33+_oy)]
+        for _dx, _dy in _diamonds:
+            _pts = [(_dx, _dy - 7), (_dx + 7, _dy), (_dx, _dy + 7), (_dx - 7, _dy)]
+            pygame.draw.polygon(surf, _PAT,  _pts)
+            pygame.draw.polygon(surf, _PAT2, _pts, 1)
+        _head_pts = [
+            (62, 40+_oy), (67, 46+_oy), (77, 46+_oy), (80, 33+_oy),
+            (77, 20+_oy), (67, 20+_oy), (62, 26+_oy),
+        ]
+        pygame.draw.polygon(surf, _HCOL,  _head_pts)
+        pygame.draw.polygon(surf, _DARK,  _head_pts, 2)
+        pygame.draw.arc(surf, _LIGHT, (66, 22+_oy, 12, 9), 0.1, 3.05, 2)
+        pygame.draw.line(surf, _DARK, (68, 24+_oy), (79, 31+_oy), 1)
+        pygame.draw.line(surf, _DARK, (68, 42+_oy), (79, 35+_oy), 1)
+        pygame.draw.circle(surf, _EYE,   (71, 31+_oy), 5)
+        pygame.draw.ellipse(surf, _PUPIL, (70, 27+_oy, 3, 8))
+        pygame.draw.circle(surf, (255, 200, 190), (70, 29+_oy), 1)
+        pygame.draw.line(surf, _FANG, (77, 40+_oy), (79, 47+_oy), 2)
+        pygame.draw.line(surf, _FANG, (74, 41+_oy), (75, 47+_oy), 2)
+        pygame.draw.line(surf, _TONGUE, (79, 33+_oy), (75, 33+_oy), 2)
+        pygame.draw.line(surf, _TONGUE, (75, 33+_oy), (72, 29+_oy), 1)
+        pygame.draw.line(surf, _TONGUE, (75, 33+_oy), (72, 37+_oy), 1)
+        return surf
 
     def setXPosition(self, x):
         self.x = x
@@ -6701,6 +6692,9 @@ class Snake:
     def getName(self):
         return "snake"
 
+    def getDamageAttack(self):
+        return self.damageAttack
+
     def setHurtTimer(self, timer):
         self.isHurtTimer = timer
 
@@ -6735,28 +6729,38 @@ class Snake:
                                    self.getXPosition() + 40, self.getYPosition() - 40,
                                    self.getHealth(), self.max_health)
 
+    def _get_current_frame(self):
+        use_frame2 = (self._anim_timer // 20) % 2 == 1
+        if self.direction > 0:
+            return self._frame2_right if use_frame2 else self._frame1_right
+        else:
+            return self._frame2_left if use_frame2 else self._frame1_left
+
     def drawMonster(self):
         """Draw the snake and handle movement."""
+        if self.y + self.height > self.FLOOR_Y:
+            self.y = self.FLOOR_Y - self.height
         if self.stunned == 0:
-            img = self.snake_img if self.direction > 0 else self.snake_img_left
-            self.screen.blit(img, (self.x, self.y))
-            
+            self._anim_timer += 1
+            frame = self._get_current_frame()
+            self.screen.blit(frame, (self.x, self.y))
+
             self.x += self.direction * self.speed
             self.walk_timer += 1
-            
+
             if self.walk_timer >= self.change_direction_timer:
                 self.direction *= -1
                 self.walk_timer = 0
                 self.change_direction_timer = random.randint(100, 200)
         else:
             self.stunned += 1
-            img = self.snake_img if self.direction > 0 else self.snake_img_left
-            hurt_img = img.copy()
+            frame = self._get_current_frame()
+            hurt_img = frame.copy()
             red_overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
             red_overlay.fill((255, 0, 0, 100))
             hurt_img.blit(red_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
             self.screen.blit(hurt_img, (self.x, self.y))
-            
+
             if self.stunned >= 20:
                 self.stunned = 0
 
@@ -7062,7 +7066,10 @@ class MonkeyMummy:
     
     def getName(self):
         return "monkeyMummy"
-    
+
+    def getDamageAttack(self):
+        return self.damageAttack
+
     def setHurtTimer(self, timer):
         self.isHurtTimer = timer
     
@@ -7298,6 +7305,9 @@ class Lion:
 
     def getName(self):
         return "lion"
+
+    def getDamageAttack(self):
+        return self.damageAttack
 
     def setHurtTimer(self, timer):
         self.isHurtTimer = timer

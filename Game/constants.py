@@ -18,7 +18,7 @@ _MONSTER_SIZES = {
     "frankenbears":   (300, 300),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
-    "snake":          (120,  80),
+    "snake":          (120, 100),
     "monkeyMummy":    (120, 140),
     "lion":           (140, 100),
 }
