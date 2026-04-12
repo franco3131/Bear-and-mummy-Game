@@ -1226,19 +1226,28 @@ class mainGame:
                             shop_message_timer = 0
                     elif shop_open:
                         shop_items = []
-                        shop_items.append(('health', 30, 'Health restore purchased! +20% HP restored.'))
+                        _buy_msgs = {
+                            'health': 'Health restored! +20% HP!',
+                            'shield': 'Shield purchased! 20% damage block!',
+                            'aimer': 'Aimer purchased! UP/DOWN to aim!',
+                            'lightning': 'Lightning purchased! Press S to strike!',
+                            'lightning2': 'Lightning 2! S fires 3 bolts!',
+                            '50pct': 'Protection unlocked! 50% reduction!',
+                            'big_fireball': 'Big Fireball! 30% larger!',
+                        }
+                        shop_items.append(('health', 30))
                         if not bear.has_shield:
-                            shop_items.append(('shield', 40, 'Shield purchased! 20% damage reduction.'))
-                        if not bear.has_aimer:
-                            shop_items.append(('aimer', 50, 'Aimer purchased! Use UP/DOWN to aim fireballs.'))
-                        if not getattr(bear, 'has_lightning', False):
-                            shop_items.append(('lightning', 60, 'Lightning bolt purchased! Press S to strike!'))
-                        if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
-                            shop_items.append(('lightning2', 80, 'Lightning 2! Press S for 3 bolts!'))
+                            shop_items.append(('shield', 40))
                         if not getattr(bear, 'has_50pct_protection', False):
-                            shop_items.append(('50pct', 100, 'Protection unlocked! 50% damage reduction!'))
+                            shop_items.append(('50pct', 100))
+                        if not bear.has_aimer:
+                            shop_items.append(('aimer', 50))
                         if not getattr(bear, 'has_big_fireball', False):
-                            shop_items.append(('big_fireball', 60, 'Big Fireball! 30% larger fireballs!'))
+                            shop_items.append(('big_fireball', 60))
+                        if not getattr(bear, 'has_lightning', False):
+                            shop_items.append(('lightning', 60))
+                        if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
+                            shop_items.append(('lightning2', 80))
                         shop_selection = min(shop_selection, max(len(shop_items) - 1, 0))
                         if event.key == pygame.K_UP:
                             shop_selection = max(0, shop_selection - 1)
@@ -1246,7 +1255,8 @@ class mainGame:
                             shop_selection = min(max(len(shop_items) - 1, 0), shop_selection + 1)
                         elif event.key == pygame.K_x:
                             if shop_selection < len(shop_items):
-                                item_type, cost, msg = shop_items[shop_selection]
+                                item_type, cost = shop_items[shop_selection]
+                                msg = _buy_msgs.get(item_type, 'Purchased!')
                                 if bear.getCoins() >= cost:
                                     bear.setCoins(bear.getCoins() - cost)
                                     if item_type == 'health':
@@ -1304,72 +1314,163 @@ class mainGame:
 
             background.render(totalDistance)
             if shop_open:
-                # ── Cute shop overlay ──────────────────────────────────────
-                # Dark semi-transparent backdrop
                 _overlay = pygame.Surface((900, 700), pygame.SRCALPHA)
-                _overlay.fill((0, 0, 0, 160))
+                _overlay.fill((0, 0, 0, 170))
                 self.screen.blit(_overlay, (0, 0))
 
-                panel = pygame.Rect(80, 50, 640, 520)
-                # Gradient-style background (two rects)
-                pygame.draw.rect(self.screen, (28, 18, 52), panel, border_radius=18)
-                pygame.draw.rect(self.screen, (44, 30, 78), pygame.Rect(panel.x+4, panel.y+4, panel.width-8, panel.height//2), border_radius=14)
-                # Gold border + inner highlight
-                pygame.draw.rect(self.screen, (220, 170, 60), panel, 4, border_radius=18)
-                pygame.draw.rect(self.screen, (255, 230, 120), pygame.Rect(panel.x+6, panel.y+6, panel.width-12, 3))
+                panel = pygame.Rect(100, 30, 700, 620)
+                pygame.draw.rect(self.screen, (22, 14, 44), panel, border_radius=22)
+                _inner_top = pygame.Rect(panel.x + 4, panel.y + 4, panel.width - 8, panel.height // 3)
+                pygame.draw.rect(self.screen, (36, 24, 64), _inner_top, border_radius=18)
+                pygame.draw.rect(self.screen, (210, 160, 50), panel, 4, border_radius=22)
+                _hl = pygame.Surface((panel.width - 16, 2), pygame.SRCALPHA)
+                _hl.fill((255, 230, 120, 120))
+                self.screen.blit(_hl, (panel.x + 8, panel.y + 8))
 
-                # Title banner
-                _title_rect = pygame.Rect(panel.x + 160, panel.y - 22, 320, 44)
-                pygame.draw.rect(self.screen, (180, 130, 40), _title_rect, border_radius=10)
-                pygame.draw.rect(self.screen, (255, 220, 100), _title_rect, 3, border_radius=10)
-                render_hud_text_outlined(self.screen, _FONT_HUD, '✨  SHOP  ✨', _title_rect.x + 30, _title_rect.y + 8, (255, 245, 180))
+                _tw = 260
+                _title_rect = pygame.Rect(panel.x + (panel.width - _tw) // 2, panel.y - 20, _tw, 42)
+                pygame.draw.rect(self.screen, (160, 110, 30), _title_rect, border_radius=12)
+                pygame.draw.rect(self.screen, (255, 215, 90), _title_rect, 3, border_radius=12)
+                _sparkle = int(abs(math.sin(pygame.time.get_ticks() * 0.003)) * 40)
+                _tc = (255, 235 + min(20, _sparkle), 170)
+                _t_surf = _FONT_HUD.render('BEAR SHOP', True, _tc)
+                _t_x = _title_rect.x + (_title_rect.width - _t_surf.get_width()) // 2
+                self.screen.blit(_t_surf, (_t_x, _title_rect.y + 7))
+
+                _categories = []
+
+                _recovery = []
+                _recovery.append(('health', 30, 'Heal 20%', 'Restore 20% of max HP'))
+                if _recovery:
+                    _categories.append(('Recovery', (255, 130, 130), _recovery))
+
+                _defense = []
+                if not bear.has_shield:
+                    _defense.append(('shield', 40, 'Shield', '20% damage block'))
+                if not getattr(bear, 'has_50pct_protection', False):
+                    _defense.append(('50pct', 100, 'Protection', '50% damage reduction'))
+                if _defense:
+                    _categories.append(('Defense', (100, 180, 255), _defense))
+
+                _weapons = []
+                if not bear.has_aimer:
+                    _weapons.append(('aimer', 50, 'Aimer', 'UP/DOWN to aim fireballs'))
+                if not getattr(bear, 'has_big_fireball', False):
+                    _weapons.append(('big_fireball', 60, 'Big Fireball', '30% larger fireballs'))
+                if _weapons:
+                    _categories.append(('Weapons', (255, 180, 80), _weapons))
+
+                _powers = []
+                if not getattr(bear, 'has_lightning', False):
+                    _powers.append(('lightning', 60, 'Lightning', 'Press S to strike'))
+                if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
+                    _powers.append(('lightning2', 80, 'Lightning 2', 'S fires 3 bolts ahead'))
+                if _powers:
+                    _categories.append(('Powers', (180, 140, 255), _powers))
 
                 shop_items = []
-                shop_items.append(('health', 30, '❤ Heal 20%', 'Restore 20% of max HP  [X] to buy'))
-                if not bear.has_shield:
-                    shop_items.append(('shield', 40, '🛡 Shield', 'Press X to buy - 20% damage block'))
-                if not bear.has_aimer:
-                    shop_items.append(('aimer', 50, '🎯 Aimer', 'Press X to buy - UP/DOWN to aim fireballs'))
-                if not getattr(bear, 'has_lightning', False):
-                    shop_items.append(('lightning', 60, '⚡ Lightning', 'Press X to buy - Press S to strike'))
-                if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
-                    shop_items.append(('lightning2', 80, '⚡⚡ Lightning 2', 'Press X to buy - S fires 3 bolts ahead'))
-                if not getattr(bear, 'has_50pct_protection', False):
-                    shop_items.append(('50pct', 100, '✦ Protection', 'Press X to buy - 50% damage reduction'))
-                if not getattr(bear, 'has_big_fireball', False):
-                    shop_items.append(('big_fireball', 60, '🔥 Big Fireball', 'Press X to buy - 30% larger fireballs'))
+                for _cat_name, _cat_color, _cat_items in _categories:
+                    for _ci in _cat_items:
+                        shop_items.append((_ci[0], _ci[1], _ci[2], _ci[3], _cat_name, _cat_color))
                 shop_selection = min(shop_selection, max(len(shop_items) - 1, 0))
 
-                if not shop_items:
-                    render_hud_text_outlined(self.screen, _FONT_HUD, '🌟 All items owned! 🌟', panel.x + 180, panel.y + 220, (200, 255, 200))
-                for idx, (item_id, cost, title, subtitle) in enumerate(shop_items):  # type: ignore
-                    item_y = panel.y + 38 + idx * 62
-                    option_rect = pygame.Rect(panel.x + 18, item_y, panel.width - 36, 54)
-                    if shop_selection == idx:
-                        pygame.draw.rect(self.screen, (80, 50, 130), option_rect, border_radius=12)
-                        pygame.draw.rect(self.screen, (200, 160, 255), option_rect, 2, border_radius=12)
-                    else:
-                        pygame.draw.rect(self.screen, (38, 26, 68), option_rect, border_radius=12)
-                        pygame.draw.rect(self.screen, (90, 70, 120), option_rect, 1, border_radius=12)
-                    render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, f'{title}  —  {cost} coins',
-                                               option_rect.x + 14, option_rect.y + 6, (255, 245, 210) if shop_selection == idx else (220, 210, 180))
-                    render_hud_text_outlined(self.screen, _FONT_HUD_VAL, subtitle,
-                                               option_rect.x + 14, option_rect.y + 32, (210, 190, 255) if shop_selection == idx else (160, 150, 190))
+                _left_x = panel.x + 20
+                _item_w = panel.width - 40
+                _row_h = 48
+                _cat_h = 24
+                _cur_y = panel.y + 38
+                _drawn_cats = set()
+                _icon_map = {
+                    'health': ('*', (255, 80, 80)),
+                    'shield': ('+', (100, 200, 255)),
+                    '50pct': ('++', (80, 180, 255)),
+                    'aimer': ('o', (255, 200, 80)),
+                    'big_fireball': ('~', (255, 140, 40)),
+                    'lightning': ('!', (200, 160, 255)),
+                    'lightning2': ('!!', (220, 180, 255)),
+                }
 
-                # Coin count
-                _coin_y = panel.y + panel.height - 60
-                pygame.draw.circle(self.screen, (255, 215, 0), (panel.x + 34, _coin_y + 12), 12)
-                pygame.draw.circle(self.screen, (255, 245, 130), (panel.x + 34, _coin_y + 12), 6)
+                if not shop_items:
+                    render_hud_text_outlined(self.screen, _FONT_HUD, 'All items owned!',
+                                            panel.x + 200, panel.y + 260, (200, 255, 200))
+                for idx, (item_id, cost, title, subtitle, cat_name, cat_color) in enumerate(shop_items):
+                    if cat_name not in _drawn_cats:
+                        _drawn_cats.add(cat_name)
+                        _cat_bar = pygame.Rect(_left_x, _cur_y, _item_w, _cat_h)
+                        _cat_bg = (cat_color[0] // 6, cat_color[1] // 6, cat_color[2] // 6)
+                        pygame.draw.rect(self.screen, _cat_bg, _cat_bar, border_radius=6)
+                        _dot_r = 4
+                        pygame.draw.circle(self.screen, cat_color, (_left_x + 14, _cur_y + _cat_h // 2), _dot_r)
+                        _cs = _FONT_HUD_VAL.render(cat_name.upper(), True, cat_color)
+                        self.screen.blit(_cs, (_left_x + 26, _cur_y + 4))
+                        _line_x = _left_x + 30 + _cs.get_width() + 8
+                        pygame.draw.line(self.screen, (cat_color[0] // 2, cat_color[1] // 2, cat_color[2] // 2),
+                                         (_line_x, _cur_y + _cat_h // 2), (_left_x + _item_w - 10, _cur_y + _cat_h // 2), 1)
+                        _cur_y += _cat_h + 4
+
+                    _sel = (shop_selection == idx)
+                    _row_rect = pygame.Rect(_left_x, _cur_y, _item_w, _row_h)
+                    if _sel:
+                        _pulse = int(abs(math.sin(pygame.time.get_ticks() * 0.005)) * 20)
+                        _bg = (60 + _pulse, 38 + _pulse // 2, 110 + _pulse)
+                        pygame.draw.rect(self.screen, _bg, _row_rect, border_radius=10)
+                        pygame.draw.rect(self.screen, (220, 180, 255), _row_rect, 2, border_radius=10)
+                        _arrow_x = _left_x + 6
+                        _arrow_y = _cur_y + _row_h // 2
+                        pygame.draw.polygon(self.screen, (255, 220, 100),
+                                            [(_arrow_x, _arrow_y - 5), (_arrow_x + 8, _arrow_y), (_arrow_x, _arrow_y + 5)])
+                    else:
+                        pygame.draw.rect(self.screen, (30, 20, 55), _row_rect, border_radius=10)
+                        pygame.draw.rect(self.screen, (70, 55, 100), _row_rect, 1, border_radius=10)
+
+                    _icon_char, _icon_col = _icon_map.get(item_id, ('?', (200, 200, 200)))
+                    _icon_cx = _left_x + 30
+                    _icon_cy = _cur_y + _row_h // 2
+                    pygame.draw.circle(self.screen, (_icon_col[0] // 3, _icon_col[1] // 3, _icon_col[2] // 3),
+                                       (_icon_cx, _icon_cy), 14)
+                    pygame.draw.circle(self.screen, _icon_col, (_icon_cx, _icon_cy), 12)
+                    _ic_s = _FONT_HUD_VAL.render(_icon_char, True, (30, 20, 40))
+                    self.screen.blit(_ic_s, (_icon_cx - _ic_s.get_width() // 2, _icon_cy - _ic_s.get_height() // 2))
+
+                    _name_x = _left_x + 52
+                    _name_col = (255, 248, 220) if _sel else (210, 200, 180)
+                    render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, title, _name_x, _cur_y + 5, _name_col)
+                    _desc_col = (190, 175, 230) if _sel else (140, 130, 170)
+                    render_hud_text_outlined(self.screen, _FONT_HUD_VAL, subtitle, _name_x, _cur_y + 27, _desc_col)
+
+                    _cost_str = f'{cost}'
+                    _cost_surf = _FONT_HUD_LABEL.render(_cost_str, True, (255, 230, 80) if _sel else (200, 180, 60))
+                    _cost_x = _left_x + _item_w - _cost_surf.get_width() - 30
+                    self.screen.blit(_cost_surf, (_cost_x, _cur_y + 8))
+                    _coin_r = 8
+                    _coin_cx = _cost_x + _cost_surf.get_width() + 14
+                    _coin_cy = _cur_y + 16
+                    pygame.draw.circle(self.screen, (255, 215, 0), (_coin_cx, _coin_cy), _coin_r)
+                    pygame.draw.circle(self.screen, (255, 245, 130), (_coin_cx, _coin_cy), 4)
+
+                    _cur_y += _row_h + 4
+
+                _footer_y = panel.y + panel.height - 68
+                _footer_rect = pygame.Rect(_left_x, _footer_y, _item_w, 52)
+                pygame.draw.rect(self.screen, (18, 12, 36), _footer_rect, border_radius=10)
+                pygame.draw.rect(self.screen, (80, 60, 110), _footer_rect, 1, border_radius=10)
+                _purse_cx = _left_x + 28
+                _purse_cy = _footer_y + 18
+                pygame.draw.circle(self.screen, (255, 215, 0), (_purse_cx, _purse_cy), 14)
+                pygame.draw.circle(self.screen, (255, 245, 130), (_purse_cx, _purse_cy), 8)
+                pygame.draw.circle(self.screen, (255, 215, 0), (_purse_cx, _purse_cy), 4)
                 render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, f'{bear.getCoins()} coins',
-                                           panel.x + 52, _coin_y, (255, 230, 80))
-                render_hud_text_outlined(self.screen, _FONT_HUD_VAL,
-                                           '[UP/DOWN] select   [X] buy   [ESC] close',
-                                           panel.x + 280, _coin_y + 4, (200, 185, 230))
+                                         _left_x + 50, _footer_y + 8, (255, 230, 80))
+                _ctrl_text = '[UP/DOWN] select    [X] buy    [ESC] close'
+                _ctrl_surf = _FONT_HUD_VAL.render(_ctrl_text, True, (180, 165, 210))
+                self.screen.blit(_ctrl_surf, (_left_x + _item_w - _ctrl_surf.get_width() - 8, _footer_y + 30))
+
                 if shop_message_timer > 0:
-                    _msg_rect = pygame.Rect(panel.x + 18, panel.y + panel.height - 90, panel.width - 36, 28)
-                    pygame.draw.rect(self.screen, (60, 40, 20), _msg_rect, border_radius=8)
+                    _msg_rect = pygame.Rect(_left_x, _footer_y - 30, _item_w, 26)
+                    pygame.draw.rect(self.screen, (50, 35, 18), _msg_rect, border_radius=8)
+                    pygame.draw.rect(self.screen, (180, 140, 40), _msg_rect, 1, border_radius=8)
                     render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, shop_message,
-                                               _msg_rect.x + 10, _msg_rect.y + 4, (255, 255, 140))
+                                             _msg_rect.x + 12, _msg_rect.y + 3, (255, 255, 140))
                 pygame.display.flip()
                 self.clock.tick(60)
                 continue
