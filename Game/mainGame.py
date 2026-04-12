@@ -3946,16 +3946,34 @@ class mainGame:
             for _m in _all_enemies:
                 if not getattr(_m, '_hms_speed_boosted', False):
                     _m._hms_speed_boosted = True
+                    _m._hard_mode = True
                     if hasattr(_m, 'walk_speed'):
-                        _m.walk_speed = max(_m.walk_speed + 1, round(_m.walk_speed * 1.3))
-                    if hasattr(_m, 'rand'):
-                        _m.rand = int(_m.rand * 1.8)
+                        _m.walk_speed = round(_m.walk_speed * 1.1)
                     if hasattr(_m, 'speed'):
-                        _m.speed = max(_m.speed + 1, round(_m.speed * 1.3))
+                        _m.speed = round(_m.speed * 1.1)
+                    if hasattr(_m, 'charge_speed'):
+                        _m.charge_speed = round(_m.charge_speed * 1.1)
+                    if hasattr(_m, 'rand') and _m.rand >= 2:
+                        _m.rand = max(2, round(_m.rand * 1.1))
                     if hasattr(_m, 'change_direction_timer'):
-                        _m.change_direction_timer = int(_m.change_direction_timer * 1.8)
-                    if hasattr(_m, 'changeDirectionX') and _m.changeDirectionX != 0:
-                        _m.changeDirectionX = int(_m.changeDirectionX * 1.8) or 1
+                        _m.change_direction_timer = max(20, int(_m.change_direction_timer * 0.5))
+
+            for _m in _all_enemies:
+                if getattr(_m, '_hard_mode', False) and _m.getHealth() > 0 and getattr(_m, 'stunned', 0) == 0:
+                    if random.random() < 0.02:
+                        if hasattr(_m, 'directionX'):
+                            _m.directionX = -_m.directionX
+                        elif hasattr(_m, 'direction'):
+                            _m.direction = -_m.direction
+                    if random.random() < 0.015:
+                        _burst = random.choice([2, 3, 4])
+                        _dir = getattr(_m, 'direction', getattr(_m, 'directionX', -1))
+                        _m.x = max(0, min(870, _m.x + _dir * _burst))
+                    if hasattr(_m, 'can_jump') and _m.can_jump and random.random() < 0.01:
+                        _m.jump_timer = 999
+                    if hasattr(_m, 'is_charging') and not _m.is_charging and random.random() < 0.012:
+                        _m.is_charging = True
+                        _m.charge_timer = random.randint(15, 35)
 
             if not getattr(self, '_hms_post_boss_applied', False) and self._bigMummyDefeated:
                 self._hms_post_boss_applied = True
