@@ -3447,6 +3447,9 @@ class mainGame:
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
             self.monkey_mummies = []; self.snakes = []; self.lions = []
             self.door = []; self.keys = []
+            self.frankenbear = []; self.shadowShamans = []
+            self.bossFires = []; self.spikes = []
+            self.coins = []; self.destroyable_blocks = []
 
             self.blocks.extend([
                 Block(1100, 280, 120, 50, "greyRock", self.screen),
@@ -3477,7 +3480,7 @@ class mainGame:
             _j1_left = len(self.monkey_mummies) + len(self.snakes) + len(self.lions)
             if _j1_left == 0:
                 self._jungle_zone2_active = True
-                self.blocks = []
+                self.blocks = []; self.coins = []
                 self.monkey_mummies = []; self.snakes = []; self.lions = []
 
                 self.blocks.extend([
@@ -6859,7 +6862,20 @@ class Coin:
     
     def setBlocks(self, blocks):
         self.blocks = blocks
+        self._clamp_above_blocks()
     
+    def _clamp_above_blocks(self):
+        for blk in self.blocks:
+            bx = blk.getBlockXPosition()
+            bw = blk.getWidth() if hasattr(blk, 'getWidth') else 100
+            by = blk.getBlockYPosition()
+            bh = blk.getHeight() if hasattr(blk, 'getHeight') else 50
+            if self.x + self.width > bx and self.x < bx + bw:
+                if self.y + self.height > by and self.y < by + bh:
+                    self.y = by - self.height
+                    self.fall_speed = 0
+                    self.landed = True
+
     def getXPosition(self):
         return self.x
     
