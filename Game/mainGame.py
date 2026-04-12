@@ -7030,7 +7030,7 @@ class Snake:
         self._anim_timer = 0
 
         try:
-            _base = pygame.image.load("Game/Images/snake.png")
+            _base = pygame.image.load("Game/Images/snake.png").convert_alpha()
             _base = pygame.transform.scale(_base, (self.width, self.height))
         except (FileNotFoundError, Exception):
             _base = self._draw_procedural_snake()
@@ -7450,7 +7450,7 @@ class MonkeyMummy:
         self.screech_sound = screech_sound
         self._screech_cooldown = 0
         try:
-            _monkey_img = pygame.image.load("Game/Images/monkey.png")
+            _monkey_img = pygame.image.load("Game/Images/monkey.png").convert_alpha()
             _base = pygame.transform.scale(_monkey_img, (width, height))
         except (FileNotFoundError, Exception):
             _base = pygame.transform.scale(mummy1Image, (width, height))
@@ -7713,7 +7713,7 @@ class Lion:
         self._is_airborne = False
 
         try:
-            _base = pygame.image.load("Game/Images/lion.png")
+            _base = pygame.image.load("Game/Images/lion.png").convert_alpha()
             _base = pygame.transform.scale(_base, (self.width, self.height))
         except (FileNotFoundError, Exception):
             _w, _h = self.width, self.height
