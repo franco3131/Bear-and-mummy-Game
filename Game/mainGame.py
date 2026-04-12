@@ -706,6 +706,11 @@ class mainGame:
         self._poison_floats = []   # [{x, y, timer}] floating "-2" numbers while poisoned
 
     # -----------------------------------------------------------------------
+    def _clear_poison(self, bear):
+        bear.poison_timer = 0
+        bear.poison_damage_tick = 0
+        self._poison_floats = []
+
     def _save_checkpoint(self, backgroundScrollX, totalDistance, bear):
         self._checkpoint_saved = True
         self._checkpoint_used = False
@@ -764,6 +769,7 @@ class mainGame:
         bear.has_shield = checkpoint.get('has_shield', False)
         bear.has_aimer = checkpoint.get('has_aimer', False)
         bear.has_50pct_protection = checkpoint.get('has_50pct_protection', False)
+        self._clear_poison(bear)
         totalDistance = saved_distance
         background.setXPosition(checkpoint.get('backgroundScrollX', background.getBackgroundX()))
         return totalDistance, background.getBackgroundX()
@@ -2972,6 +2978,7 @@ class mainGame:
                                        'Press "s" to continue'])
                     bear.setEndText(False)
                 else:
+                    self._clear_poison(bear)
                     bear.setEndText(False)
                     self.triggerText4 = True
                     bear.setArrayText(['GAME OVER!', '',
@@ -3078,7 +3085,7 @@ class mainGame:
                 self._boss_door_passed = False
                 self._post_boss_platform_popup_shown = False
                 self._fireball_tutorial_shown = True
-                self._poison_floats = []
+                self._clear_poison(bear)
 
                 if transition_mode == 'jungle':
                     self._jungle_unlocked = True
