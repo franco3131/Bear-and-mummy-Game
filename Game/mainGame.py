@@ -274,7 +274,7 @@ class mainGame:
         try:
             pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
             self.thud_sound = pygame.mixer.Sound("Game/Sounds/thud.wav")
-            self.thud_sound.set_volume(0.75)
+            self.thud_sound.set_volume(1.0)
             self.jump_scream_sound = pygame.mixer.Sound("Game/Sounds/jump_yell.wav")
             self.jump_scream_sound.set_volume(0.85)
             self.water_sound = pygame.mixer.Sound("Game/Sounds/water_ambient.wav")
