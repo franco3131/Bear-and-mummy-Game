@@ -3476,9 +3476,13 @@ class mainGame:
                        self.greenBlobs + self.frankenbear +
                        self.shadowShamans + self.miniFrankenBears +
                        self.snakes + self.monkey_mummies + self.lions):
-                if (getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0
-                        and not _m.getStartDestructionAnimationStatus()):
-                    _m.displayDamageOnMonster(_m.getDamageReceived())
+                if not _m.getStartDestructionAnimationStatus():
+                    if getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0:
+                        _m.displayDamageOnMonster(_m.getDamageReceived())
+                    elif _m.getHealth() < getattr(_m, 'max_health', _m.getHealth() + 1):
+                        render_enemy_health_bar(self.screen,
+                            _m.getXPosition() + 60, _m.getYPosition() - 60,
+                            _m.getHealth(), getattr(_m, 'max_health', _m.getHealth()))
 
             bear.displayBearHp()
             bear.displayBearExp()
@@ -4945,7 +4949,7 @@ class Mummy():
         self.hurtMummy = pygame.transform.scale(self.hurtMummy, (width, height))
         self.hurtLeftMummy = pygame.transform.flip(self.hurtMummy, True, False)
         self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
-        self.damageAttack = 9
+        self.damageAttack = 11
         self.hp = 120
         self.height = height
         self.width = width
@@ -4966,7 +4970,7 @@ class Mummy():
         self.hurtFlash = None
 
         if height > 100:  # Big mummy – use dedicated art with forehead marker
-            self.damageAttack = 11
+            self.damageAttack = 13
             self.exp = 20
             self.health = int(24 * 1.20)
             raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
@@ -5212,7 +5216,7 @@ class Witch():
         self.directionY = 1
         self.setThrowsFireBall = False
         self.fireBallAnimationCounter = 0
-        self.damageAttack = 6
+        self.damageAttack = 7
         self.hp = 120
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
@@ -5376,7 +5380,7 @@ class FireBall():
         self.fire = pygame.transform.scale(fireballImage, size)
         self.stunned = False
         self.health = 1
-        self.damageAttack = 5
+        self.damageAttack = 6
         self.isHurtTimer = 0
 
     def setHurtTimer(self, timer):
@@ -5455,7 +5459,7 @@ class GreenBlob():
         self.hurtGreenBlob = pygame.transform.scale(self.hurtGreenBlob, (100, 100))
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
-        self.damageAttack = 13
+        self.damageAttack = 16
         self.hp = int(26 * 1.20)
         self.hurtTimer = 0
         self.isMonsterHurtAnimation = 0
@@ -5470,7 +5474,7 @@ class GreenBlob():
             self.width = 300
             self.health = int(60 * 1.20)
             self.exp = 40
-            self.damageAttack = 28
+            self.damageAttack = 34
 
         # record max health for temporary health-bar rendering
         self.max_health = self.health
@@ -6404,7 +6408,7 @@ class SpikeBlock():
         self.screen = screen
         self.stunned = False
         self.health = 1
-        self.damageAttack = random.randint(11, 22)
+        self.damageAttack = random.randint(13, 26)
         self.spike = pygame.image.load("Game/Images/spikes.png")
         self.spike = pygame.transform.scale(self.spike, (100, 60))
         self.isHurtAnimationStarted = False
@@ -6484,7 +6488,7 @@ class ShadowShaman():
         self.directionY = 1
         self.setThrowsFireBall = False
         self.fireBallAnimationCounter = 0
-        self.damageAttack = 11
+        self.damageAttack = 13
         self.hp = 120
         self.isMonsterHurtAnimation = 0
         self.damageReceived = 0
@@ -6763,7 +6767,7 @@ class MiniFrankenBear():
         self.laser_interval = random.randint(40, 80)
         self.destructionAnimation = 0
         self.stunned = 0
-        self.damageAttack = 9
+        self.damageAttack = 11
         self.damageReceived = 0
         self.exp = 35
         self.isHurtAnimationStarted = False
@@ -6925,7 +6929,7 @@ class FrankenBear():
         self.attacked = False
         self.throwFireBallLeft = False
         self.throwFireBallRight = False
-        self.damageAttack = 17
+        self.damageAttack = 20
         self.damageReceived = 0
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (100, 100))
@@ -7578,7 +7582,7 @@ class MonkeyMummy:
         self._land_timer = 0
         self.health = int(20 * 1.15)
         self.max_health = self.health
-        self.damageAttack = 9
+        self.damageAttack = 11
         self.walk_speed = 3
         self.rand = 40
         self.direction = 1
@@ -7797,7 +7801,7 @@ class Lion:
         self.stunned = 0
         self.damageReceived = 0
         self.exp = 20
-        self.damageAttack = 11
+        self.damageAttack = 13
         self.isHurtTimer = 0
         self.destructionAnimation = 0
         self.startDestructionAnimation = False
