@@ -140,3 +140,8 @@ python main.py
 - **FrankenBear fire rate decreased** — normal: 90-140 frames (was 60-100), enraged: 60-100 (was 40-70)
 - **Bear stride reverted** — back to original 4-frame walk cycle using all 4 walking sprites in sequence
 - **FrankenBear hitbox reverted** — back to original 300×300
+- **Mummies 30% faster** — base rand changed from 1 to 2 (effectively doubles their movement speed)
+- **Sound effects added** — boss_explosion_sound (2s heavy boom for bosses), enemy_hit_sound (short impact on kill), wave_warning_sound (rising tone at zone transitions), bear_hurt_sound (plays when player takes damage), enemy_spawn_sound (chime at zone spawns)
+- **Boss explosions extended** — bigMummy: 60 frames with 2 fires, FrankenBear: 70 frames with 3→2 fires, both play boss_explosion_sound twice
+- **Coins land on platforms** — Coin class checks blocks list; coins settle on the nearest block surface above instead of always falling to floor; re-validates if blocks are removed
+- **Hard mode crash fixed** — changeDirectionX was being set to 0 causing ZeroDivisionError; now properly scaled ×1.8

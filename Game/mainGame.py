@@ -373,7 +373,7 @@ class mainGame:
                 _s = (_initial_blast + _boom * _env + _crackle + _rumble)
                 _smp.append(max(-1.0, min(1.0, _s)))
             self.explosion_sound = _make_snd(_smp)
-            self.explosion_sound.set_volume(1.0)
+            self.explosion_sound.set_volume(0.85)
             
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
@@ -444,6 +444,72 @@ class mainGame:
             self.coin_sound = _make_snd(_smp)
             self.coin_sound.set_volume(0.70)
 
+            _n = int(_RATE * 2.0)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = max(0.0, (1.0 - _t / 2.0) ** 0.5)
+                _initial_blast = max(0.0, 1.0 - _t * 6) * _rnd.gauss(0, 1) * 1.2
+                _boom = (_math.sin(2*_math.pi*28*_t) * 1.2
+                         + _math.sin(2*_math.pi*45*_t) * 0.9
+                         + _math.sin(2*_math.pi*18*_t + _math.sin(2*_math.pi*3*_t)*6) * 0.8
+                         + _math.sin(2*_math.pi*70*_t) * 0.5
+                         + _math.sin(2*_math.pi*12*_t) * 0.7)
+                _crackle = _rnd.gauss(0, 0.8) * max(0.0, 1.0 - _t * 2) * 0.8
+                _rumble_env = min(1.0, _t * 3) * max(0.0, 1.0 - (_t - 0.5) * 1.0)
+                _rumble = _math.sin(2*_math.pi*15*_t) * _rumble_env * 1.2
+                _s = (_initial_blast + _boom * _env + _crackle + _rumble)
+                _smp.append(max(-1.0, min(1.0, _s)))
+            self.boss_explosion_sound = _make_snd(_smp)
+            self.boss_explosion_sound.set_volume(1.0)
+
+            _n = int(_RATE * 0.15)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = max(0.0, (1.0 - _t/0.15)**2.0)
+                _s = _math.sin(2*_math.pi*600*_t) * 0.4 + _rnd.gauss(0, 0.3)
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.6)))
+            self.enemy_hit_sound = _make_snd(_smp)
+            self.enemy_hit_sound.set_volume(0.45)
+
+            _n = int(_RATE * 0.6)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = min(1.0, _i / (_RATE * 0.01)) * max(0.0, (1.0 - _t/0.6)**1.0)
+                _freq = 300 + 500 * _t
+                _s = _math.sin(2*_math.pi*_freq*_t) * 0.5 + _math.sin(2*_math.pi*(_freq*1.5)*_t) * 0.25
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.5)))
+            self.wave_warning_sound = _make_snd(_smp)
+            self.wave_warning_sound.set_volume(0.55)
+
+            _n = int(_RATE * 0.25)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = max(0.0, (1.0 - _t/0.25)**1.5)
+                _s = (_math.sin(2*_math.pi*120*_t) * 0.6
+                      + _math.sin(2*_math.pi*240*_t) * 0.3
+                      + _rnd.gauss(0, 0.2))
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.7)))
+            self.bear_hurt_sound = _make_snd(_smp)
+            self.bear_hurt_sound.set_volume(0.55)
+
+            _n = int(_RATE * 0.35)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _env = min(1.0, _i / (_RATE * 0.005)) * max(0.0, (1.0 - _t/0.35)**1.2)
+                _f1 = 523.25
+                _f2 = 659.25
+                _s = (_math.sin(2*_math.pi*_f1*_t) * 0.5
+                      + _math.sin(2*_math.pi*_f2*_t) * 0.35
+                      + _math.sin(2*_math.pi*_f1*2*_t) * 0.15)
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.5)))
+            self.enemy_spawn_sound = _make_snd(_smp)
+            self.enemy_spawn_sound.set_volume(0.35)
+
         except Exception:
             self.thud_sound = None
             self.fire_sound = None
@@ -468,6 +534,11 @@ class mainGame:
             self.crit_sound = None
             self.beam_sound = None
             self.coin_sound = None
+            self.boss_explosion_sound = None
+            self.enemy_hit_sound = None
+            self.wave_warning_sound = None
+            self.bear_hurt_sound = None
+            self.enemy_spawn_sound = None
         init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -1440,6 +1511,7 @@ class mainGame:
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
                             hurtTimer = 0
+                            if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             bear.applyDamage(monster.getDamageAttack())
                             self.screen.blit(self.hurtBear,
@@ -1560,6 +1632,7 @@ class mainGame:
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
                                 hurtTimer = 0
+                                if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.applyDamage(monster.getDamageAttack())
                                 self.screen.blit(self.hurtBear,
@@ -1788,6 +1861,7 @@ class mainGame:
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
                                 hurtTimer = 0
+                                if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.applyDamage(monster.getDamageAttack())
                                 self.screen.blit(self.hurtBear,
@@ -1922,6 +1996,7 @@ class mainGame:
                             if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
                                                 monster.getName()) and hurtTimer > 25):
+                                if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.applyDamage(monster.getDamageAttack())
                                 hurtTimer = 0
@@ -2038,6 +2113,7 @@ class mainGame:
                         if (bear.is_bear_hurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
                                             monster.getName()) and hurtTimer > 25):
+                            if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             bear.applyDamage(monster.getDamageAttack())
                             hurtTimer = 0
@@ -2149,12 +2225,19 @@ class mainGame:
                       and not monster.getStartDestructionAnimationStatus()):
                     monster.setStartDestructionAnimation(True)
                 elif monster.getStartDestructionAnimationStatus():
+                    if monster.getDestructionAnimationCount() == 1:
+                        if getattr(self, 'enemy_hit_sound', None):
+                            self.enemy_hit_sound.play()
                     if monster.getDestructionAnimationCount() == 5:
-                        if self.explosion_sound:
+                        _is_boss_monster = monster.getName() == "bigMummy"
+                        if _is_boss_monster and getattr(self, 'boss_explosion_sound', None):
+                            self.boss_explosion_sound.play()
+                        elif self.explosion_sound:
                             self.explosion_sound.play()
                     _death_dmg = monster.getDamageReceived() if monster.getDamageReceived() > 0 else bear.getDamageAttack()
                     monster.drawDestruction(_death_dmg) if hasattr(monster, 'drawDestruction') else None
-                    if monster.getDestructionAnimationCount() >= 30:
+                    _destroy_limit = 60 if monster.getName() == "bigMummy" else 30
+                    if monster.getDestructionAnimationCount() >= _destroy_limit:
                         monster.setStartDestructionAnimation(False)
                         _exp_gain = monster.getExp()
                         if self._hardMode:
@@ -2275,6 +2358,7 @@ class mainGame:
                             and bear_right > laser.getStartX() and bear_left < laser.getEndX()
                             and hurtTimer > 25):
                         _laser_dmg = max(6, int(bear.getMaxHp() * 0.10))
+                        if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                         bear.displayDamageOnBear(_laser_dmg, "laser")
                         bear.applyDamage(_laser_dmg)
                         hurtTimer = 0
@@ -2301,10 +2385,14 @@ class mainGame:
                         and monster.getDestructionAnimationCount() < 20
                         and not monster.getStartDestructionAnimationStatus()):
                     monster.setStartDestructionAnimation(True)
+                    if getattr(self, 'boss_explosion_sound', None):
+                        self.boss_explosion_sound.play()
                 elif monster.getStartDestructionAnimationStatus():
                     _boss_death_dmg = monster.getDamageReceived() if monster.getDamageReceived() > 0 else bear.getDamageAttack()
                     monster.drawDestruction(_boss_death_dmg)
-                    if monster.getDestructionAnimationCount() >= 30:
+                    if monster.getDestructionAnimationCount() == 20 and getattr(self, 'boss_explosion_sound', None):
+                        self.boss_explosion_sound.play()
+                    if monster.getDestructionAnimationCount() >= 70:
                         monster.setStartDestructionAnimation(False)
                         _exp_gain = monster.getExp()
                         if self._hardMode:
@@ -2336,6 +2424,7 @@ class mainGame:
             # ---- Coins (collectibles) -----------------------------------
             coins_to_remove = []
             for coin in self.coins:
+                coin.setBlocks(self.blocks)
                 coin.update()
                 coin.draw()
                 if coin.is_grabbed(bear.getXPosition(), bear.getYPosition()):
@@ -2583,6 +2672,7 @@ class mainGame:
             if totalDistance > 60000 and not self.activeMonsters[9]:
                 self.spikes = []
                 self.activeMonsters[9] = True
+                if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
                 self._switch_music("boss_final")
                 self.mummys = []
                 self.witches = []
@@ -3097,6 +3187,7 @@ class mainGame:
         # by the time Zone 1 triggers at 5 000, eliminating any pop-in.
         if backgroundScrollX > 2500 and not self.activeMonsters[11]:
             self.activeMonsters[11] = True
+            if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
             offset = 5000 - 2500  # 2 500 scroll-units of lead time
             self._z1_block_left.setblockXPosition(0    + offset)
             self._z1_block_right.setblockXPosition(1400 + offset)  # left of door (door at 1650)
@@ -3111,6 +3202,7 @@ class mainGame:
         # ── Zone 1 @ 5 000 – big mummy flanked by monster blocks ─────────────
         if backgroundScrollX > 5000 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
+            if getattr(self, 'enemy_spawn_sound', None): self.enemy_spawn_sound.play()
             self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
@@ -3247,6 +3339,7 @@ class mainGame:
         # ── Zone 3 @ 18 500 – first witch encounter (3 witches) ──────────────
         elif backgroundScrollX > 18500 and not self.activeMonsters[2]:
             self.activeMonsters[2] = True
+            if getattr(self, 'enemy_spawn_sound', None): self.enemy_spawn_sound.play()
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
 
@@ -3294,6 +3387,7 @@ class mainGame:
                 self.water_sound.stop()
                 self._water_playing = False
             self.activeMonsters[4] = True
+            if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
             self._hardMode = True
             if hasattr(self, '_bg_ref') and self._bg_ref:
                 self._bg_ref.setHardModeFloor()
@@ -3404,6 +3498,7 @@ class mainGame:
         # ── Zone 7 @ 45 000 – 75% mark, enemies 100% harder ────────
         elif backgroundScrollX > 45000 and not self.activeMonsters[7]:
             self.activeMonsters[7] = True
+            if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
             self._hardMode75 = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -3598,8 +3693,8 @@ class mainGame:
                         _m.speed = max(_m.speed + 1, round(_m.speed * 1.3))
                     if hasattr(_m, 'change_direction_timer'):
                         _m.change_direction_timer = int(_m.change_direction_timer * 1.8)
-                    if hasattr(_m, 'changeDirectionX'):
-                        _m.changeDirectionX = 0
+                    if hasattr(_m, 'changeDirectionX') and _m.changeDirectionX != 0:
+                        _m.changeDirectionX = int(_m.changeDirectionX * 1.8) or 1
 
             if not getattr(self, '_hms_post_boss_applied', False) and self._bigMummyDefeated:
                 self._hms_post_boss_applied = True
@@ -4032,7 +4127,7 @@ class Mummy():
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
-        self.rand = 1
+        self.rand = 2
         randomMax = random.randint(300, 500)
         self.changeDirection = random.randint(200, randomMax)
         self.storeDirection = 1
@@ -4194,10 +4289,14 @@ class Mummy():
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
         self.displayDamageOnMonster(damage)
-        if self.destructionAnimation < 30 and self.destructionAnimation % 2 == 0:
-            self.screen.blit(self.fire,
-                             (self.x + random.randint(-100, 0),
-                              self.y + random.randint(-100, 0)))
+        is_big = self.height > 100
+        _limit = 60 if is_big else 30
+        if self.destructionAnimation < _limit and self.destructionAnimation % 2 == 0:
+            _num = 2 if is_big else 1
+            for _ in range(_num):
+                self.screen.blit(self.fire,
+                                 (self.x + random.randint(-100, 20),
+                                  self.y + random.randint(-100, 20)))
 
     def _hits_block(self, new_x):
         """Return True if moving to new_x would overlap a block horizontally."""
@@ -6099,10 +6198,12 @@ class FrankenBear():
     def drawDestruction(self, damage):
         self.displayDamageOnMonster(damage)
         self.destructionAnimation += 1
-        if self.destructionAnimation < 30 and self.destructionAnimation % 2 < 10:
-            self.screen.blit(self.fire,
-                             (self.x + random.randint(-300, 0),
-                              self.y + random.randint(-300, 0)))
+        if self.destructionAnimation < 70 and self.destructionAnimation % 2 == 0:
+            _num_fires = 3 if self.destructionAnimation < 30 else 2
+            for _ in range(_num_fires):
+                self.screen.blit(self.fire,
+                                 (self.x + random.randint(-300, 50),
+                                  self.y + random.randint(-300, 50)))
 
     def getDestructionAnimationCount(self):
         return self.destructionAnimation
@@ -6357,6 +6458,8 @@ class Coin:
         self.bounce_velocity = 0
         self.gravity = 0.6
         self.fall_speed = 0.0
+        self.blocks = []
+        self.landed = False
         
         self.coin_img = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         pygame.draw.circle(self.coin_img, (255, 210, 0), (15, 15), 15)
@@ -6365,6 +6468,9 @@ class Coin:
         pygame.draw.polygon(self.coin_img, (255, 255, 255), [(22, 8), (26, 10), (24, 14), (20, 12)])
         pygame.draw.line(self.coin_img, (255, 255, 255), (10, 8), (18, 8), 2)
         pygame.draw.line(self.coin_img, (255, 240, 150), (12, 4), (20, 4), 2)
+    
+    def setBlocks(self, blocks):
+        self.blocks = blocks
     
     def getXPosition(self):
         return self.x
@@ -6381,12 +6487,25 @@ class Coin:
     def update(self):
         """Update coin falling animation."""
         floor_y = 400 - self.height
-        if self.y < floor_y:
+        landing_y = floor_y
+        for blk in self.blocks:
+            bx = blk.getBlockXPosition()
+            bw = blk.getWidth() if hasattr(blk, 'getWidth') else 100
+            by = blk.getBlockYPosition()
+            if self.x + self.width > bx and self.x < bx + bw:
+                if by - self.height < landing_y and by - self.height >= self.y - 5:
+                    landing_y = by - self.height
+        if self.landed and abs(self.y - landing_y) > 5:
+            self.landed = False
+        if self.landed:
+            return
+        if self.y < landing_y:
             self.fall_speed += self.gravity
-            self.y = min(floor_y, self.y + self.fall_speed)
+            self.y = min(landing_y, self.y + self.fall_speed)
         else:
-            self.y = floor_y
+            self.y = landing_y
             self.fall_speed = 0
+            self.landed = True
         self.bounce_height += self.bounce_velocity
         self.bounce_velocity += self.gravity if self.bounce_height > 0 else 0
         if self.bounce_height <= 0:
