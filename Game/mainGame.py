@@ -2842,6 +2842,7 @@ class mainGame:
             if (totalDistance > 30000 and not getattr(self, '_checkpoint_saved', False)
                     and bear.getEndText() and not self.escape):
                 self._save_checkpoint(backgroundScrollX, totalDistance, bear)
+                self._switch_music("deep_crypt")
                 bear.setArrayText(['GAME SAVED!', '',
                                    'Checkpoint reached at 50%.',
                                    'Press "s" to continue'])
@@ -4003,7 +4004,8 @@ class mainGame:
         self._current_music = track
         _files = {
             "normal":           "Game/Sounds/spooky_peaceful.wav",
-            "post_boss_normal": "Game/Sounds/post_boss_jungle.wav",
+            "post_boss_normal": "Game/Sounds/post_boss_march.wav",
+            "deep_crypt":       "Game/Sounds/deep_crypt.wav",
             "enchanted_tomb":   "Game/Sounds/halfway_intense.wav",
             "halfway":          "Game/Sounds/halfway_intense.wav",
             "final_push":       "Game/Sounds/final_push.wav",
@@ -4014,6 +4016,7 @@ class mainGame:
         _volumes = {
             "normal": 0.40,
             "post_boss_normal": 0.45,
+            "deep_crypt": 0.50,
             "enchanted_tomb": 0.50,
             "halfway": 0.45,
             "final_push": 0.50,

@@ -158,3 +158,4 @@ python main.py
 - **Floor clamping** — all jungle monsters enforce FLOOR_Y=400 floor boundary; lions pounce and always land on floor; monkeys jump and land on floor or platforms
 - **Snake crash fix** — Snake, MonkeyMummy, and Lion were all missing `getDamageAttack()` methods; contact with any of them caused an AttributeError crash; all three now have the method
 - **Snake animation** — 2-frame loop (base + 4° tilt) alternating every 20 frames for slithering look; height increased from 80→100; floor-clamped to FLOOR_Y=400; `_MONSTER_SIZES` updated in both constants.py and mainGame.py
+- **Two new music tracks** — "post_boss_march.wav" (triumphant victory march, 115 bpm, brass melody + spooky pad) plays after defeating the big mummy; "deep_crypt.wav" (dark driving descent, 125 bpm, minor pentatonic organ melody + tension risers) switches in at the 50% checkpoint
