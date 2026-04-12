@@ -149,3 +149,5 @@ python main.py
 - **Jump buffering** — pressing jump while airborne queues it; auto-jumps on landing within 8 frames (eliminates missed jumps)
 - **Landing squash** — brief visual squash-and-stretch effect on landing for weight/impact feel
 - **Smooth speed transitions** — combat/exploration speed change lerps gradually over ~10 frames instead of instantly snapping
+- **Cinematic menu transition** — selecting Normal/Hard mode triggers a 2-second transition: white flash → mode label with outline floats up → subtitle fades in → fade-to-black with music fadeout → game starts
+- **Castlevania-style walking** — bear has deliberate weighted stride with vertical bob (-2/+3/+5/+3 px cycle), slight body lean rotation (±1.5°), and slower frame cycling (10 frames per step vs 8); lean frames precomputed at init for zero runtime cost

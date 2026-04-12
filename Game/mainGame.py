@@ -573,6 +573,8 @@ class mainGame:
         self.bearWalkingLeft3 = pygame.transform.flip(self.bearWalking3, True, False)
         self.bearWalkingLeft4 = pygame.transform.flip(self.bearWalking4, True, False)
 
+        self._precompute_walk_lean()
+
         self.bearAttacking = pygame.image.load("Game/Images/Bear/bearAttacking.png")
         self.bearAttacking = pygame.transform.scale(self.bearAttacking, (210, 105))
         self.bearAttackingLeft = pygame.transform.flip(
@@ -805,15 +807,60 @@ class mainGame:
             else:
                 self.screen.blit(sprite, (bear.getXPosition(), bear.getYPosition()))
 
+    _WALK_BOB = (-2, 3, 5, 3)
+    _WALK_LEAN = (0.0, 1.5, 0.0, -1.5)
+
+    def _precompute_walk_lean(self):
+        lean_angles = self._WALK_LEAN
+        self._walk_right_leaned = []
+        self._walk_left_leaned = []
+        self._walk_right_offsets = []
+        self._walk_left_offsets = []
+        right_frames = (self.bearWalking1, self.bearWalking2,
+                        self.bearWalking3, self.bearWalking4)
+        left_frames = (self.bearWalkingLeft1, self.bearWalkingLeft2,
+                       self.bearWalkingLeft3, self.bearWalkingLeft4)
+        for i in range(4):
+            angle_r = lean_angles[i]
+            angle_l = -lean_angles[i]
+            ow = right_frames[i].get_width()
+            oh = right_frames[i].get_height()
+            if angle_r != 0.0:
+                rotated = pygame.transform.rotate(right_frames[i], angle_r)
+                dx = (rotated.get_width() - ow) // 2
+                dy = (rotated.get_height() - oh) // 2
+                self._walk_right_leaned.append(rotated)
+                self._walk_right_offsets.append((-dx, -dy))
+            else:
+                self._walk_right_leaned.append(right_frames[i])
+                self._walk_right_offsets.append((0, 0))
+            ow_l = left_frames[i].get_width()
+            oh_l = left_frames[i].get_height()
+            if angle_l != 0.0:
+                rotated_l = pygame.transform.rotate(left_frames[i], angle_l)
+                dx_l = (rotated_l.get_width() - ow_l) // 2
+                dy_l = (rotated_l.get_height() - oh_l) // 2
+                self._walk_left_leaned.append(rotated_l)
+                self._walk_left_offsets.append((-dx_l, -dy_l))
+            else:
+                self._walk_left_leaned.append(left_frames[i])
+                self._walk_left_offsets.append((0, 0))
+
     def _get_bear_walk_frame(self, animation_counter, facing_left=False):
-        walk_index = (animation_counter // 8) % 4
+        walk_index = (animation_counter // 10) % 4
         if facing_left:
-            frames = (self.bearWalkingLeft1, self.bearWalkingLeft2,
-                      self.bearWalkingLeft3, self.bearWalkingLeft4)
-        else:
-            frames = (self.bearWalking1, self.bearWalking2,
-                      self.bearWalking3, self.bearWalking4)
-        return frames[walk_index]
+            return self._walk_left_leaned[walk_index]
+        return self._walk_right_leaned[walk_index]
+
+    def _get_walk_offset(self, animation_counter, facing_left=False):
+        walk_index = (animation_counter // 10) % 4
+        if facing_left:
+            return self._walk_left_offsets[walk_index]
+        return self._walk_right_offsets[walk_index]
+
+    def _get_walk_bob(self, animation_counter):
+        walk_index = (animation_counter // 10) % 4
+        return self._WALK_BOB[walk_index]
 
     def showStartMenu(self):
         try:
@@ -911,6 +958,65 @@ class mainGame:
             clock.tick(60)
 
         self._hard_mode_selected = (selected == 1)
+
+        mode_label = "HARD MODE" if selected == 1 else "NORMAL MODE"
+        mode_color = (255, 60, 60) if selected == 1 else (100, 220, 130)
+        label_font = pygame.font.SysFont(None, 72, bold=True)
+        sub_font = pygame.font.SysFont(None, 28)
+
+        _last_frame = self.screen.copy()
+
+        for frame in range(120):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return None
+
+            self.screen.blit(_last_frame, (0, 0))
+
+            if frame < 20:
+                flash_alpha = int(255 * (1.0 - frame / 20.0))
+                flash = pygame.Surface((900, 700), pygame.SRCALPHA)
+                flash.fill((255, 255, 255, flash_alpha))
+                self.screen.blit(flash, (0, 0))
+
+            if frame >= 10:
+                t = min(1.0, (frame - 10) / 30.0)
+                ease = t * t * (3 - 2 * t)
+                label_surf = label_font.render(mode_label, True, mode_color)
+                lx = 450 - label_surf.get_width() // 2
+                ly = int(350 - 40 * ease)
+                label_alpha = int(255 * min(1.0, (frame - 10) / 15.0))
+                label_surf.set_alpha(label_alpha)
+                outline = label_font.render(mode_label, True, (0, 0, 0))
+                outline.set_alpha(label_alpha)
+                for dx, dy in [(-2,0),(2,0),(0,-2),(0,2),(-2,-2),(2,2)]:
+                    self.screen.blit(outline, (lx + dx, ly + dy))
+                self.screen.blit(label_surf, (lx, ly))
+
+                if frame >= 25:
+                    sub_text = "Prepare yourself..." if selected == 1 else "Let the adventure begin..."
+                    sub_surf = sub_font.render(sub_text, True, (200, 195, 210))
+                    sub_alpha = int(255 * min(1.0, (frame - 25) / 15.0))
+                    sub_surf.set_alpha(sub_alpha)
+                    self.screen.blit(sub_surf, (450 - sub_surf.get_width() // 2, ly + 60))
+
+            if frame >= 70:
+                fade_t = (frame - 70) / 50.0
+                fade_alpha = int(255 * min(1.0, fade_t))
+                dark = pygame.Surface((900, 700), pygame.SRCALPHA)
+                dark.fill((0, 0, 0, fade_alpha))
+                self.screen.blit(dark, (0, 0))
+
+            if frame >= 60:
+                vol = max(0.0, 1.0 - (frame - 60) / 50.0)
+                try:
+                    pygame.mixer.music.set_volume(0.35 * vol)
+                except Exception:
+                    pass
+
+            pygame.display.update()
+            clock.tick(60)
 
         try:
             pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
@@ -1868,8 +1974,10 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
+                        _bob = self._get_walk_bob(bearAnimation)
+                        _lox, _loy = self._get_walk_offset(bearAnimation)
                         self.screen.blit(self._get_bear_walk_frame(bearAnimation),
-                                         (bear.getXPosition(), bear.getYPosition() - 10))
+                                         (bear.getXPosition() + _lox, bear.getYPosition() - 10 + _bob + _loy))
                         self._footstep_counter += 1
                         if self._footstep_counter % 11 == 0 and self.footstep_sound:
                             self.footstep_sound.play()
@@ -2007,8 +2115,10 @@ class mainGame:
                         self._footstep_counter += 1
                         if self._footstep_counter % 11 == 0 and self.footstep_sound:
                             self.footstep_sound.play()
+                        _bob_l = self._get_walk_bob(bearAnimation)
+                        _lox_l, _loy_l = self._get_walk_offset(bearAnimation, facing_left=True)
                         self.screen.blit(self._get_bear_walk_frame(bearAnimation, facing_left=True),
-                                         (bear.getXPosition(), bear.getYPosition() - 10))
+                                         (bear.getXPosition() + _lox_l, bear.getYPosition() - 10 + _bob_l + _loy_l))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -3755,6 +3865,7 @@ class mainGame:
         self.bearWalkingLeft2 = self._tint_silver(self.bearWalkingLeft2)
         self.bearWalkingLeft3 = self._tint_silver(self.bearWalkingLeft3)
         self.bearWalkingLeft4 = self._tint_silver(self.bearWalkingLeft4)
+        self._precompute_walk_lean()
         self.bearAttacking = self._tint_silver(self.bearAttacking)
         self.bearAttackingLeft = self._tint_silver(self.bearAttackingLeft)
         self.hurtBear = self._tint_silver(self.hurtBear)
