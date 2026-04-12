@@ -3250,7 +3250,7 @@ class mainGame:
                 self.screen.blit(_ng_txt, (810, 10))
 
             # ---- Story / trigger text (triggers scaled to 8px steps) ----
-            if totalDistance > 2300 and not self.triggerText1:
+            if totalDistance > 2300 and not self.triggerText1 and not getattr(self, '_monkey_level_active', False):
                 bear.setEndText(False)
                 self.triggerText1 = True
                 bear.setArrayText(['The big mummy ahead has',
