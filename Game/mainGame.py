@@ -1257,8 +1257,8 @@ class mainGame:
                             'health': 'Health restored! +20% HP!',
                             'shield': 'Shield purchased! 20% damage block!',
                             'aimer': 'Aimer purchased! UP/DOWN to aim!',
-                            'lightning': 'Lightning purchased! Press Q to strike!',
-                            'lightning2': 'Lightning 2! Q fires 3 bolts!',
+                            'lightning': 'Lightning purchased! Q or UP+A/UP+X to strike!',
+                            'lightning2': 'Lightning 2! 3 bolts with Q or UP+A/UP+X!',
                             '50pct': 'Protection unlocked! 50% reduction!',
                             'big_fireball': 'Big Fireball! 30% larger!',
                         }
@@ -1320,12 +1320,12 @@ class mainGame:
                             if self.shop_close_sound: self.shop_close_sound.play()
                             if shop_last_weapon_bought == 'lightning':
                                 bear.setArrayText(['Lightning bought!',
-                                    'Press Q to call a lightning strike!',
+                                    'Press Q or UP+A / UP+X to strike!',
                                     'Press "s" to continue'])
                                 bear.setEndText(False)
                             elif shop_last_weapon_bought == 'lightning2':
                                 bear.setArrayText(['Lightning 2 bought!',
-                                    'Press Q to unleash 3 lightning bolts!',
+                                    'Q or UP+A/UP+X fires 3 bolts!',
 
                                     'Press "s" to continue'])
                                 bear.setEndText(False)
@@ -1396,9 +1396,9 @@ class mainGame:
 
                 _powers = []
                 if not getattr(bear, 'has_lightning', False):
-                    _powers.append(('lightning', 60, 'Lightning', 'Press Q to strike'))
+                    _powers.append(('lightning', 60, 'Lightning', 'Q or UP+A / UP+X'))
                 if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
-                    _powers.append(('lightning2', 80, 'Lightning 2', 'Q fires 3 bolts ahead'))
+                    _powers.append(('lightning2', 80, 'Lightning 2', '3 bolts: Q or UP+A/X'))
                 if _powers:
                     _categories.append(('Powers', (180, 140, 255), _powers))
 
@@ -1677,7 +1677,11 @@ class mainGame:
                 _q_key_down = keys[pygame.K_q]
                 _q_key_fresh = _q_key_down and not _q_key_prev
                 _q_key_prev = _q_key_down
-                if (_q_key_fresh and getattr(bear, 'has_lightning', False)
+                _up_combo = keys[pygame.K_UP] and (keys[pygame.K_a] or keys[pygame.K_x])
+                _up_combo_fresh = _up_combo and not getattr(self, '_up_combo_prev', False)
+                self._up_combo_prev = _up_combo
+                _lightning_trigger = _q_key_fresh or _up_combo_fresh
+                if (_lightning_trigger and getattr(bear, 'has_lightning', False)
                         and self.lightning_charge >= 1.0
                         and bear.getEndText() and not shop_open):
                     self.lightning_charge -= 1.0  # consume one charge
