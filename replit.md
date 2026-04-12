@@ -165,3 +165,7 @@ python main.py
 - **Popup grace period** — hurtTimer frozen at 0 during popups; on popup close, hurtTimer set to -35 giving ~1 second invincibility before enemies can damage the player again
 - **Silver mode speed cap** — movement speed capped at 12 in silver mode (level 14+) regardless of dead-zone boost
 - **Jungle enemies resized larger** — Snake: 180×80 (wide ground-hugging), MonkeyMummy: 140×140 (bigger than bear), Lion: 200×140 (imposing); all properly floor-clamped to FLOOR_Y=400; procedural sprites redrawn to fill larger canvases; lion fallback includes body, legs, mane, and tail
+- **Shop sound effects** — shop_open.wav (ascending chime), shop_close.wav (descending tone), shop_navigate.wav (soft click), shop_buy.wav (cha-ching), shop_error.wav (low buzz); all play at appropriate moments
+- **Lightning key changed S→Q** — lightning strike key remapped to Q; all HUD labels, shop descriptions, popup text, and intro message updated
+- **Controls hint bar** — semi-transparent key guide at bottom of screen shows all controls; fades out as you progress through the level
+- **Intro popup updated** — shows all key bindings (Z:Attack, X:Fireball, ENTER:Shop, C:Beam, Q:Lightning)

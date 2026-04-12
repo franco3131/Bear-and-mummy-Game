@@ -393,6 +393,16 @@ class mainGame:
             self.key_pickup_sound.set_volume(0.65)
             self.level_up_sound = pygame.mixer.Sound("Game/Sounds/level_up.wav")
             self.level_up_sound.set_volume(0.70)
+            self.shop_open_sound = pygame.mixer.Sound("Game/Sounds/shop_open.wav")
+            self.shop_open_sound.set_volume(0.65)
+            self.shop_close_sound = pygame.mixer.Sound("Game/Sounds/shop_close.wav")
+            self.shop_close_sound.set_volume(0.60)
+            self.shop_navigate_sound = pygame.mixer.Sound("Game/Sounds/shop_navigate.wav")
+            self.shop_navigate_sound.set_volume(0.50)
+            self.shop_buy_sound = pygame.mixer.Sound("Game/Sounds/shop_buy.wav")
+            self.shop_buy_sound.set_volume(0.75)
+            self.shop_error_sound = pygame.mixer.Sound("Game/Sounds/shop_error.wav")
+            self.shop_error_sound.set_volume(0.60)
             self.boss_entrance_sound = pygame.mixer.Sound("Game/Sounds/boss_entrance.wav")
             self.boss_entrance_sound.set_volume(0.55)
             self.deflect_sound = pygame.mixer.Sound("Game/Sounds/deflect.wav")
@@ -536,6 +546,11 @@ class mainGame:
             self.door_open_sound = None
             self.key_pickup_sound = None
             self.level_up_sound = None
+            self.shop_open_sound = None
+            self.shop_close_sound = None
+            self.shop_navigate_sound = None
+            self.shop_buy_sound = None
+            self.shop_error_sound = None
             self.boss_entrance_sound = None
             self.deflect_sound = None
             self.spike_hit_sound = None
@@ -1193,14 +1208,14 @@ class mainGame:
         beamCharge = 0.0
         beamCooldown = 0
         beamReadyPopupShown = False
-        _s_key_prev = False  # track fresh S press for lightning
+        _q_key_prev = False
 
         # Show intro popup once at game start
         if not self._intro_shown:
             self._intro_shown = True
             bear.setArrayText(['Welcome to the Bear Adventure!', '',
-                               'Press RETURN to open the SHOP.',
-                               'Buy upgrades and power-ups!',
+                               'Z:Attack  X:Fireball  ENTER:Shop',
+                               'C:Beam  Q:Lightning (once bought)',
                                'Press "s" to continue'])
             bear.setEndText(False)
 
@@ -1229,14 +1244,17 @@ class mainGame:
                             shop_selection = 0
                             shop_message = ''
                             shop_message_timer = 0
+                            if self.shop_open_sound: self.shop_open_sound.play()
+                        else:
+                            if self.shop_close_sound: self.shop_close_sound.play()
                     elif shop_open:
                         shop_items = []
                         _buy_msgs = {
                             'health': 'Health restored! +20% HP!',
                             'shield': 'Shield purchased! 20% damage block!',
                             'aimer': 'Aimer purchased! UP/DOWN to aim!',
-                            'lightning': 'Lightning purchased! Press S to strike!',
-                            'lightning2': 'Lightning 2! S fires 3 bolts!',
+                            'lightning': 'Lightning purchased! Press Q to strike!',
+                            'lightning2': 'Lightning 2! Q fires 3 bolts!',
                             '50pct': 'Protection unlocked! 50% reduction!',
                             'big_fireball': 'Big Fireball! 30% larger!',
                         }
@@ -1255,9 +1273,13 @@ class mainGame:
                             shop_items.append(('lightning2', 80))
                         shop_selection = min(shop_selection, max(len(shop_items) - 1, 0))
                         if event.key == pygame.K_UP:
+                            _prev_sel = shop_selection
                             shop_selection = max(0, shop_selection - 1)
+                            if shop_selection != _prev_sel and self.shop_navigate_sound: self.shop_navigate_sound.play()
                         elif event.key == pygame.K_DOWN:
+                            _prev_sel = shop_selection
                             shop_selection = min(max(len(shop_items) - 1, 0), shop_selection + 1)
+                            if shop_selection != _prev_sel and self.shop_navigate_sound: self.shop_navigate_sound.play()
                         elif event.key == pygame.K_x:
                             if shop_selection < len(shop_items):
                                 item_type, cost = shop_items[shop_selection]
@@ -1284,19 +1306,22 @@ class mainGame:
                                         bear.has_big_fireball = True
                                         shop_last_weapon_bought = 'big_fireball'
                                     shop_message = msg
+                                    if self.shop_buy_sound: self.shop_buy_sound.play()
                                 else:
                                     shop_message = 'Not enough coins.'
+                                    if self.shop_error_sound: self.shop_error_sound.play()
                                 shop_message_timer = 120
                         elif event.key == pygame.K_ESCAPE:
                             shop_open = False
+                            if self.shop_close_sound: self.shop_close_sound.play()
                             if shop_last_weapon_bought == 'lightning':
                                 bear.setArrayText(['Lightning bought!',
-                                    'Press S to call a lightning strike!',
+                                    'Press Q to call a lightning strike!',
                                     'Press "s" to continue'])
                                 bear.setEndText(False)
                             elif shop_last_weapon_bought == 'lightning2':
                                 bear.setArrayText(['Lightning 2 bought!',
-                                    'Press S to unleash 3 lightning bolts!',
+                                    'Press Q to unleash 3 lightning bolts!',
 
                                     'Press "s" to continue'])
                                 bear.setEndText(False)
@@ -1367,9 +1392,9 @@ class mainGame:
 
                 _powers = []
                 if not getattr(bear, 'has_lightning', False):
-                    _powers.append(('lightning', 60, 'Lightning', 'Press S to strike'))
+                    _powers.append(('lightning', 60, 'Lightning', 'Press Q to strike'))
                 if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
-                    _powers.append(('lightning2', 80, 'Lightning 2', 'S fires 3 bolts ahead'))
+                    _powers.append(('lightning2', 80, 'Lightning 2', 'Q fires 3 bolts ahead'))
                 if _powers:
                     _categories.append(('Powers', (180, 140, 255), _powers))
 
@@ -1466,7 +1491,7 @@ class mainGame:
                 pygame.draw.circle(self.screen, (255, 215, 0), (_purse_cx, _purse_cy), 4)
                 render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, f'{bear.getCoins()} coins',
                                          _left_x + 50, _footer_y + 8, (255, 230, 80))
-                _ctrl_text = '[UP/DOWN] select    [X] buy    [ESC] close'
+                _ctrl_text = '[UP/DOWN] select    [X] buy    [ENTER/ESC] close'
                 _ctrl_surf = _FONT_HUD_VAL.render(_ctrl_text, True, (180, 165, 210))
                 self.screen.blit(_ctrl_surf, (_left_x + _item_w - _ctrl_surf.get_width() - 8, _footer_y + 30))
 
@@ -1642,14 +1667,13 @@ class mainGame:
                 else:
                     bear.set_crouch(False)
 
-                # ---- S: lightning strike in front of player ----------------
-                # Recharge: fills 1 charge in ~200 frames (~3.3 s); max 2 charges
+                # ---- Q: lightning strike in front of player ----------------
                 if getattr(bear, 'has_lightning', False):
                     self.lightning_charge = min(2.0, self.lightning_charge + 0.005)
-                _s_key_down = keys[pygame.K_s]
-                _s_key_fresh = _s_key_down and not _s_key_prev
-                _s_key_prev = _s_key_down
-                if (_s_key_fresh and getattr(bear, 'has_lightning', False)
+                _q_key_down = keys[pygame.K_q]
+                _q_key_fresh = _q_key_down and not _q_key_prev
+                _q_key_prev = _q_key_down
+                if (_q_key_fresh and getattr(bear, 'has_lightning', False)
                         and self.lightning_charge >= 1.0
                         and bear.getEndText() and not shop_open):
                     self.lightning_charge -= 1.0  # consume one charge
@@ -3203,7 +3227,7 @@ class mainGame:
             if getattr(bear, 'has_lightning', False):
                 _lc_x, _lc_y, _lc_w, _lc_h = 624, 38, 180, 26
                 render_hud_panel(self.screen, _lc_x, _lc_y, _lc_w, _lc_h, (30, 50, 100))
-                render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "S:ZAP",
+                render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "Q:ZAP",
                                    _lc_x + 4, _lc_y + 3, (180, 240, 100))
                 _pip_w, _pip_h, _pip_gap = 55, 14, 6
                 _pip_start = _lc_x + 62
@@ -3499,6 +3523,20 @@ class mainGame:
                         pygame.draw.circle(self.screen, (200, 255, 160), (_lx2, 398), 45)
                         pygame.draw.circle(self.screen, (220, 255, 200), (_lx2, 398), 24)
             self.lightning2_targets = _l2_keep
+
+            if not shop_open and bear.getEndText():
+                _hint_alpha = max(0, min(180, 180 - (totalDistance // 50)))
+                if _hint_alpha > 0:
+                    _hint_parts = ['ARROWS:Move', 'SPACE:Jump', 'Z:Attack', 'X:Fireball', 'ENTER:Shop']
+                    if getattr(bear, 'has_lightning', False):
+                        _hint_parts.append('Q:Lightning')
+                    _hint_str = '    '.join(_hint_parts)
+                    _hint_surf = _FONT_HUD_VAL.render(_hint_str, True, (200, 200, 220))
+                    _hint_a_surf = pygame.Surface((_hint_surf.get_width() + 16, _hint_surf.get_height() + 6), pygame.SRCALPHA)
+                    _hint_a_surf.fill((0, 0, 0, min(120, _hint_alpha)))
+                    _hint_a_surf.blit(_hint_surf, (8, 3))
+                    _hint_a_surf.set_alpha(_hint_alpha)
+                    self.screen.blit(_hint_a_surf, ((900 - _hint_a_surf.get_width()) // 2, 682))
 
             pygame.display.flip()
             self.clock.tick(60)
