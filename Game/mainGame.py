@@ -4,6 +4,7 @@ import pygame
 import random
 import json
 import os
+import math
 from Game.constants import (
     STEP, JUMP_STEP, _MONSTER_SIZES, BEAR_W, BEAR_H,
     init_fonts, get_font
@@ -400,6 +401,11 @@ class mainGame:
             self.boss_hit_sound = pygame.mixer.Sound("Game/Sounds/boss_hit.wav")
             self.boss_hit_sound.set_volume(0.65)
 
+            self.monkey_screech_sound = pygame.mixer.Sound("Game/Sounds/monkey_screech.wav")
+            self.monkey_screech_sound.set_volume(0.35)
+            self.lion_roar_sound = pygame.mixer.Sound("Game/Sounds/lion_roar.wav")
+            self.lion_roar_sound.set_volume(0.45)
+
             _n = int(_RATE * 0.30)
             _smp = []
             for _i in range(_n):
@@ -539,6 +545,8 @@ class mainGame:
             self.wave_warning_sound = None
             self.bear_hurt_sound = None
             self.enemy_spawn_sound = None
+            self.monkey_screech_sound = None
+            self.lion_roar_sound = None
         init_fonts()
 
         self.screen = pygame.display.set_mode((900, 700), pygame.DOUBLEBUF)
@@ -696,6 +704,7 @@ class mainGame:
         self._easter_egg_5555 = False
         self._jungle_unlocked = False
         self._monkey_level_active = False
+        self._jungle_zone2_active = False
         self._triggerJungleTransition = False
         self._triggerNewGamePlus = False
         self._intro_shown = False
@@ -797,6 +806,7 @@ class mainGame:
                 elif flag_idx == -2:
                     self._zone85_active = False
         self._monkey_level_active = False
+        self._jungle_zone2_active = False
         self._secret_box_spawned = False
         self.isDoor1Open = False
         self.doorPopupTriggered = False
@@ -2511,7 +2521,7 @@ class mainGame:
                         self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
                                                monster.getYPosition() + 30, self.screen))
 
-                if getattr(self, '_monkey_level_active', False):
+                if getattr(self, '_jungle_zone2_active', False):
                     _jungle_enemies_left = len(self.monkey_mummies) + len(self.snakes) + len(self.lions)
                     if _jungle_enemies_left == 0:
                         self.newGamePlusLevel += 1
@@ -2522,6 +2532,7 @@ class mainGame:
                             'Press "s" to continue'])
                         bear.setEndText(False)
                         self._monkey_level_active = False
+                        self._jungle_zone2_active = False
                         self._jungle_unlocked = False
                         self._triggerNewGamePlus = True
 
@@ -3216,6 +3227,7 @@ class mainGame:
                 self._water_playing = False
                 self.activeMonsters = [False] * 16
                 self._monkey_level_active = False
+                self._jungle_zone2_active = False
 
                 bear = Bear(150, 300, self.screen, self.thud_sound)
                 self._bear_ref = bear
@@ -3428,36 +3440,76 @@ class mainGame:
             and self._jungle_unlocked and not self.activeMonsters[3]):
             self.activeMonsters[3] = True
             self._monkey_level_active = True
-            self._switch_music("post_boss_normal")
+            self._jungle_zone2_active = False
+            self._switch_music("jungle")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
             self.monkey_mummies = []; self.snakes = []; self.lions = []
+            self.door = []; self.keys = []
 
-            import random as _rnd
-            for i in range(8):
-                plat_x = 1050 + (i * 200)
-                plat_y = _rnd.choice([120, 180, 240, 300, 340])
-                plat_width = _rnd.randint(80, 140)
-                plat_type = _rnd.choice(["striped", "greyRock", "checkered"])
-                self.blocks.append(Block(plat_x, plat_y, plat_width, 50, plat_type, self.screen))
+            self.blocks.extend([
+                Block(1100, 280, 120, 50, "greyRock", self.screen),
+                Block(1350, 220, 110, 50, "striped", self.screen),
+                Block(1600, 260, 130, 50, "checkered", self.screen),
+                Block(1900, 200, 100, 50, "greyRock", self.screen),
+                Block(2150, 300, 140, 50, "striped", self.screen),
+            ])
 
+            _ms = self.monkey_screech_sound
+            _lr = self.lion_roar_sound
             self.monkey_mummies.extend([
-                MonkeyMummy(1150, 260, 120, 140, self.mummy1, self.mummy2, self.screen),
-                MonkeyMummy(1500, 260, 120, 140, self.mummy1, self.mummy2, self.screen),
-                MonkeyMummy(1850, 260, 120, 140, self.mummy1, self.mummy2, self.screen),
+                MonkeyMummy(1150, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1600, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(2000, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
             ])
             self.snakes.extend([
-                Snake(1200, 320, self.screen),
-                Snake(1600, 320, self.screen),
-                Snake(2000, 320, self.screen),
+                Snake(1300, 320, self.screen),
+                Snake(1800, 320, self.screen),
             ])
             self.lions.extend([
-                Lion(1350, 300, self.screen),
-                Lion(1750, 300, self.screen),
+                Lion(1450, 300, self.screen, _lr),
+                Lion(1900, 300, self.screen, _lr),
             ])
 
+        if (self._monkey_level_active and not self._jungle_zone2_active
+                and backgroundScrollX > 8000):
+            _j1_left = len(self.monkey_mummies) + len(self.snakes) + len(self.lions)
+            if _j1_left == 0:
+                self._jungle_zone2_active = True
+                self.blocks = []
+                self.monkey_mummies = []; self.snakes = []; self.lions = []
+
+                self.blocks.extend([
+                    Block(1050, 250, 130, 50, "checkered", self.screen),
+                    Block(1300, 180, 110, 50, "greyRock", self.screen),
+                    Block(1550, 300, 120, 50, "striped", self.screen),
+                    Block(1800, 220, 100, 50, "checkered", self.screen),
+                    Block(2050, 260, 140, 50, "greyRock", self.screen),
+                    Block(2300, 190, 110, 50, "striped", self.screen),
+                ])
+
+                _ms = self.monkey_screech_sound
+                _lr = self.lion_roar_sound
+                self.monkey_mummies.extend([
+                    MonkeyMummy(1100, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1400, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1700, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(2100, 260, 120, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                ])
+                self.snakes.extend([
+                    Snake(1200, 320, self.screen),
+                    Snake(1600, 320, self.screen),
+                    Snake(2000, 320, self.screen),
+                    Snake(2300, 320, self.screen),
+                ])
+                self.lions.extend([
+                    Lion(1350, 300, self.screen, _lr),
+                    Lion(1750, 300, self.screen, _lr),
+                    Lion(2200, 300, self.screen, _lr),
+                ])
+
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
-        elif backgroundScrollX > 8000 and not self.activeMonsters[14]:
+        elif not self._monkey_level_active and backgroundScrollX > 8000 and not self.activeMonsters[14]:
             self.activeMonsters[14] = True
             self._switch_music("enchanted_tomb")
             self.mummys = []; self.witches = []; self.blocks = []
@@ -3481,7 +3533,7 @@ class mainGame:
             self.snakes.append(Snake(1500, 220, self.screen))
 
         # ── Zone 1.5 @ 11 000 – "Crumbling Ruins" gauntlet ───────────────────
-        elif backgroundScrollX > 11000 and not self.activeMonsters[10]:
+        elif not self._monkey_level_active and backgroundScrollX > 11000 and not self.activeMonsters[10]:
             self.activeMonsters[10] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -3520,7 +3572,7 @@ class mainGame:
             self.triggerFire = True
 
         # ── Zone 2 @ 14 500 – green blobs on a rock platform ──────────────────
-        elif backgroundScrollX > 14500 and not self.activeMonsters[3]:
+        elif not self._monkey_level_active and backgroundScrollX > 14500 and not self.activeMonsters[3]:
             self.activeMonsters[3] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -3545,7 +3597,7 @@ class mainGame:
                 x += 320
 
         # ── Zone 3 @ 18 500 – first witch encounter (3 witches) ──────────────
-        elif backgroundScrollX > 18500 and not self.activeMonsters[2]:
+        elif not self._monkey_level_active and backgroundScrollX > 18500 and not self.activeMonsters[2]:
             self.activeMonsters[2] = True
             if getattr(self, 'enemy_spawn_sound', None): self.enemy_spawn_sound.play()
             self.mummys = []; self.witches = []; self.blocks = []
@@ -3572,7 +3624,7 @@ class mainGame:
             self.triggerFire = True
 
         # ── Zone 3.5 @ 22 000 – waterfall passage ─────────────────────────────
-        elif backgroundScrollX > 22000 and not self.activeMonsters[13]:
+        elif not self._monkey_level_active and backgroundScrollX > 22000 and not self.activeMonsters[13]:
             self.activeMonsters[13] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
@@ -3589,7 +3641,7 @@ class mainGame:
                 self._water_playing = True
 
         # ── Zone 4 @ 25 500 – mummy rush on tiered platforms ─────────────────
-        elif backgroundScrollX > 25500 and not self.activeMonsters[4]:
+        elif not self._monkey_level_active and backgroundScrollX > 25500 and not self.activeMonsters[4]:
             self._switch_music("halfway")
             if self.water_sound and self._water_playing:
                 self.water_sound.stop()
@@ -3618,7 +3670,7 @@ class mainGame:
             self.destroyable_blocks.append(secret_block)
 
         # ── Zone 4.2 @ 29 000 – mini frankenbeares with rainbow lasers ────────
-        elif backgroundScrollX > 29000 and not self.activeMonsters[12]:
+        elif not self._monkey_level_active and backgroundScrollX > 29000 and not self.activeMonsters[12]:
             self.activeMonsters[12] = True
             self.miniFrankenBears = []; self.blocks = []
             self.mummys = []; self.witches = []; self.greenBlobs = []; self.fires = []
@@ -3634,7 +3686,7 @@ class mainGame:
             self.miniFrankenBears.extend([mini1, mini2, mini3])
 
         # ── Zone 5 @ 34 000 – striped platforms, mummies + 2 witches ─────────
-        elif backgroundScrollX > 34000 and not self.activeMonsters[5]:
+        elif not self._monkey_level_active and backgroundScrollX > 34000 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
@@ -3656,7 +3708,7 @@ class mainGame:
             self.witches.extend([witch1, witch2, witch3])
 
         # ── Zone 5.5 @ 36 500 – snake encounter with platform gauntlet ────────
-        elif backgroundScrollX > 36500 and not getattr(self, '_zone55_active', False):
+        elif not self._monkey_level_active and backgroundScrollX > 36500 and not getattr(self, '_zone55_active', False):
             self._zone55_active = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
@@ -3673,7 +3725,7 @@ class mainGame:
             self.snakes.extend([snake1, snake2, snake3])
 
         # ── Zone 6 @ 39 500 – checkered gauntlet, blobs + mummies + miniFranken
-        elif backgroundScrollX > 39500 and not self.activeMonsters[6]:
+        elif not self._monkey_level_active and backgroundScrollX > 39500 and not self.activeMonsters[6]:
             self.activeMonsters[6] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -3704,7 +3756,7 @@ class mainGame:
             self.miniFrankenBears.extend([mini1, mini2])
 
         # ── Zone 7 @ 45 000 – 75% mark, enemies 100% harder ────────
-        elif backgroundScrollX > 45000 and not self.activeMonsters[7]:
+        elif not self._monkey_level_active and backgroundScrollX > 45000 and not self.activeMonsters[7]:
             self.activeMonsters[7] = True
             if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
             self._hardMode75 = True
@@ -3726,7 +3778,7 @@ class mainGame:
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
         # ── Zone 8 @ 50 500 – spike gauntlet + miniFranken ────────────────────
-        elif backgroundScrollX > 50500 and not self.activeMonsters[8]:
+        elif not self._monkey_level_active and backgroundScrollX > 50500 and not self.activeMonsters[8]:
             self.activeMonsters[8] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
@@ -3761,7 +3813,7 @@ class mainGame:
             self.triggerFire = True
 
         # ── Zone 8.5 @ 53 500 – "Shadow Ambush" ──────────────────────────────
-        elif backgroundScrollX > 53500 and not getattr(self, '_zone85_active', False):
+        elif not self._monkey_level_active and backgroundScrollX > 53500 and not getattr(self, '_zone85_active', False):
             self._zone85_active = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.spikes = []
@@ -3795,7 +3847,7 @@ class mainGame:
             self.triggerFire = True
 
         # ── Zone 9 @ 49 500 – "Floating Gauntlet" mixed challenge ──────────────
-        elif backgroundScrollX > 56500 and not self.activeMonsters[15]:
+        elif not self._monkey_level_active and backgroundScrollX > 56500 and not self.activeMonsters[15]:
             self.activeMonsters[15] = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.spikes = []
@@ -3957,6 +4009,7 @@ class mainGame:
             "final_push":       "Game/Sounds/final_push.wav",
             "boss_mummy":       "Game/Sounds/boss_spooky.wav",
             "boss_final":       "Game/Sounds/boss_spooky.wav",
+            "jungle":           "Game/Sounds/jungle_music.wav",
         }
         _volumes = {
             "normal": 0.40,
@@ -3966,6 +4019,7 @@ class mainGame:
             "final_push": 0.50,
             "boss_mummy": 0.75,
             "boss_final": 0.80,
+            "jungle": 0.50,
         }
         try:
             pygame.mixer.music.load(_files[track])
@@ -6903,26 +6957,51 @@ class DestroyableBlock:
 class MonkeyMummy:
     """Agile monkey enemy - jumps in parabolic arcs unpredictably."""
     
-    def __init__(self, x, y, width, height, mummy1Image, mummy2Image, screen):
+    FLOOR_Y = 400
+
+    def __init__(self, x, y, width, height, mummy1Image, mummy2Image, screen, screech_sound=None):
         self.startX = x
         self.startY = y
         self.x = x
-        self.y = y
+        self.y = self.FLOOR_Y - height
         self.width = width
         self.height = height
         self.screen = screen
+        self.screech_sound = screech_sound
+        self._screech_cooldown = 0
         try:
             _monkey_img = pygame.image.load("Game/Images/monkey.png")
-            self.mummy1 = pygame.transform.scale(_monkey_img, (width, height))
-            self.mummy2 = pygame.transform.flip(self.mummy1, True, False)
+            _base = pygame.transform.scale(_monkey_img, (width, height))
         except (FileNotFoundError, Exception):
-            self.mummy1 = pygame.transform.scale(mummy1Image, (width, height))
-            self.mummy2 = pygame.transform.scale(mummy2Image, (width, height))
+            _base = pygame.transform.scale(mummy1Image, (width, height))
+        self._frames_right = [_base]
+        self._frames_left = [pygame.transform.flip(_base, True, False)]
+        for angle in [5, -5, 8, -8]:
+            rotated = pygame.transform.rotate(_base, angle)
+            rw, rh = rotated.get_size()
+            frame = pygame.Surface((width, height), pygame.SRCALPHA)
+            frame.blit(rotated, ((width - rw) // 2, (height - rh) // 2))
+            self._frames_right.append(frame)
+            self._frames_left.append(pygame.transform.flip(frame, True, False))
+        _squash = pygame.transform.scale(_base, (int(width * 1.2), int(height * 0.8)))
+        _sq_surf = pygame.Surface((width, height), pygame.SRCALPHA)
+        _sq_surf.blit(_squash, ((width - _squash.get_width()) // 2, height - _squash.get_height()))
+        self._land_frame_right = _sq_surf
+        self._land_frame_left = pygame.transform.flip(_sq_surf, True, False)
+        _stretch = pygame.transform.scale(_base, (int(width * 0.85), int(height * 1.15)))
+        _st_surf = pygame.Surface((width, height), pygame.SRCALPHA)
+        _st_surf.blit(_stretch, ((width - _stretch.get_width()) // 2, height - _stretch.get_height()))
+        self._jump_frame_right = _st_surf
+        self._jump_frame_left = pygame.transform.flip(_st_surf, True, False)
+        self.mummy1 = _base
+        self.mummy2 = pygame.transform.flip(_base, True, False)
+        self._anim_timer = 0
+        self._land_timer = 0
         self.health = int(20 * 1.15)
         self.max_health = self.health
         self.damageAttack = 8
-        self.walk_speed = 3  # Faster than regular mummy
-        self.rand = 40  # Changes direction more often
+        self.walk_speed = 3
+        self.rand = 40
         self.direction = 1
         self.stunned = 0
         self.blocks = []
@@ -6937,6 +7016,7 @@ class MonkeyMummy:
         self.jump_velocity = 0
         self.jump_h_speed = 0
         self.gravity = 0.5
+        self._bob_offset = 0
     
     def setXPosition(self, x):
         self.x = x
@@ -7017,29 +7097,48 @@ class MonkeyMummy:
                                    self.getXPosition() + 40, self.getYPosition() - 40,
                                    self.getHealth(), self.max_health)
     
+    def _get_anim_frame(self):
+        if self._land_timer > 0:
+            return self._land_frame_left if self.direction < 0 else self._land_frame_right
+        if not self.can_jump:
+            return self._jump_frame_left if self.direction < 0 else self._jump_frame_right
+        idx = (self._anim_timer // 8) % len(self._frames_right)
+        return self._frames_left[idx] if self.direction < 0 else self._frames_right[idx]
+
     def drawMonster(self):
         """Draw monkey mummy with jumping behavior."""
+        if self._screech_cooldown > 0:
+            self._screech_cooldown -= 1
         if self.stunned == 0:
-            # Draw normal
-            if self.direction < 0:
-                self.screen.blit(self.mummy1, (self.x, self.y))
+            self._anim_timer += 1
+            if self._land_timer > 0:
+                self._land_timer -= 1
+
+            if self.can_jump:
+                self._bob_offset = int(2 * math.sin(self._anim_timer * 0.15))
             else:
-                self.screen.blit(self.mummy2, (self.x, self.y))
-            
-            # Movement with jumping
+                self._bob_offset = 0
+
+            frame = self._get_anim_frame()
+            self.screen.blit(frame, (self.x, self.y + self._bob_offset))
+
             self.changeDirectionX += 1
             self.jump_timer += 1
-            
+
             if self.jump_timer > random.randint(30, 70) and self.can_jump:
                 self.jump_timer = 0
                 self.jump_velocity = random.uniform(-12, -8)
                 self.jump_h_speed = random.choice([-5, -3, 3, 5])
                 self.can_jump = False
+                if self.screech_sound and self._screech_cooldown <= 0:
+                    self.screech_sound.play()
+                    self._screech_cooldown = 60
 
+            was_airborne = not self.can_jump
             self.jump_velocity += self.gravity
             self.y += self.jump_velocity
             if not self.can_jump:
-                self.x += getattr(self, 'jump_h_speed', 0)
+                self.x += self.jump_h_speed
 
             for block in self.blocks:
                 block_rect = pygame.Rect(block.getBlockXPosition(),
@@ -7047,17 +7146,19 @@ class MonkeyMummy:
                                         block.getWidth(),
                                         block.getHeight())
                 monkey_rect = pygame.Rect(self.x, self.y, self.width, self.height)
+                if monkey_rect.colliderect(block_rect) and self.jump_velocity > 0:
+                    self.y = block_rect.top - self.height
+                    self.jump_velocity = 0
+                    if was_airborne and not self.can_jump:
+                        self._land_timer = 6
+                    self.can_jump = True
+                    self.jump_h_speed = 0
 
-                if monkey_rect.colliderect(block_rect):
-                    if self.jump_velocity > 0:
-                        self.y = block_rect.top - self.height
-                        self.jump_velocity = 0
-                        self.can_jump = True
-                        self.jump_h_speed = 0
-
-            if self.y + self.height >= 400:
-                self.y = 400 - self.height
+            if self.y + self.height >= self.FLOOR_Y:
+                self.y = self.FLOOR_Y - self.height
                 self.jump_velocity = 0
+                if was_airborne and not self.can_jump:
+                    self._land_timer = 6
                 self.can_jump = True
                 self.jump_h_speed = 0
 
@@ -7067,25 +7168,20 @@ class MonkeyMummy:
                     self.changeDirectionX = 0
                     self.rand = random.randint(20, 60)
                 self.x += self.direction * self.walk_speed
-            
-            # Screen boundaries
+
             if self.x < -50:
                 self.x = 900
             elif self.x > 900:
                 self.x = -50
         else:
-            # Draw hurt state
             self.stunned += 1
-            if self.direction < 0:
-                hurt_img = self.mummy1.copy()
-            else:
-                hurt_img = self.mummy2.copy()
-            
+            frame = self._get_anim_frame()
+            hurt_img = frame.copy()
             red_overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
             red_overlay.fill((255, 0, 0, 100))
             hurt_img.blit(red_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
             self.screen.blit(hurt_img, (self.x, self.y))
-            
+
             if self.stunned >= 15:
                 self.stunned = 0
     
@@ -7102,12 +7198,16 @@ class MonkeyMummy:
 
 
 class Lion:
-    def __init__(self, x, y, screen):
+    FLOOR_Y = 400
+
+    def __init__(self, x, y, screen, roar_sound=None):
         self.x = x
-        self.y = y
-        self.screen = screen
         self.width = 140
         self.height = 100
+        self.y = self.FLOOR_Y - self.height
+        self.screen = screen
+        self.roar_sound = roar_sound
+        self._roar_cooldown = 0
         self.health = int(25 * 1.20)
         self.max_health = self.health
         self.speed = 5
@@ -7124,20 +7224,38 @@ class Lion:
         self.charge_speed = 8
         self.is_charging = False
         self.charge_timer = 0
+        self._anim_timer = 0
+        self._bob_offset = 0
+        self._pounce_vy = 0
+        self._is_airborne = False
 
         try:
-            self.lion_img = pygame.image.load("Game/Images/lion.png")
-            self.lion_img = pygame.transform.scale(self.lion_img, (self.width, self.height))
-            self.lion_img_left = pygame.transform.flip(self.lion_img, True, False)
+            _base = pygame.image.load("Game/Images/lion.png")
+            _base = pygame.transform.scale(_base, (self.width, self.height))
         except (FileNotFoundError, Exception):
-            self.lion_img = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            pygame.draw.ellipse(self.lion_img, (210, 160, 60), (5, 15, 80, 45))
-            pygame.draw.ellipse(self.lion_img, (180, 130, 40), (5, 15, 80, 45), 2)
-            pygame.draw.circle(self.lion_img, (230, 180, 80), (70, 25), 18)
-            pygame.draw.circle(self.lion_img, (200, 150, 50), (70, 25), 18, 2)
-            pygame.draw.circle(self.lion_img, (40, 40, 40), (74, 22), 4)
-            pygame.draw.circle(self.lion_img, (255, 255, 255), (73, 21), 1)
-            self.lion_img_left = pygame.transform.flip(self.lion_img, True, False)
+            _base = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            pygame.draw.ellipse(_base, (210, 160, 60), (5, 15, 80, 45))
+            pygame.draw.ellipse(_base, (180, 130, 40), (5, 15, 80, 45), 2)
+            pygame.draw.circle(_base, (230, 180, 80), (70, 25), 18)
+            pygame.draw.circle(_base, (200, 150, 50), (70, 25), 18, 2)
+            pygame.draw.circle(_base, (40, 40, 40), (74, 22), 4)
+            pygame.draw.circle(_base, (255, 255, 255), (73, 21), 1)
+        self._walk_frames_right = [_base]
+        self._walk_frames_left = [pygame.transform.flip(_base, True, False)]
+        for angle in [3, -3, 5, -5]:
+            rotated = pygame.transform.rotate(_base, angle)
+            rw, rh = rotated.get_size()
+            frame = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            frame.blit(rotated, ((self.width - rw) // 2, (self.height - rh) // 2))
+            self._walk_frames_right.append(frame)
+            self._walk_frames_left.append(pygame.transform.flip(frame, True, False))
+        _charge = pygame.transform.scale(_base, (int(self.width * 1.1), int(self.height * 0.9)))
+        _ch_surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        _ch_surf.blit(_charge, ((self.width - _charge.get_width()) // 2, self.height - _charge.get_height()))
+        self._charge_frame_right = _ch_surf
+        self._charge_frame_left = pygame.transform.flip(_ch_surf, True, False)
+        self.lion_img = _base
+        self.lion_img_left = pygame.transform.flip(_base, True, False)
 
     def setXPosition(self, x):
         self.x = x
@@ -7214,18 +7332,48 @@ class Lion:
                                    self.getXPosition() + 45, self.getYPosition() - 30,
                                    self.getHealth(), self.max_health)
 
+    def _get_anim_frame(self):
+        if self.is_charging:
+            return self._charge_frame_left if self.direction < 0 else self._charge_frame_right
+        idx = (self._anim_timer // 10) % len(self._walk_frames_right)
+        return self._walk_frames_left[idx] if self.direction < 0 else self._walk_frames_right[idx]
+
     def drawMonster(self):
+        if self._roar_cooldown > 0:
+            self._roar_cooldown -= 1
         if self.stunned == 0:
-            img = self.lion_img if self.direction > 0 else self.lion_img_left
-            self.screen.blit(img, (self.x, self.y))
+            self._anim_timer += 1
+
+            if not self._is_airborne:
+                self._bob_offset = int(1.5 * math.sin(self._anim_timer * 0.12))
+            else:
+                self._bob_offset = 0
+
+            frame = self._get_anim_frame()
+            self.screen.blit(frame, (self.x, self.y + self._bob_offset))
 
             self.walk_timer += 1
 
-            if not self.is_charging and random.random() < 0.008:
+            if not self.is_charging and not self._is_airborne and random.random() < 0.008:
                 self.is_charging = True
                 self.charge_timer = random.randint(30, 60)
+                if self.roar_sound and self._roar_cooldown <= 0:
+                    self.roar_sound.play()
+                    self._roar_cooldown = 90
 
-            if self.is_charging:
+            if not self._is_airborne and self.is_charging and random.random() < 0.03:
+                self._pounce_vy = -10
+                self._is_airborne = True
+
+            if self._is_airborne:
+                self._pounce_vy += 0.6
+                self.y += self._pounce_vy
+                self.x += self.direction * self.charge_speed
+                if self.y + self.height >= self.FLOOR_Y:
+                    self.y = self.FLOOR_Y - self.height
+                    self._pounce_vy = 0
+                    self._is_airborne = False
+            elif self.is_charging:
                 self.x += self.direction * self.charge_speed
                 self.charge_timer -= 1
                 if self.charge_timer <= 0:
@@ -7238,14 +7386,19 @@ class Lion:
                 self.walk_timer = 0
                 self.change_direction_timer = random.randint(60, 140)
 
+            if self.y + self.height >= self.FLOOR_Y:
+                self.y = self.FLOOR_Y - self.height
+                self._pounce_vy = 0
+                self._is_airborne = False
+
             if self.x < -50:
                 self.x = 900
             elif self.x > 900:
                 self.x = -50
         else:
             self.stunned += 1
-            img = self.lion_img if self.direction > 0 else self.lion_img_left
-            hurt_img = img.copy()
+            frame = self._get_anim_frame()
+            hurt_img = frame.copy()
             red_overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
             red_overlay.fill((255, 0, 0, 100))
             hurt_img.blit(red_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
