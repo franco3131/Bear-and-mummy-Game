@@ -32,11 +32,12 @@ _FONT_POPUP = None
 _FONT_HUD_LABEL = None
 _FONT_HUD_VAL = None
 _FONT_HUD_LVL = None
+_FONT_HP_BAR = None
 
 
 def init_fonts():
     global _FONT_DAMAGE, _FONT_HUD, _FONT_BOSS_DAMAGE, _FONT_POPUP
-    global _FONT_HUD_LABEL, _FONT_HUD_VAL, _FONT_HUD_LVL
+    global _FONT_HUD_LABEL, _FONT_HUD_VAL, _FONT_HUD_LVL, _FONT_HP_BAR
     _FONT_DAMAGE = pygame.font.SysFont("Italic", 40)
     _FONT_HUD = pygame.font.SysFont("Italic", 40)
     _FONT_BOSS_DAMAGE = pygame.font.SysFont("Italic", 60)
@@ -44,6 +45,7 @@ def init_fonts():
     _FONT_HUD_LABEL = pygame.font.SysFont(None, 26, bold=True)
     _FONT_HUD_VAL = pygame.font.SysFont(None, 20, bold=True)
     _FONT_HUD_LVL = pygame.font.SysFont(None, 38, bold=True)
+    _FONT_HP_BAR = pygame.font.SysFont(None, 16, bold=True)
 
 
 def render_hud_panel(screen, x, y, w, h, border_color, border=3):
@@ -69,39 +71,38 @@ def render_hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0))
 
 
 def render_enemy_health_bar(screen, x, y, health, max_health, w=120, h=12):
-    """Draw a small temporary health bar beside a damage popup."""
+    """Percentage-based health bar: health/max_health = fill%.
+    Example: 50/100 hp → bar is exactly 50% filled."""
     try:
-        if max_health is None or max_health <= 0:
+        max_health = int(max_health) if max_health else 0
+        health = int(health) if health else 0
+        if max_health <= 0:
             return
-        health = max(0, int(health))
-        max_health = max(1, int(max_health))
         if health >= max_health:
             return
-        ratio = float(health) / float(max_health)
-        ratio = max(0.0, min(0.99, ratio))
+        if health < 0:
+            health = 0
+        pct = health / max_health
     except Exception:
         return
     bar_x = x + 10
     bar_y = y + 36
-    track = pygame.Rect(bar_x, bar_y, w, h)
-    pygame.draw.rect(screen, (40, 30, 40), track, border_radius=3)
-    fill_w = max(0, int(w * ratio))
-    if fill_w >= w:
-        fill_w = w - 2
-    lost_w = w - fill_w
-    if lost_w > 0:
-        lost_rect = pygame.Rect(bar_x + fill_w, bar_y, lost_w, h)
-        pygame.draw.rect(screen, (120, 20, 20), lost_rect, border_radius=3)
+    pygame.draw.rect(screen, (30, 20, 30), (bar_x, bar_y, w, h), border_radius=3)
+    pygame.draw.rect(screen, (120, 20, 20), (bar_x, bar_y, w, h), border_radius=3)
+    fill_w = int(w * pct)
     if fill_w > 0:
-        if ratio > 0.6:
-            fill_color = (60, 200, 60)
-        elif ratio > 0.3:
-            fill_color = (220, 200, 60)
+        if pct > 0.6:
+            c = (60, 200, 60)
+        elif pct > 0.3:
+            c = (220, 200, 60)
         else:
-            fill_color = (220, 60, 60)
-        fill = pygame.Rect(bar_x, bar_y, fill_w, h)
-        pygame.draw.rect(screen, fill_color, fill, border_radius=3)
-    pygame.draw.rect(screen, (200, 200, 200), track, 1, border_radius=3)
+            c = (220, 60, 60)
+        pygame.draw.rect(screen, c, (bar_x, bar_y, fill_w, h), border_radius=3)
+    pygame.draw.rect(screen, (200, 200, 200), (bar_x, bar_y, w, h), 1, border_radius=3)
+    if _FONT_HP_BAR and h >= 12:
+        pct_text = f"{int(pct * 100)}%"
+        _ts = _FONT_HP_BAR.render(pct_text, True, (255, 255, 255))
+        screen.blit(_ts, (bar_x + w // 2 - _ts.get_width() // 2, bar_y + h // 2 - _ts.get_height() // 2))
 
 
 # ---------------------------------------------------------------------------
