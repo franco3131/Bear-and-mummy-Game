@@ -1405,8 +1405,8 @@ class mainGame:
                             'health': 'Health restored! +20% HP!',
                             'shield': 'Shield purchased! 20% damage block!',
                             'aimer': 'Aimer purchased! UP/DOWN to aim!',
-                            'lightning': 'Lightning purchased! Q or UP+A/UP+X to strike!',
-                            'lightning2': 'Lightning 2! 3 bolts with Q or UP+A/UP+X!',
+                            'lightning': '\u26A1 Lightning purchased! Press UP + A!',
+                            'lightning2': '\u26A1 Lightning 2! UP + A fires 3 bolts!',
                             '50pct': 'Protection unlocked! 50% reduction!',
                             'big_fireball': 'Big Fireball! 30% larger!',
                         }
@@ -1467,16 +1467,39 @@ class mainGame:
                             shop_open = False
                             if self.shop_close_sound: self.shop_close_sound.play()
                             if shop_last_weapon_bought == 'lightning':
-                                bear.setArrayText(['Lightning bought!',
-                                    'Press Q or UP+A / UP+X to strike!',
+                                bear.setArrayText(['\u26A1 Lightning bought! \u26A1',
+                                    'Press UP + A to strike!',
                                     'Press "s" to continue'])
                                 bear.setEndText(False)
+                                self.lightning_charge = max(self.lightning_charge, 1.0)
+                                if not bear.getLeftDirection():
+                                    _demo_lx = bear.getXPosition() + 140
+                                else:
+                                    _demo_lx = bear.getXPosition() - 80
+                                self.lightning_x = int(_demo_lx)
+                                self.lightning_anim = 28
+                                if self.explosion_sound:
+                                    self.explosion_sound.play()
                             elif shop_last_weapon_bought == 'lightning2':
-                                bear.setArrayText(['Lightning 2 bought!',
-                                    'Q or UP+A/UP+X fires 3 bolts!',
-
+                                bear.setArrayText(['\u26A1 Lightning 2 bought! \u26A1',
+                                    'Press UP + A for 3 bolts!',
                                     'Press "s" to continue'])
                                 bear.setEndText(False)
+                                self.lightning_charge = max(self.lightning_charge, 1.0)
+                                if not bear.getLeftDirection():
+                                    _demo_lx = bear.getXPosition() + 140
+                                else:
+                                    _demo_lx = bear.getXPosition() - 80
+                                _demo_dir = 1 if not bear.getLeftDirection() else -1
+                                for _bi, _off in enumerate([0, 120 * _demo_dir, 240 * _demo_dir]):
+                                    self.lightning2_targets.append({
+                                        'x': int(_demo_lx + _off),
+                                        'anim': 0,
+                                        'delay': _bi * 12,
+                                        'dmg': 0
+                                    })
+                                if self.explosion_sound:
+                                    self.explosion_sound.play()
                             elif shop_last_weapon_bought == 'aimer':
                                 bear.setArrayText(['Aimer bought!',
                                     'Hold UP/DOWN while pressing X',
@@ -1544,9 +1567,9 @@ class mainGame:
 
                 _powers = []
                 if not getattr(bear, 'has_lightning', False):
-                    _powers.append(('lightning', 60, 'Lightning', 'Q or UP+A / UP+X'))
+                    _powers.append(('lightning', 60, '\u26A1 Lightning', 'Press UP + A'))
                 if getattr(bear, 'has_lightning', False) and not getattr(bear, 'has_lightning_2', False):
-                    _powers.append(('lightning2', 80, 'Lightning 2', '3 bolts: Q or UP+A/X'))
+                    _powers.append(('lightning2', 80, '\u26A1 Lightning 2', 'UP + A: 3 bolts'))
                 if _powers:
                     _categories.append(('Powers', (180, 140, 255), _powers))
 
