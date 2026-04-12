@@ -119,9 +119,9 @@ _MONSTER_SIZES = {
     "frankenbears":   (300, 300),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
-    "snake":          (180, 80),
-    "monkeyMummy":    (140, 140),
-    "lion":           (200, 140),
+    "snake":          (220, 100),
+    "monkeyMummy":    (180, 180),
+    "lion":           (250, 170),
 }
 
 BEAR_W = 80
@@ -3433,6 +3433,7 @@ class mainGame:
                 if transition_mode == 'jungle':
                     self._jungle_unlocked = True
                     background._jungle_mode = True
+                    background._black_latched = False
                     self._switch_music("post_boss_normal")
                     self.blocks = []
                     self.mummys = []
@@ -3622,9 +3623,9 @@ class mainGame:
             _ms = self.monkey_screech_sound
             _lr = self.lion_roar_sound
             self.monkey_mummies.extend([
-                MonkeyMummy(1150, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(1600, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(2000, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1150, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1600, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(2000, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
             ])
             self.snakes.extend([
                 Snake(1300, 320, self.screen),
@@ -3655,10 +3656,10 @@ class mainGame:
                 _ms = self.monkey_screech_sound
                 _lr = self.lion_roar_sound
                 self.monkey_mummies.extend([
-                    MonkeyMummy(1100, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1400, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1700, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(2100, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1100, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1400, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1700, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(2100, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
                 ])
                 self.snakes.extend([
                     Snake(1200, 320, self.screen),
@@ -6805,8 +6806,8 @@ class Snake:
         self.x = x
         self.screen = screen
         self.direction = -1 if random.random() > 0.5 else 1
-        self.width = 180
-        self.height = 80
+        self.width = 220
+        self.height = 100
         self.y = self.FLOOR_Y - self.height
         self.health = int(15 * 1.20)
         self.max_health = self.health
@@ -6858,13 +6859,14 @@ class Snake:
         _by = _sh - 30
         _segs = [
             (12,  _by, 14),
-            (30,  _by - 5, 15),
-            (50,  _by - 12, 16),
-            (70,  _by - 18, 17),
-            (90,  _by - 20, 17),
-            (110, _by - 16, 16),
-            (128, _by - 10, 15),
-            (144, _by - 5, 14),
+            (34,  _by - 5, 15),
+            (58,  _by - 12, 16),
+            (82,  _by - 20, 17),
+            (106, _by - 24, 18),
+            (130, _by - 20, 17),
+            (152, _by - 14, 16),
+            (174, _by - 8, 15),
+            (194, _by - 3, 14),
         ]
         for _cx, _cy, _r in _segs:
             pygame.draw.circle(surf, _DARK, (_cx + 2, _cy + 3), _r)
@@ -6872,13 +6874,13 @@ class Snake:
             pygame.draw.circle(surf, _MID, (_cx, _cy), _r)
             pygame.draw.circle(surf, _BELLY, (_cx, _cy + 4), max(3, _r - 4))
             pygame.draw.circle(surf, _LIGHT, (_cx - 3, _cy - 4), max(2, _r // 3))
-        _diamonds = [(30, _by - 2), (55, _by - 14), (80, _by - 18),
-                     (105, _by - 14), (128, _by - 6)]
+        _diamonds = [(34, _by - 2), (62, _by - 14), (90, _by - 22),
+                     (118, _by - 18), (146, _by - 10), (172, _by - 4)]
         for _dx, _dy in _diamonds:
             _pts = [(_dx, _dy - 9), (_dx + 9, _dy), (_dx, _dy + 9), (_dx - 9, _dy)]
             pygame.draw.polygon(surf, _PAT,  _pts)
             pygame.draw.polygon(surf, _PAT2, _pts, 1)
-        _hx = 140
+        _hx = 180
         _hy = _by - 5
         _head_pts = [
             (_hx, _hy + 12), (_hx + 8, _hy + 18), (_hx + 22, _hy + 18),
@@ -7474,8 +7476,8 @@ class Lion:
 
     def __init__(self, x, y, screen, roar_sound=None):
         self.x = x
-        self.width = 200
-        self.height = 140
+        self.width = 250
+        self.height = 170
         self.y = self.FLOOR_Y - self.height
         self.screen = screen
         self.roar_sound = roar_sound
