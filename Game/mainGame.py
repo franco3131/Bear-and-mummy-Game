@@ -115,9 +115,9 @@ _MONSTER_SIZES = {
     "frankenbears":   (300, 300),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
-    "snake":          (120, 60),
-    "monkeyMummy":    (100, 100),
-    "lion":           (140, 100),
+    "snake":          (180, 80),
+    "monkeyMummy":    (140, 140),
+    "lion":           (200, 140),
 }
 
 BEAR_W = 80
@@ -3580,9 +3580,9 @@ class mainGame:
             _ms = self.monkey_screech_sound
             _lr = self.lion_roar_sound
             self.monkey_mummies.extend([
-                MonkeyMummy(1150, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(1600, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(2000, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1150, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1600, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(2000, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
             ])
             self.snakes.extend([
                 Snake(1300, 320, self.screen),
@@ -3613,10 +3613,10 @@ class mainGame:
                 _ms = self.monkey_screech_sound
                 _lr = self.lion_roar_sound
                 self.monkey_mummies.extend([
-                    MonkeyMummy(1100, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1400, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1700, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(2100, 300, 100, 100, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1100, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1400, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1700, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(2100, 260, 140, 140, self.mummy1, self.mummy2, self.screen, _ms),
                 ])
                 self.snakes.extend([
                     Snake(1200, 320, self.screen),
@@ -6738,8 +6738,8 @@ class Snake:
         self.x = x
         self.screen = screen
         self.direction = -1 if random.random() > 0.5 else 1
-        self.width = 120
-        self.height = 60
+        self.width = 180
+        self.height = 80
         self.y = self.FLOOR_Y - self.height
         self.health = int(15 * 1.20)
         self.max_health = self.health
@@ -6787,43 +6787,50 @@ class Snake:
         _PUPIL  = (8, 4, 4)
         _FANG   = (242, 242, 252)
         _TONGUE = (210, 18, 28)
-        _oy = 0
+        _BELLY  = (58, 150, 65)
+        _by = _sh - 30
         _segs = [
-            (8,  45+_oy, 9),
-            (18, 41+_oy, 10),
-            (28, 36+_oy, 11),
-            (37, 29+_oy, 12),
-            (46, 25+_oy, 12),
-            (55, 29+_oy, 11),
-            (62, 34+_oy, 10),
+            (12,  _by, 14),
+            (30,  _by - 5, 15),
+            (50,  _by - 12, 16),
+            (70,  _by - 18, 17),
+            (90,  _by - 20, 17),
+            (110, _by - 16, 16),
+            (128, _by - 10, 15),
+            (144, _by - 5, 14),
         ]
         for _cx, _cy, _r in _segs:
-            pygame.draw.circle(surf, _DARK, (_cx + 1, _cy + 2), _r)
+            pygame.draw.circle(surf, _DARK, (_cx + 2, _cy + 3), _r)
         for _cx, _cy, _r in _segs:
-            pygame.draw.circle(surf, _MID,   (_cx, _cy), _r)
-            pygame.draw.circle(surf, _LIGHT, (_cx - 2, _cy - 3), max(2, _r // 3))
-        _diamonds = [(22, 38+_oy), (37, 26+_oy), (52, 26+_oy), (61, 33+_oy)]
+            pygame.draw.circle(surf, _MID, (_cx, _cy), _r)
+            pygame.draw.circle(surf, _BELLY, (_cx, _cy + 4), max(3, _r - 4))
+            pygame.draw.circle(surf, _LIGHT, (_cx - 3, _cy - 4), max(2, _r // 3))
+        _diamonds = [(30, _by - 2), (55, _by - 14), (80, _by - 18),
+                     (105, _by - 14), (128, _by - 6)]
         for _dx, _dy in _diamonds:
-            _pts = [(_dx, _dy - 7), (_dx + 7, _dy), (_dx, _dy + 7), (_dx - 7, _dy)]
+            _pts = [(_dx, _dy - 9), (_dx + 9, _dy), (_dx, _dy + 9), (_dx - 9, _dy)]
             pygame.draw.polygon(surf, _PAT,  _pts)
             pygame.draw.polygon(surf, _PAT2, _pts, 1)
+        _hx = 140
+        _hy = _by - 5
         _head_pts = [
-            (62, 40+_oy), (67, 46+_oy), (77, 46+_oy), (80, 33+_oy),
-            (77, 20+_oy), (67, 20+_oy), (62, 26+_oy),
+            (_hx, _hy + 12), (_hx + 8, _hy + 18), (_hx + 22, _hy + 18),
+            (_hx + 28, _hy + 2), (_hx + 22, _hy - 14), (_hx + 8, _hy - 14),
+            (_hx, _hy - 6),
         ]
-        pygame.draw.polygon(surf, _HCOL,  _head_pts)
-        pygame.draw.polygon(surf, _DARK,  _head_pts, 2)
-        pygame.draw.arc(surf, _LIGHT, (66, 22+_oy, 12, 9), 0.1, 3.05, 2)
-        pygame.draw.line(surf, _DARK, (68, 24+_oy), (79, 31+_oy), 1)
-        pygame.draw.line(surf, _DARK, (68, 42+_oy), (79, 35+_oy), 1)
-        pygame.draw.circle(surf, _EYE,   (71, 31+_oy), 5)
-        pygame.draw.ellipse(surf, _PUPIL, (70, 27+_oy, 3, 8))
-        pygame.draw.circle(surf, (255, 200, 190), (70, 29+_oy), 1)
-        pygame.draw.line(surf, _FANG, (77, 40+_oy), (79, 47+_oy), 2)
-        pygame.draw.line(surf, _FANG, (74, 41+_oy), (75, 47+_oy), 2)
-        pygame.draw.line(surf, _TONGUE, (79, 33+_oy), (75, 33+_oy), 2)
-        pygame.draw.line(surf, _TONGUE, (75, 33+_oy), (72, 29+_oy), 1)
-        pygame.draw.line(surf, _TONGUE, (75, 33+_oy), (72, 37+_oy), 1)
+        pygame.draw.polygon(surf, _HCOL, _head_pts)
+        pygame.draw.polygon(surf, _DARK, _head_pts, 2)
+        pygame.draw.arc(surf, _LIGHT, (_hx + 6, _hy - 12, 16, 12), 0.1, 3.05, 2)
+        pygame.draw.line(surf, _DARK, (_hx + 8, _hy - 10), (_hx + 24, _hy), 1)
+        pygame.draw.line(surf, _DARK, (_hx + 8, _hy + 14), (_hx + 24, _hy + 4), 1)
+        pygame.draw.circle(surf, _EYE, (_hx + 14, _hy), 7)
+        pygame.draw.ellipse(surf, _PUPIL, (_hx + 12, _hy - 5, 4, 10))
+        pygame.draw.circle(surf, (255, 200, 190), (_hx + 13, _hy - 3), 2)
+        pygame.draw.line(surf, _FANG, (_hx + 22, _hy + 12), (_hx + 24, _hy + 22), 3)
+        pygame.draw.line(surf, _FANG, (_hx + 18, _hy + 14), (_hx + 19, _hy + 22), 3)
+        pygame.draw.line(surf, _TONGUE, (_hx + 26, _hy + 2), (_hx + 32, _hy + 2), 2)
+        pygame.draw.line(surf, _TONGUE, (_hx + 32, _hy + 2), (_hx + 35, _hy - 2), 2)
+        pygame.draw.line(surf, _TONGUE, (_hx + 32, _hy + 2), (_hx + 35, _hy + 6), 2)
         return surf
 
     def setXPosition(self, x):
@@ -7400,8 +7407,8 @@ class Lion:
 
     def __init__(self, x, y, screen, roar_sound=None):
         self.x = x
-        self.width = 140
-        self.height = 100
+        self.width = 200
+        self.height = 140
         self.y = self.FLOOR_Y - self.height
         self.screen = screen
         self.roar_sound = roar_sound
@@ -7431,13 +7438,30 @@ class Lion:
             _base = pygame.image.load("Game/Images/lion.png")
             _base = pygame.transform.scale(_base, (self.width, self.height))
         except (FileNotFoundError, Exception):
-            _base = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-            pygame.draw.ellipse(_base, (210, 160, 60), (5, 15, 80, 45))
-            pygame.draw.ellipse(_base, (180, 130, 40), (5, 15, 80, 45), 2)
-            pygame.draw.circle(_base, (230, 180, 80), (70, 25), 18)
-            pygame.draw.circle(_base, (200, 150, 50), (70, 25), 18, 2)
-            pygame.draw.circle(_base, (40, 40, 40), (74, 22), 4)
-            pygame.draw.circle(_base, (255, 255, 255), (73, 21), 1)
+            _w, _h = self.width, self.height
+            _base = pygame.Surface((_w, _h), pygame.SRCALPHA)
+            _body_y = _h - 70
+            pygame.draw.ellipse(_base, (210, 160, 60), (20, _body_y, _w - 60, 60))
+            pygame.draw.ellipse(_base, (180, 130, 40), (20, _body_y, _w - 60, 60), 2)
+            for _lx in [45, 65, _w - 85, _w - 65]:
+                pygame.draw.rect(_base, (190, 140, 50), (_lx, _body_y + 40, 14, 28))
+                pygame.draw.rect(_base, (160, 110, 30), (_lx, _body_y + 40, 14, 28), 2)
+            _mx = _w - 50
+            _my = _body_y - 20
+            for _a in range(0, 360, 30):
+                _rad = math.radians(_a)
+                _rx = _mx + int(28 * math.cos(_rad))
+                _ry = _my + int(28 * math.sin(_rad))
+                pygame.draw.circle(_base, (180, 110, 30), (_rx, _ry), 10)
+            pygame.draw.circle(_base, (230, 180, 80), (_mx, _my), 24)
+            pygame.draw.circle(_base, (200, 150, 50), (_mx, _my), 24, 2)
+            pygame.draw.circle(_base, (40, 40, 40), (_mx + 6, _my - 4), 5)
+            pygame.draw.circle(_base, (255, 255, 255), (_mx + 5, _my - 5), 2)
+            pygame.draw.ellipse(_base, (160, 100, 40), (_mx - 4, _my + 6, 16, 8))
+            _tx = 10
+            _ty = _body_y + 20
+            for _i in range(8):
+                pygame.draw.circle(_base, (190, 140, 50), (_tx - _i * 1, _ty + _i * 2), max(2, 4 - _i // 2))
         self._walk_frames_right = [_base]
         self._walk_frames_left = [pygame.transform.flip(_base, True, False)]
         for angle in [3, -3, 5, -5]:

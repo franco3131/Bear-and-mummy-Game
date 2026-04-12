@@ -164,4 +164,4 @@ python main.py
 - **Enemy health bar fix** — bar now properly shows lost health as dark red; rounding prevents bar from appearing 100% full when enemy has taken damage
 - **Popup grace period** — hurtTimer frozen at 0 during popups; on popup close, hurtTimer set to -35 giving ~1 second invincibility before enemies can damage the player again
 - **Silver mode speed cap** — movement speed capped at 12 in silver mode (level 14+) regardless of dead-zone boost
-- **MonkeyMummy resized** — dimensions changed from 120×140 to 100×100 to match bear height; properly floor-clamped
+- **Jungle enemies resized larger** — Snake: 180×80 (wide ground-hugging), MonkeyMummy: 140×140 (bigger than bear), Lion: 200×140 (imposing); all properly floor-clamped to FLOOR_Y=400; procedural sprites redrawn to fill larger canvases; lion fallback includes body, legs, mane, and tail
