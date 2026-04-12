@@ -69,22 +69,29 @@ def render_hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0))
 
 
 def render_enemy_health_bar(screen, x, y, health, max_health, w=120, h=12):
-    """Draw a small temporary health bar beside a damage popup.
-    x,y should be the damage-text origin; the bar is drawn offset from there.
-    """
+    """Draw a small temporary health bar beside a damage popup."""
     try:
         if max_health is None or max_health <= 0:
             return
-        ratio = max(0.0, min(1.0, float(health) / float(max_health)))
+        health = max(0, int(health))
+        max_health = max(1, int(max_health))
+        if health >= max_health:
+            return
+        ratio = float(health) / float(max_health)
+        ratio = max(0.0, min(0.99, ratio))
     except Exception:
         return
     bar_x = x + 10
     bar_y = y + 36
     track = pygame.Rect(bar_x, bar_y, w, h)
     pygame.draw.rect(screen, (40, 30, 40), track, border_radius=3)
-    fill_w = max(0, min(w, int(round(w * ratio))))
-    if ratio < 1.0 and fill_w >= w:
-        fill_w = w - 1
+    fill_w = max(0, int(w * ratio))
+    if fill_w >= w:
+        fill_w = w - 2
+    lost_w = w - fill_w
+    if lost_w > 0:
+        lost_rect = pygame.Rect(bar_x + fill_w, bar_y, lost_w, h)
+        pygame.draw.rect(screen, (120, 20, 20), lost_rect, border_radius=3)
     if fill_w > 0:
         if ratio > 0.6:
             fill_color = (60, 200, 60)
@@ -94,10 +101,6 @@ def render_enemy_health_bar(screen, x, y, health, max_health, w=120, h=12):
             fill_color = (220, 60, 60)
         fill = pygame.Rect(bar_x, bar_y, fill_w, h)
         pygame.draw.rect(screen, fill_color, fill, border_radius=3)
-    lost_w = w - fill_w
-    if lost_w > 0 and ratio < 1.0:
-        lost_rect = pygame.Rect(bar_x + fill_w, bar_y, lost_w, h)
-        pygame.draw.rect(screen, (80, 20, 20), lost_rect, border_radius=3)
     pygame.draw.rect(screen, (200, 200, 200), track, 1, border_radius=3)
 
 
@@ -3198,7 +3201,8 @@ class mainGame:
             # ---- Damage numbers always rendered on top of blocks --------
             for _m in (self.mummys + self.witches +
                        self.greenBlobs + self.frankenbear +
-                       self.shadowShamans + self.miniFrankenBears + self.lions):
+                       self.shadowShamans + self.miniFrankenBears +
+                       self.snakes + self.monkey_mummies + self.lions):
                 if (getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0
                         and not _m.getStartDestructionAnimationStatus()):
                     _m.displayDamageOnMonster(_m.getDamageReceived())
