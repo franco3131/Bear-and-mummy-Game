@@ -3385,7 +3385,7 @@ class mainGame:
 
                 if self.bossTimerAnimation > 170:
                     if self.showBoss:
-                        frankenbear = FrankenBear(950, 40, self.screen)
+                        frankenbear = FrankenBear(1400, 40, self.screen)
                         self.frankenbear.append(frankenbear)
                         self.showBoss = False
                         if self.boss_entrance_sound: self.boss_entrance_sound.play()
