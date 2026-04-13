@@ -2841,10 +2841,18 @@ class mainGame:
                 mm.setBlocks(self.blocks)
 
             monsters = self.mummys + self.witches + self.greenBlobs + self.shadowShamans + self.miniFrankenBears + self.snakes + self.monkey_mummies + self.lions
+            _bear_x = bear.getXPosition()
+            _bear_y = bear.getYPosition()
             to_remove = []
             for monster in monsters:
                 if monster.getHealth() > 0:
-                    monster.drawMonster() if hasattr(monster, 'drawMonster') else monster.draw()
+                    if hasattr(monster, '_bear_x'):
+                        monster._bear_x = _bear_x
+                        monster._bear_y = _bear_y
+                    if hasattr(monster, 'drawMonster'):
+                        monster.drawMonster()
+                    else:
+                        monster.draw()
                 elif (monster.getHealth() <= 0
                       and monster.getDestructionAnimationCount() < 20
                       and not monster.getStartDestructionAnimationStatus()):
@@ -4943,6 +4951,10 @@ class Mummy():
         self.changeDirection = random.randint(200, randomMax)
         self.storeDirection = 1
         self.health = int(random.randint(7, 16) * 1.20)
+        self._bear_x = 400
+        self._bear_y = 300
+        self._chase_range = 350
+        self._aggro = False
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.hurtMummy = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
@@ -5146,7 +5158,27 @@ class Mummy():
 
         # ── Movement / direction ──────────────────────────────────────────────
         if self.stunned == 0:
-            new_x = self.x + self.direction * self.rand
+            _dx = self._bear_x - self.x
+            _dist = abs(_dx)
+            if _dist < self._chase_range:
+                self._aggro = True
+            elif _dist > self._chase_range + 150:
+                self._aggro = False
+
+            if self._aggro and _dist > 20:
+                _want_dir = 1 if _dx > 0 else -1
+                if _want_dir != self.direction:
+                    self.direction = _want_dir
+                    self.mummy1 = pygame.transform.flip(self.mummy1, True, False)
+                    self.mummy2 = pygame.transform.flip(self.mummy2, True, False)
+                    if is_big and self.mummy1Outline:
+                        self.mummy1Outline = pygame.transform.flip(self.mummy1Outline, True, False)
+                        self.mummy2Outline = pygame.transform.flip(self.mummy2Outline, True, False)
+                _speed = self.rand + (1 if _dist < 150 else 0)
+            else:
+                _speed = self.rand
+
+            new_x = self.x + self.direction * _speed
             if self._hits_block(new_x):
                 self.direction *= -1
                 self.mummy1 = pygame.transform.flip(self.mummy1, True, False)
@@ -5223,6 +5255,10 @@ class Witch():
         self.exp = 12
         self.isHurtAnimationStarted = False
         self.isHurtTimer = 0
+        self._bear_x = 400
+        self._bear_y = 300
+        self._preferred_dist = 250
+        self._strafe_timer = 0
         self.startDestructionAnimation = False
 
     def setStartDestructionAnimation(self, v):
@@ -5344,28 +5380,46 @@ class Witch():
             self.setThrowsFireBalls(False)
 
         if self.stunned == 0:
-            self.x += self.directionX * self.rand
-            self.y += self.directionY * self.rand
+            self._strafe_timer += 1
+            _dx = self._bear_x - self.x
+            _dy_b = self._bear_y - self.y
+            _dist = abs(_dx)
+
+            if _dist < self._preferred_dist - 40:
+                _move_x = -1 if _dx > 0 else 1
+            elif _dist > self._preferred_dist + 40:
+                _move_x = 1 if _dx > 0 else -1
+            else:
+                _move_x = self.directionX if self._strafe_timer % 120 < 60 else -self.directionX
+
+            if self.y > 60 and _dy_b < -50:
+                _move_y = -1
+            elif self.y < 280 and _dy_b > 50:
+                _move_y = 1
+            else:
+                _move_y = self.directionY if self._strafe_timer % 90 < 45 else -self.directionY
+
+            self.x += _move_x * self.rand
+            self.y += _move_y * self.rand
+
+            self.x = max(-50, min(860, self.x))
+            self.y = max(30, min(350, self.y))
+
+            _want_dir = 1 if _dx > 0 else -1
+            if _want_dir != self.directionX:
+                self.directionX = _want_dir
+                if not self.setThrowsFireBall:
+                    self.witch = pygame.transform.flip(self.witch, True, False)
+                else:
+                    self.witch2 = pygame.transform.flip(self.witch2, True, False)
         elif self.stunned > 0:
             self.stunned += 1
             self.screen.blit(self.hurtWitch, (self.x, self.y))
             if self.stunned == 20:
                 self.stunned = 0
 
-        if self.x % self.changeDirectionX == 0 and self.stunned == 0:
-            self.directionX *= -1
-            if not self.setThrowsFireBall:
-                self.witch = pygame.transform.flip(self.witch, True, False)
-            else:
-                self.fireBallAnimationCounter += 1
-                self.witch2 = pygame.transform.flip(self.witch2, True, False)
-
         if self.y % self.changeDirectionY == 0 and self.stunned == 0:
             self.directionY *= -1
-            if not self.setThrowsFireBall:
-                self.witch = pygame.transform.flip(self.witch, True, False)
-            else:
-                self.witch2 = pygame.transform.flip(self.witch2, True, False)
 
 
 # ---------------------------------------------------------------------------
@@ -5451,6 +5505,8 @@ class GreenBlob():
         self.rand = 1
         randomMax = random.randint(120, 250)
         self.changeDirection = random.randint(80, randomMax)
+        self._bear_x = 400
+        self._bear_y = 300
         self.jump = False
         self.comingDown = False
         self.nextJumpTimer = random.randint(80, 200)
@@ -5604,14 +5660,24 @@ class GreenBlob():
 
         if self.stunned == 0:
             self.screen.blit(self.greenBlob, (self.x, self.y + 10))
-            self.x += self.direction * self.rand
+            _dx = self._bear_x - self.x
+            _dist = abs(_dx)
+            if _dist < 400:
+                _want_dir = 1 if _dx > 0 else -1
+                if _want_dir != self.direction:
+                    self.direction = _want_dir
+                    self.greenBlob = pygame.transform.flip(self.greenBlob, True, False)
+                _spd = self.rand + (1 if _dist < 200 else 0)
+            else:
+                _spd = self.rand
+            self.x += self.direction * _spd
         elif self.stunned > 0:
             self.stunned += 1
             self.screen.blit(self.hurtGreenBlob, (self.x, self.y + 10))
             if self.stunned == 20:
                 self.stunned = 0
 
-        if self.x % self.changeDirection == 0 and self.stunned == 0:
+        if self.x % self.changeDirection == 0 and self.stunned == 0 and abs(self._bear_x - self.x) > 400:
             self.direction *= -1
             self.greenBlob = pygame.transform.flip(self.greenBlob, True, False)
 
@@ -6495,6 +6561,10 @@ class ShadowShaman():
         self.exp = 100
         self.isHurtAnimationStarted = False
         self.isHurtTimer = 0
+        self._bear_x = 400
+        self._bear_y = 300
+        self._preferred_dist = 200
+        self._strafe_timer = 0
         self.startDestructionAnimation = False
 
     def setStartDestructionAnimation(self, v):
@@ -6573,6 +6643,26 @@ class ShadowShaman():
         self.stunned = value
 
     def drawMonster(self):
+        if self.stunned == 0:
+            self._strafe_timer += 1
+            _dx = self._bear_x - self.x
+            _dy_b = self._bear_y - self.y
+            _dist = abs(_dx)
+            if _dist < self._preferred_dist - 30:
+                _mx = -1 if _dx > 0 else 1
+            elif _dist > self._preferred_dist + 30:
+                _mx = 1 if _dx > 0 else -1
+            else:
+                _mx = 1 if self._strafe_timer % 100 < 50 else -1
+            _my = -1 if self.y > 80 and _dy_b < -30 else (1 if self.y < 300 and _dy_b > 30 else 0)
+            self.x += _mx * self.rand
+            self.y += _my * self.rand
+            self.x = max(-50, min(860, self.x))
+            self.y = max(30, min(350, self.y))
+        elif self.stunned > 0:
+            self.stunned += 1
+            if self.stunned >= 20:
+                self.stunned = 0
         self.screen.blit(self.witch, (self.x, self.y))
 
     def drawDestruction(self, damage):
@@ -6774,11 +6864,22 @@ class MiniFrankenBear():
         self.isHurtTimer = 0
         self.startDestructionAnimation = False
         self.has_thrown_laser = False
+        self._bear_x = 400
+        self._bear_y = 300
         
     def walk(self):
-        self.x += self.direction * self.walk_speed
+        _dx = self._bear_x - self.x
+        _dist = abs(_dx)
+        if _dist < 350 and _dist > 20:
+            _want_dir = 1 if _dx > 0 else -1
+            if _want_dir != self.direction:
+                self.direction = _want_dir
+            _spd = self.walk_speed + (1 if _dist < 120 else 0)
+        else:
+            _spd = self.walk_speed
+        self.x += self.direction * _spd
         self.walk_timer += 1
-        if self.walk_timer > self.change_direction_timer:
+        if self.walk_timer > self.change_direction_timer and _dist >= 350:
             self.direction *= -1
             self.walk_timer = 0
             _base_timer = random.randint(80, 150)
@@ -7131,6 +7232,8 @@ class Snake:
         self.isHurtTimer = 0
         self.destructionAnimation = 0
         self._anim_timer = 0
+        self._bear_x = 400
+        self._bear_y = 300
 
         try:
             _base = pygame.image.load("Game/Images/snake.png").convert_alpha()
@@ -7309,10 +7412,20 @@ class Snake:
             frame = self._get_current_frame()
             self.screen.blit(frame, (self.x, self.y))
 
-            self.x += self.direction * self.speed
+            _dx = self._bear_x - self.x
+            _dist = abs(_dx)
+            if _dist < 300:
+                _want_dir = 1 if _dx > 0 else -1
+                if _want_dir != self.direction:
+                    self.direction = _want_dir
+                _spd = self.speed + (2 if _dist < 120 else 1)
+            else:
+                _spd = self.speed
+
+            self.x += self.direction * _spd
             self.walk_timer += 1
 
-            if self.walk_timer >= self.change_direction_timer:
+            if self.walk_timer >= self.change_direction_timer and _dist >= 300:
                 self.direction *= -1
                 self.walk_timer = 0
                 _base_timer = random.randint(100, 200)
@@ -7585,6 +7698,8 @@ class MonkeyMummy:
         self.damageAttack = 11
         self.walk_speed = 3
         self.rand = 40
+        self._bear_x = 400
+        self._bear_y = 300
         self.direction = 1
         self.stunned = 0
         self.blocks = []
@@ -7714,7 +7829,13 @@ class MonkeyMummy:
             if self.jump_timer > random.randint(30, 70) and self.can_jump:
                 self.jump_timer = 0
                 self.jump_velocity = random.uniform(-16, -11)
-                self.jump_h_speed = random.choice([-5, -3, 3, 5])
+                _dx = self._bear_x - self.x
+                _dist = abs(_dx)
+                if _dist < 500:
+                    _toward = 1 if _dx > 0 else -1
+                    self.jump_h_speed = _toward * random.choice([4, 5, 6])
+                else:
+                    self.jump_h_speed = random.choice([-5, -3, 3, 5])
                 self.can_jump = False
                 if self.screech_sound and self._screech_cooldown <= 0:
                     self.screech_sound.play()
@@ -7749,7 +7870,11 @@ class MonkeyMummy:
                 self.jump_h_speed = 0
 
             if self.can_jump:
-                if self.changeDirectionX > self.rand:
+                _dx_g = self._bear_x - self.x
+                if abs(_dx_g) < 400:
+                    self.direction = 1 if _dx_g > 0 else -1
+                    self.x += self.direction * self.walk_speed
+                elif self.changeDirectionX > self.rand:
                     self.direction = random.choice([-1, 1])
                     self.changeDirectionX = 0
                     self.rand = random.randint(20, 60)
@@ -7808,6 +7933,8 @@ class Lion:
         self.walk_timer = 0
         self.change_direction_timer = random.randint(60, 140)
         self.charge_speed = 8
+        self._bear_x = 400
+        self._bear_y = 300
         self.is_charging = False
         self.charge_timer = 0
         self._anim_timer = 0
@@ -7960,14 +8087,20 @@ class Lion:
 
             self.walk_timer += 1
 
-            if not self.is_charging and not self._is_airborne and random.random() < 0.008:
+            _dx = self._bear_x - self.x
+            _dist = abs(_dx)
+            _face_dir = 1 if _dx > 0 else -1
+            if _face_dir != self.direction:
+                self.direction = _face_dir
+
+            if not self.is_charging and not self._is_airborne and _dist < 400 and random.random() < 0.02:
                 self.is_charging = True
                 self.charge_timer = random.randint(30, 60)
                 if self.roar_sound and self._roar_cooldown <= 0:
                     self.roar_sound.play()
                     self._roar_cooldown = 90
 
-            if not self._is_airborne and self.is_charging and random.random() < 0.03:
+            if not self._is_airborne and self.is_charging and _dist < 200 and random.random() < 0.06:
                 self._pounce_vy = -10
                 self._is_airborne = True
 
@@ -7985,14 +8118,10 @@ class Lion:
                 if self.charge_timer <= 0:
                     self.is_charging = False
             else:
-                self.x += self.direction * self.speed
-
-            if self.walk_timer >= self.change_direction_timer:
-                self.direction *= -1
-                self.walk_timer = 0
-                _base_timer = random.randint(60, 140)
-                _scale = getattr(self, '_turn_timer_scale', 1.0)
-                self.change_direction_timer = int(_base_timer * _scale)
+                if _dist > 30:
+                    self.x += self.direction * self.speed
+                    if _dist < 200:
+                        self.x += self.direction * 2
 
             if self.y + self.height >= self.FLOOR_Y:
                 self.y = self.FLOOR_Y - self.height
