@@ -3268,10 +3268,10 @@ class mainGame:
                 if not _vb.update():
                     _vb_remove.append(_vb)
                 elif _vb.get_rect().colliderect(_bear_rect_vb):
-                    if self.hurtTimer > 60:
+                    if hurtTimer > 60:
                         bear.set_poison(30)
-                        bear.decreaseHp(4)
-                        self.hurtTimer = 0
+                        bear.setHp(bear.getHp() - 4)
+                        hurtTimer = 0
                         if getattr(self, 'bear_hurt_sound', None):
                             self.bear_hurt_sound.play()
                     _vb_remove.append(_vb)
