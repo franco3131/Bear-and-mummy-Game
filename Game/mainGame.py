@@ -5223,6 +5223,9 @@ class Mummy():
                 self.mummy1Outline = pygame.transform.flip(self.mummy1Outline, True, False)
                 self.mummy2Outline = pygame.transform.flip(self.mummy2Outline, True, False)
 
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x, self.y - 20, self.health, self.max_health)
+
 
 # ---------------------------------------------------------------------------
 class Witch():
@@ -5421,6 +5424,9 @@ class Witch():
 
         if self.y % self.changeDirectionY == 0 and self.stunned == 0:
             self.directionY *= -1
+
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x, self.y - 15, self.health, self.max_health)
 
 
 # ---------------------------------------------------------------------------
@@ -5681,6 +5687,9 @@ class GreenBlob():
         if self.x % self.changeDirection == 0 and self.stunned == 0 and abs(self._bear_x - self.x) > 400:
             self.direction *= -1
             self.greenBlob = pygame.transform.flip(self.greenBlob, True, False)
+
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x, self.y - 10, self.health, self.max_health)
 
 
 # ---------------------------------------------------------------------------
@@ -6665,6 +6674,8 @@ class ShadowShaman():
             if self.stunned >= 20:
                 self.stunned = 0
         self.screen.blit(self.witch, (self.x, self.y))
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x, self.y - 15, self.health, self.max_health)
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -6924,6 +6935,8 @@ class MiniFrankenBear():
                 self.damageReceived = 0
         self.update_laser_timer()
         self.draw()
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x, self.y - 10, self.health, self.max_health)
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -7186,6 +7199,9 @@ class FrankenBear():
             self.displayDamageOnMonster(self.damageReceived)
             if self.stunned == 20:
                 self.stunned = 0
+
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, int(self.x) + 40, int(self.y) - 20, self.health, self.max_health, w=160, h=14)
 
     def setStartDestructionAnimation(self, v):
         self.startDestructionAnimation = v
@@ -7450,6 +7466,9 @@ class Snake:
 
             if self.stunned >= 20:
                 self.stunned = 0
+
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x + 20, self.y - 15, self.health, self.max_health)
 
     def drawDestruction(self, damage):
         """Draw snake destruction animation."""
@@ -7903,7 +7922,10 @@ class MonkeyMummy:
 
             if self.stunned >= 15:
                 self.stunned = 0
-    
+
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x + 10, self.y - 15, self.health, self.max_health)
+
     def drawDestruction(self, damage):
         """Draw destruction animation."""
         self.destructionAnimation += 1
@@ -8157,6 +8179,9 @@ class Lion:
 
             if self.stunned >= 15:
                 self.stunned = 0
+
+        if self.health < self.max_health:
+            render_enemy_health_bar(self.screen, self.x + 20, self.y - 15, self.health, self.max_health)
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
