@@ -701,6 +701,7 @@ class mainGame:
         self.lasers = []
         self.waterfalls = []
         self.snakes = []
+        self.venom_balls = []
         self.lions = []
         self.coins = []
         self.destroyable_blocks = []
@@ -3252,8 +3253,29 @@ class mainGame:
                     _poi_surf.set_alpha(_poi_alpha)
                     self.screen.blit(_poi_surf, (bear.getXPosition() - 10, bear.getYPosition() - 32))
             except Exception as _poison_err:
-                print(f"Poison error: {_poison_err}")
                 pass
+
+            for snake in self.snakes:
+                if snake.getHealth() > 0 and snake.should_spit_venom():
+                    _vb = snake.spit_venom()
+                    self.venom_balls.append(_vb)
+
+            _vb_remove = []
+            _bear_rect_vb = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
+            for _vb in self.venom_balls:
+                if not _vb.update():
+                    _vb_remove.append(_vb)
+                elif _vb.get_rect().colliderect(_bear_rect_vb):
+                    if self.hurtTimer > 60:
+                        bear.set_poison(30)
+                        bear.decreaseHp(4)
+                        self.hurtTimer = 0
+                        if getattr(self, 'bear_hurt_sound', None):
+                            self.bear_hurt_sound.play()
+                    _vb_remove.append(_vb)
+            for _vb in _vb_remove:
+                if _vb in self.venom_balls:
+                    self.venom_balls.remove(_vb)
 
             if (totalDistance > 30000 and not getattr(self, '_checkpoint_saved', False)
                     and bear.getEndText() and not self.escape):
@@ -3642,6 +3664,7 @@ class mainGame:
                 self.miniFrankenBears = []; self.lasers = []; self.waterfalls = []
                 self.door = []; self.keys = []; self.spikes = []
                 self.snakes = []; self.monkey_mummies = []; self.lions = []; self.coins = []
+                self.venom_balls = []
                 self.destroyable_blocks = []; self.beamProjectiles = []
 
                 self.showBoss = True
@@ -3892,6 +3915,7 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
             self.monkey_mummies = []; self.snakes = []; self.lions = []
+            self.venom_balls = []
             self.door = []; self.keys = []
             self.frankenbear = []; self.shadowShamans = []
             self.bossFires = []; self.spikes = []
@@ -7280,6 +7304,9 @@ class Snake:
         self.walk_timer = 0
         self.change_direction_timer = random.randint(100, 200)
         self.startDestructionAnimation = False
+        self._venom_timer = 0
+        self._venom_interval = random.randint(90, 160)
+        self._venom_spit_anim = 0
 
     def _draw_procedural_snake(self):
         _sw, _sh = self.width, self.height
@@ -7427,14 +7454,39 @@ class Snake:
         else:
             return self._frame2_left if use_frame2 else self._frame1_left
 
+    def should_spit_venom(self):
+        return self._venom_timer >= self._venom_interval and self.stunned == 0
+
+    def spit_venom(self):
+        self._venom_timer = 0
+        self._venom_interval = random.randint(100, 180)
+        self._venom_spit_anim = 12
+        _head_x = self.x + (self.width - 20) if self.direction > 0 else self.x + 20
+        _head_y = self.y + 15
+        return VenomBall(_head_x, _head_y, self._bear_x + 40, self._bear_y + 50, self.screen)
+
     def drawMonster(self):
         """Draw the snake and handle movement."""
         if self.y + self.height > self.FLOOR_Y:
             self.y = self.FLOOR_Y - self.height
         if self.stunned == 0:
             self._anim_timer += 1
-            frame = self._get_current_frame()
-            self.screen.blit(frame, (self.x, self.y))
+            self._venom_timer += 1
+
+            if self._venom_spit_anim > 0:
+                self._venom_spit_anim -= 1
+                frame = self._get_current_frame()
+                _stretch = pygame.transform.scale(frame, (self.width + 10, self.height - 5))
+                self.screen.blit(_stretch, (self.x - 5, self.y + 5))
+                _hx = self.x + (self.width - 10) if self.direction > 0 else self.x + 5
+                _hy = self.y + 12
+                for _ in range(3):
+                    _px = _hx + random.randint(-8, 8)
+                    _py = _hy + random.randint(-5, 5)
+                    pygame.draw.circle(self.screen, (60, 220, 40), (_px, _py), random.randint(2, 4))
+            else:
+                frame = self._get_current_frame()
+                self.screen.blit(frame, (self.x, self.y))
 
             _dx = self._bear_x - self.x
             _dist = abs(_dx)
@@ -7493,6 +7545,57 @@ class Snake:
         """Update poison cooldown timer."""
         if self.poison_cooldown > 0:
             self.poison_cooldown -= 1
+
+
+class VenomBall:
+    def __init__(self, x, y, target_x, target_y, screen):
+        self.screen = screen
+        self.x = float(x)
+        self.y = float(y)
+        _dx = target_x - x
+        _dy = target_y - y
+        _dist = max(1, math.sqrt(_dx * _dx + _dy * _dy))
+        _speed = 5.0
+        self.vel_x = (_dx / _dist) * _speed
+        self.vel_y = (_dy / _dist) * _speed - 3.0
+        self.gravity = 0.12
+        self.alive = True
+        self.timer = 0
+        self._trail = []
+        self._size = 10
+
+    def update(self):
+        if not self.alive:
+            return False
+        self.timer += 1
+        self._trail.append((int(self.x), int(self.y)))
+        if len(self._trail) > 8:
+            self._trail.pop(0)
+        self.vel_y += self.gravity
+        self.x += self.vel_x
+        self.y += self.vel_y
+        if self.y > 410 or self.x < -50 or self.x > 950 or self.timer > 180:
+            self.alive = False
+            return False
+        for i, (tx, ty) in enumerate(self._trail):
+            _a = int(80 * (i + 1) / len(self._trail))
+            _r = max(2, self._size * (i + 1) // len(self._trail) - 1)
+            _s = pygame.Surface((_r * 2, _r * 2), pygame.SRCALPHA)
+            pygame.draw.circle(_s, (60, 200, 40, _a), (_r, _r), _r)
+            self.screen.blit(_s, (tx - _r, ty - _r))
+        _bx, _by = int(self.x), int(self.y)
+        pygame.draw.circle(self.screen, (30, 160, 20), (_bx, _by), self._size)
+        pygame.draw.circle(self.screen, (80, 230, 60), (_bx, _by), self._size - 2)
+        pygame.draw.circle(self.screen, (150, 255, 120), (_bx - 2, _by - 2), 3)
+        _drip_y = _by + self._size
+        for _ in range(2):
+            _rx = _bx + random.randint(-4, 4)
+            _ry = _drip_y + random.randint(0, 6)
+            pygame.draw.circle(self.screen, (50, 200, 30, 120), (_rx, _ry), random.randint(1, 3))
+        return True
+
+    def get_rect(self):
+        return pygame.Rect(int(self.x) - self._size, int(self.y) - self._size, self._size * 2, self._size * 2)
 
 
 class Coin:
