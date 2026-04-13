@@ -2900,12 +2900,14 @@ class mainGame:
                         m._sep_offset += random.choice([-2.0, 2.0])
                         o._sep_offset += random.choice([-2.0, 2.0])
 
+            _popup_active = not bear.getEndText()
             to_remove = []
             for monster in monsters:
                 if monster.getHealth() > 0:
                     if hasattr(monster, '_bear_x'):
                         monster._bear_x = _bear_x
                         monster._bear_y = _bear_y
+                    monster._popup_frozen = _popup_active
                     if hasattr(monster, 'drawMonster'):
                         monster.drawMonster()
                     else:
@@ -3025,13 +3027,17 @@ class mainGame:
                     self._switch_music("normal")
 
             # ---- Mini FrankenBear laser generation and drawing ----------------
-            for minibear in self.miniFrankenBears:
-                if minibear.should_throw_laser():
-                    self.lasers.append(minibear.throw_laser(bear.getXPosition()))
-                    if self.laser_zap_sound: self.laser_zap_sound.play()
+            if not _popup_active:
+                for minibear in self.miniFrankenBears:
+                    if minibear.should_throw_laser():
+                        self.lasers.append(minibear.throw_laser(bear.getXPosition()))
+                        if self.laser_zap_sound: self.laser_zap_sound.play()
 
             laser_to_remove = []
             for laser in self.lasers:
+                if _popup_active:
+                    laser.draw_frozen()
+                    continue
                 if not laser.draw():
                     laser_to_remove.append(laser)
                     if hasattr(laser, '_owner') and laser._owner:
@@ -3311,14 +3317,18 @@ class mainGame:
             except Exception as _poison_err:
                 pass
 
-            for snake in self.snakes:
-                if snake.getHealth() > 0 and snake.should_spit_venom():
-                    _vb = snake.spit_venom()
-                    self.venom_balls.append(_vb)
+            if not _popup_active:
+                for snake in self.snakes:
+                    if snake.getHealth() > 0 and snake.should_spit_venom():
+                        _vb = snake.spit_venom()
+                        self.venom_balls.append(_vb)
 
             _vb_remove = []
             _bear_rect_vb = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
             for _vb in self.venom_balls:
+                if _popup_active:
+                    _vb.draw_frozen()
+                    continue
                 if not _vb.update():
                     _vb_remove.append(_vb)
                 elif _vb.get_rect().colliderect(_bear_rect_vb):
@@ -3423,8 +3433,9 @@ class mainGame:
                         self.showBoss = False
                         if self.boss_entrance_sound: self.boss_entrance_sound.play()
                     for frankenbear in self.frankenbear:
+                        frankenbear._popup_frozen = _popup_active
                         frankenbear.drawMonster()
-                        if frankenbear.getThrowFireBallLeft() or frankenbear.getThrowFireBallRight():
+                        if not _popup_active and (frankenbear.getThrowFireBallLeft() or frankenbear.getThrowFireBallRight()):
                             frankenbear.setThrowFireBallLeft(False)
                             frankenbear.setThrowFireBallRight(False)
                             volley = 6 if frankenbear.getHealth() <= 10 else 4
@@ -3453,11 +3464,14 @@ class mainGame:
 
                     boss_fires_to_remove = []
                     for fire in self.bossFires:
-                        fire.drawFireBall()
-                        if (fire.getXPosition() < 30 or fire.getXPosition() > 800
-                                or fire.getYPosition() < 0):
-                            self.triggerFire = True
-                            boss_fires_to_remove.append(fire)
+                        if _popup_active:
+                            fire.drawFireBallFrozen() if hasattr(fire, 'drawFireBallFrozen') else None
+                        else:
+                            fire.drawFireBall()
+                            if (fire.getXPosition() < 30 or fire.getXPosition() > 800
+                                    or fire.getYPosition() < 0):
+                                self.triggerFire = True
+                                boss_fires_to_remove.append(fire)
                     for fire in boss_fires_to_remove:
                         if fire in self.bossFires:
                             self.bossFires.remove(fire)
@@ -5277,6 +5291,12 @@ class Mummy():
         _dy = 20  # push sprite down so feet touch the floor
         is_big = self.height > 100
 
+        if getattr(self, '_popup_frozen', False):
+            self.screen.blit(self.mummy1, (self.x, self.y + _dy))
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x, self.y - 20, self.health, self.max_health)
+            return
+
         if not is_big:
             self._apply_gravity_and_platforms()
 
@@ -5528,6 +5548,12 @@ class Witch():
         self.hurtWitch = pygame.transform.flip(self.hurtWitch, True, False)
 
     def drawMonster(self):
+        if getattr(self, '_popup_frozen', False):
+            self.screen.blit(self.witch, (self.x, self.y))
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x, self.y - 15, self.health, self.max_health)
+            return
+
         _dx = self._bear_x - self.x
         _dy_b = self._bear_y - self.y
         _dist = abs(_dx)
@@ -5673,6 +5699,9 @@ class FireBall():
         else:
             self.vel_y *= -1
             self.y -= self.vel_y
+        self.screen.blit(self.fire, (self.x, self.y))
+
+    def drawFireBallFrozen(self):
         self.screen.blit(self.fire, (self.x, self.y))
 
 
@@ -5828,6 +5857,12 @@ class GreenBlob():
                               self.y + random.randint(-100, 0)))
 
     def drawMonster(self):
+        if getattr(self, '_popup_frozen', False):
+            self.screen.blit(self.greenBlob, (self.x, self.y))
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x, self.y - 10, self.health, self.max_health)
+            return
+
         self.timer += 1
 
         if self.jump:
@@ -6897,6 +6932,12 @@ class ShadowShaman():
         self.stunned = value
 
     def drawMonster(self):
+        if getattr(self, '_popup_frozen', False):
+            self.screen.blit(self.witch, (self.x, self.y))
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x, self.y - 15, self.health, self.max_health)
+            return
+
         if self.stunned == 0:
             self._strafe_timer += 1
             _dx = self._bear_x - self.x
@@ -7008,6 +7049,15 @@ class Laser():
                 return False
             return True
         return False
+
+    def draw_frozen(self):
+        _alpha = max(80, int(255 * (1 - self.lifetime / self.max_lifetime)))
+        _glow = pygame.Surface((self.width + 16, self.height + 16), pygame.SRCALPHA)
+        pygame.draw.ellipse(_glow, (100, 255, 100, min(120, _alpha)), (0, 0, self.width + 16, self.height + 16))
+        self.screen.blit(_glow, (self.x - 8, self.y - 8))
+        _core = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        pygame.draw.ellipse(_core, (180, 255, 80, _alpha), (0, 0, self.width, self.height))
+        self.screen.blit(_core, (self.x, self.y))
 
     def getYPosition(self):
         return self.y
@@ -7182,6 +7232,12 @@ class MiniFrankenBear():
         self.screen.blit(img, (self.x, self.y))
 
     def drawMonster(self):
+        if getattr(self, '_popup_frozen', False):
+            self.draw()
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x, self.y - 10, self.health, self.max_health)
+            return
+
         if self.stunned == 0:
             self.walk()
         elif self.stunned > 0:
@@ -7399,6 +7455,15 @@ class FrankenBear():
         pygame.draw.circle(self.screen, _eye_col, (_bx + 170, _by + 140), 6)
 
     def drawMonster(self):
+        if getattr(self, '_popup_frozen', False):
+            _bx = int(self.x)
+            _by = int(self.y)
+            self.screen.blit(self.boss1, (_bx, _by))
+            self._draw_boss_details()
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, _bx + 40, _by - 20, self.health, self.max_health, w=160, h=14)
+            return
+
         self.blinkTimer += 1
         self.attackTimer += 1
 
@@ -7692,6 +7757,13 @@ class Snake:
 
     def drawMonster(self):
         """Draw the snake and handle movement."""
+        if getattr(self, '_popup_frozen', False):
+            frame = self._get_current_frame()
+            self.screen.blit(frame, (self.x, self.y))
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x + 20, self.y - 15, self.health, self.max_health)
+            return
+
         if self.y + self.height > self.FLOOR_Y:
             self.y = self.FLOOR_Y - self.height
         if self.stunned == 0:
@@ -7823,6 +7895,13 @@ class VenomBall:
             _rx = _bx + random.randint(-4, 4)
             _ry = _drip_y + random.randint(0, 6)
             pygame.draw.circle(self.screen, (50, 200, 30, 120), (_rx, _ry), random.randint(1, 3))
+        return True
+
+    def draw_frozen(self):
+        _bx, _by = int(self.x), int(self.y)
+        pygame.draw.circle(self.screen, (30, 160, 20), (_bx, _by), self._size)
+        pygame.draw.circle(self.screen, (80, 230, 60), (_bx, _by), self._size - 2)
+        pygame.draw.circle(self.screen, (150, 255, 120), (_bx - 2, _by - 2), 3)
         return True
 
     def get_rect(self):
@@ -8166,6 +8245,13 @@ class MonkeyMummy:
 
     def drawMonster(self):
         """Draw monkey mummy with jumping behavior."""
+        if getattr(self, '_popup_frozen', False):
+            frame = self._get_anim_frame()
+            self.screen.blit(frame, (self.x, self.y))
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x + 10, self.y - 15, self.health, self.max_health)
+            return
+
         if self._screech_cooldown > 0:
             self._screech_cooldown -= 1
         if self.stunned == 0:
@@ -8441,6 +8527,13 @@ class Lion:
         return self._walk_frames_left[idx] if self.direction < 0 else self._walk_frames_right[idx]
 
     def drawMonster(self):
+        if getattr(self, '_popup_frozen', False):
+            frame = self._get_anim_frame()
+            self.screen.blit(frame, (self.x, self.y))
+            if self.health < self.max_health:
+                render_enemy_health_bar(self.screen, self.x + 20, self.y - 15, self.health, self.max_health)
+            return
+
         if self._roar_cooldown > 0:
             self._roar_cooldown -= 1
         if self.stunned == 0:
