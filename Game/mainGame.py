@@ -5292,7 +5292,8 @@ class Witch():
         self.witch2 = pygame.transform.scale(witch2Image, (100, 100))
         self.hurtWitch = pygame.image.load("Game/Images/Bear/hurtWitch.png")
         self.hurtWitch = pygame.transform.scale(self.hurtWitch, (100, 100))
-        self.directionX = -1 * random.randint(1, 2)
+        self._facing = -1
+        self.directionX = -1
         self.x = x
         self.y = y
         self.destructionAnimation = 0
@@ -5322,6 +5323,10 @@ class Witch():
         self._preferred_dist = random.randint(150, 280)
         self._strafe_timer = random.randint(0, 60)
         self._sep_offset = 0.0
+        self._state = 'approach'
+        self._state_timer = 0
+        self._dodge_dir = random.choice([-1, 1])
+        self._aggro_range = random.randint(400, 600)
         self.startDestructionAnimation = False
 
     def setStartDestructionAnimation(self, v):
@@ -5425,7 +5430,23 @@ class Witch():
                              (self.x + random.randint(-100, 0),
                               self.y + random.randint(-100, 0)))
 
+    def _flip_all_to(self, new_facing):
+        if new_facing == self._facing:
+            return
+        self._facing = new_facing
+        self.witch = pygame.transform.flip(self.witch, True, False)
+        self.witch2 = pygame.transform.flip(self.witch2, True, False)
+        self.hurtWitch = pygame.transform.flip(self.hurtWitch, True, False)
+
     def drawMonster(self):
+        _dx = self._bear_x - self.x
+        _dy_b = self._bear_y - self.y
+        _dist = abs(_dx)
+
+        _want_face = 1 if _dx > 0 else -1
+        self._flip_all_to(_want_face)
+        self.directionX = _want_face
+
         if self.stunned == 0:
             if not self.setThrowsFireBall:
                 self.screen.blit(self.witch, (self.x, self.y))
@@ -5441,46 +5462,62 @@ class Witch():
 
         if self.stunned == 0:
             self._strafe_timer += 1
-            _dx = self._bear_x - self.x
-            _dy_b = self._bear_y - self.y
-            _dist = abs(_dx)
+            self._state_timer += 1
 
-            if _dist < self._preferred_dist - 40:
-                _move_x = -1 if _dx > 0 else 1
-            elif _dist > self._preferred_dist + 40:
+            if _dist > self._aggro_range:
+                self._state = 'idle'
+            elif self._state == 'idle' and _dist < self._aggro_range:
+                self._state = 'approach'
+                self._state_timer = 0
+
+            if self._state == 'approach':
                 _move_x = 1 if _dx > 0 else -1
+                _spd = self.rand + 1
+                if _dist < self._preferred_dist + 30:
+                    self._state = 'strafe'
+                    self._state_timer = 0
+                    self._dodge_dir = random.choice([-1, 1])
+            elif self._state == 'strafe':
+                if _dist < self._preferred_dist - 50:
+                    _move_x = -1 if _dx > 0 else 1
+                elif _dist > self._preferred_dist + 60:
+                    _move_x = 1 if _dx > 0 else -1
+                else:
+                    _move_x = self._dodge_dir
+                _spd = self.rand
+                if self._state_timer > random.randint(80, 160):
+                    self._dodge_dir *= -1
+                    self._state_timer = 0
+                if _dist > self._preferred_dist + 120:
+                    self._state = 'approach'
+                    self._state_timer = 0
+            elif self._state == 'idle':
+                _move_x = 1 if self._strafe_timer % 200 < 100 else -1
+                _spd = self.rand
             else:
-                _move_x = self.directionX if self._strafe_timer % 120 < 60 else -self.directionX
+                _move_x = 0
+                _spd = self.rand
 
-            if self.y > 60 and _dy_b < -50:
-                _move_y = -1
-            elif self.y < 280 and _dy_b > 50:
-                _move_y = 1
+            if self.y > 60 and _dy_b < -40:
+                _move_y = -self.rand
+            elif self.y < 300 and _dy_b > 40:
+                _move_y = self.rand
+            elif abs(_dy_b) < 30:
+                _move_y = self._dodge_dir * self.rand if self._strafe_timer % 70 < 35 else 0
             else:
-                _move_y = self.directionY if self._strafe_timer % 90 < 45 else -self.directionY
+                _move_y = 0
 
-            self.x += _move_x * self.rand + self._sep_offset
+            self.x += _move_x * _spd + self._sep_offset
             self._sep_offset *= 0.9
-            self.y += _move_y * self.rand
+            self.y += _move_y
 
             self.x = max(-50, min(860, self.x))
             self.y = max(30, min(350, self.y))
-
-            _want_dir = 1 if _dx > 0 else -1
-            if _want_dir != self.directionX:
-                self.directionX = _want_dir
-                if not self.setThrowsFireBall:
-                    self.witch = pygame.transform.flip(self.witch, True, False)
-                else:
-                    self.witch2 = pygame.transform.flip(self.witch2, True, False)
         elif self.stunned > 0:
             self.stunned += 1
             self.screen.blit(self.hurtWitch, (self.x, self.y))
             if self.stunned == 20:
                 self.stunned = 0
-
-        if self.y % self.changeDirectionY == 0 and self.stunned == 0:
-            self.directionY *= -1
 
         if self.health < self.max_health:
             render_enemy_health_bar(self.screen, self.x, self.y - 15, self.health, self.max_health)
