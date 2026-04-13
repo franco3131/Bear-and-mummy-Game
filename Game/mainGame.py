@@ -7242,6 +7242,13 @@ class Snake:
         except (FileNotFoundError, Exception):
             _base = self._draw_procedural_snake()
 
+        _ex = int(self.width * 0.72)
+        _ey = int(self.height * 0.18)
+        pygame.draw.circle(_base, (255, 255, 50), (_ex, _ey), 6)
+        pygame.draw.circle(_base, (200, 200, 0), (_ex, _ey), 6, 1)
+        pygame.draw.ellipse(_base, (20, 20, 20), (_ex - 2, _ey - 5, 4, 10))
+        pygame.draw.circle(_base, (255, 255, 200), (_ex - 2, _ey - 2), 2)
+
         self._frame1_right = _base
         self._frame1_left = pygame.transform.flip(_base, True, False)
         _f2 = pygame.transform.rotate(_base, 4)
@@ -7946,6 +7953,12 @@ class Lion:
         try:
             _base = pygame.image.load("Game/Images/lion.png").convert_alpha()
             _base = pygame.transform.scale(_base, (self.width, self.height))
+            _lex = int(self.width * 0.78)
+            _ley = int(self.height * 0.28)
+            pygame.draw.circle(_base, (255, 200, 50), (_lex, _ley), 6)
+            pygame.draw.circle(_base, (180, 140, 20), (_lex, _ley), 6, 1)
+            pygame.draw.circle(_base, (30, 30, 30), (_lex + 1, _ley), 3)
+            pygame.draw.circle(_base, (255, 255, 220), (_lex - 1, _ley - 2), 2)
         except (FileNotFoundError, Exception):
             _w, _h = self.width, self.height
             _base = pygame.Surface((_w, _h), pygame.SRCALPHA)
