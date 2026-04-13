@@ -1012,6 +1012,37 @@ class mainGame:
                 self.screen.blit(body_part, (bx, by + hair_h))
                 self.screen.blit(hair_part, (bx + hair_sway, by))
 
+    def _draw_grace_indicator(self, bear, hurtTimer):
+        if hurtTimer > 60 or hurtTimer < 0:
+            return
+        bx = bear.getXPosition()
+        by = bear.getYPosition()
+
+        if (hurtTimer // 4) % 2 == 0:
+            _flash = pygame.Surface((100, 100), pygame.SRCALPHA)
+            _flash.fill((255, 255, 255, 60))
+            self.screen.blit(_flash, (bx, by))
+
+        _remaining = 60 - hurtTimer
+        _bar_w = int(40 * (_remaining / 60.0))
+        if _bar_w > 0:
+            _bar_x = bx + 30
+            _bar_y = by - 14
+            pygame.draw.rect(self.screen, (40, 40, 40, 180), (_bar_x - 1, _bar_y - 1, 42, 7))
+            _col = (100, 200, 255) if _remaining > 20 else (255, 180, 60)
+            pygame.draw.rect(self.screen, _col, (_bar_x, _bar_y, _bar_w, 5))
+
+        if hurtTimer < 30:
+            _shield = pygame.Surface((28, 32), pygame.SRCALPHA)
+            _alpha = int(200 * (1 - hurtTimer / 30.0))
+            pygame.draw.polygon(_shield, (100, 180, 255, _alpha), [
+                (14, 0), (0, 6), (0, 18), (14, 32), (28, 18), (28, 6)])
+            pygame.draw.polygon(_shield, (180, 220, 255, _alpha), [
+                (14, 0), (0, 6), (0, 18), (14, 32), (28, 18), (28, 6)], 2)
+            pygame.draw.polygon(_shield, (220, 240, 255, min(255, _alpha + 30)), [
+                (14, 4), (4, 8), (4, 16), (14, 28), (24, 16), (24, 8)])
+            self.screen.blit(_shield, (bx + 36, by - 18))
+
     _WALK_BOB = (-2, 3, 5, 3)
     _WALK_LEAN = (0.0, 1.5, 0.0, -1.5)
 
@@ -2799,6 +2830,8 @@ class mainGame:
             elif bear.getLeftJumpStatus():
                 bear.leftJump(self.blocks)
 
+
+            self._draw_grace_indicator(bear, hurtTimer)
 
             # ---- Boundary and timer updates ------------------------------
             bear.boundaryExtraCheck()
