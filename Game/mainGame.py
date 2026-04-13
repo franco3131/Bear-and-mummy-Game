@@ -3338,7 +3338,8 @@ class mainGame:
                     self.venom_balls.remove(_vb)
 
             if (totalDistance > 30000 and not getattr(self, '_checkpoint_saved', False)
-                    and bear.getEndText() and not self.escape):
+                    and bear.getEndText() and not self.escape
+                    and not getattr(self, '_monkey_level_active', False)):
                 self._save_checkpoint(backgroundScrollX, totalDistance, bear)
                 self._switch_music("deep_crypt")
                 bear.setArrayText(['GAME SAVED!', '',
@@ -3972,6 +3973,8 @@ class mainGame:
             self._monkey_level_active = True
             self._jungle_zone2_active = False
             self._switch_music("jungle")
+            if hasattr(self, '_bg_ref') and self._bg_ref:
+                self._bg_ref._jungle_mode = True
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
             self.monkey_mummies = []; self.snakes = []; self.lions = []
@@ -4024,16 +4027,14 @@ class mainGame:
                 _lr = self.lion_roar_sound
                 self.monkey_mummies.extend([
                     MonkeyMummy(1100, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1600, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(2100, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1700, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
                 ])
                 self.snakes.extend([
-                    Snake(1350, 320, self.screen),
-                    Snake(1900, 320, self.screen),
+                    Snake(1400, 320, self.screen),
+                    Snake(2100, 320, self.screen),
                 ])
                 self.lions.extend([
-                    Lion(1450, 300, self.screen, _lr),
-                    Lion(2000, 300, self.screen, _lr),
+                    Lion(1550, 300, self.screen, _lr),
                 ])
 
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
@@ -4635,14 +4636,20 @@ class mainGame:
             "enchanted_tomb": 0.50,
             "halfway": 0.45,
             "final_push": 0.50,
-            "boss_mummy": 0.75,
+            "boss_mummy": 0.45,
             "boss_final": 0.80,
             "jungle": 0.50,
         }
         try:
             pygame.mixer.music.load(_files[track])
-            pygame.mixer.music.set_volume(_volumes.get(track, 0.50))
-            pygame.mixer.music.play(-1)
+            _vol = _volumes.get(track, 0.50)
+            if track in ("boss_mummy", "boss_final"):
+                pygame.mixer.music.set_volume(0.0)
+                pygame.mixer.music.play(-1, fade_ms=3000)
+                pygame.mixer.music.set_volume(_vol)
+            else:
+                pygame.mixer.music.set_volume(_vol)
+                pygame.mixer.music.play(-1)
         except Exception:
             pass
 

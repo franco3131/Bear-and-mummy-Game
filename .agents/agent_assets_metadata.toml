@@ -11,10 +11,10 @@ title = "cartoon snake enemy sprite"
 id = "eWUqfJ3KHS5RrW8rA3dYo"
 uri = "file://Game/Images/monkey.png"
 type = "image"
-title = "cartoon monkey enemy sprite"
+title = "generated_image"
 
 [[generated]]
 id = "S1Te2ttS4PSzZBpEjxU6o"
 uri = "file://Game/Images/lion.png"
 type = "image"
-title = "cartoon lion enemy sprite"
+title = "generated_image"
