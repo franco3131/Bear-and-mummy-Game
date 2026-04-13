@@ -85,7 +85,7 @@ python main.py
 ### Gameplay Features
 - **4-frame walk cycle** — bearWalking4.png created as composite (walk3 upper + walk2 lower) for proper transition pose with correct foot direction; sequence: [walk1, walk2, walk4, walk3]
 - **Explosion sound redesign** — replaced noise-slap with deep rumbling boom using 45/30/60Hz bass sine waves, short crackle, and 20Hz sub-rumble with 0.55s envelope
-- **Post-boss music** — after first boss (bigMummy) defeat, music switches to post_boss_normal.wav which adds a plucked harp arpeggio layer over the base Egyptian theme
+- **Unified soundtrack** — all zone music tracks share a core 8-bar melody (A minor pentatonic bell theme) that progressively builds: spooky_peaceful (melody + pad) → deep_crypt (+ bass) → halfway_intense (+ counter melody + light drums) → final_push (full arrangement, octave doubling) → jungle (+ bongo percussion). After beating the mummy boss, the original song immediately returns. Boss tracks use a dark distorted variation of the same melody
 - **Silver mode (level 14)** — all bear sprites tinted silver via BLEND_RGB_MULT + BLEND_RGB_ADD; permanent 50% speed increase (STEP 8→12); "SILVER MODE ACTIVATED!" notification
 - **Dead zone speed boost** — dynamic STEP each frame: when no alive enemies within visible range (-150 to 950 px), movement speed boosted by 50%; returns to normal when enemies are on screen
 - **Dynamic STEP** — `STEP` is now a mutable global modified per frame based on silver mode + dead zone state (base 8/12 × 1.0/1.5)

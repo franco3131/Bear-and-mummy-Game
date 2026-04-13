@@ -2965,6 +2965,7 @@ class mainGame:
                         self.coins.append(Coin(monster.getXPosition() + 10 + _ci * 28,
                                                monster.getYPosition() + 80, self.screen))
                     self._bigMummyDefeated = True
+                    self._switch_music("normal")
 
             # ---- Mini FrankenBear laser generation and drawing ----------------
             for minibear in self.miniFrankenBears:
@@ -3718,7 +3719,7 @@ class mainGame:
                     self._jungle_unlocked = True
                     background._jungle_mode = True
                     background._black_latched = False
-                    self._switch_music("post_boss_normal")
+                    self._switch_music("normal")
                     self.blocks = []
                     self.mummys = []
                 else:
@@ -4548,7 +4549,7 @@ class mainGame:
             self._stop_tension_layers()
         _files = {
             "normal":           "Game/Sounds/spooky_peaceful.wav",
-            "post_boss_normal": "Game/Sounds/post_boss_march.wav",
+            "post_boss_normal": "Game/Sounds/spooky_peaceful.wav",
             "deep_crypt":       "Game/Sounds/deep_crypt.wav",
             "enchanted_tomb":   "Game/Sounds/halfway_intense.wav",
             "halfway":          "Game/Sounds/halfway_intense.wav",
