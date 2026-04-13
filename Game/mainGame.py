@@ -3512,10 +3512,6 @@ class mainGame:
                 if not _m.getStartDestructionAnimationStatus():
                     if getattr(_m, 'stunned', 0) and _m.getDamageReceived() > 0:
                         _m.displayDamageOnMonster(_m.getDamageReceived())
-                    elif _m.getHealth() < getattr(_m, 'max_health', _m.getHealth() + 1):
-                        render_enemy_health_bar(self.screen,
-                            _m.getXPosition() + 60, _m.getYPosition() - 60,
-                            _m.getHealth(), getattr(_m, 'max_health', _m.getHealth()))
 
             bear.displayBearHp()
             bear.displayBearExp()
@@ -5132,9 +5128,6 @@ class Mummy():
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
-        render_enemy_health_bar(self.screen,
-                                 self.getXPosition() + 60, self.getYPosition() - 60,
-                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -5383,9 +5376,6 @@ class Witch():
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
-        render_enemy_health_bar(self.screen,
-                                 self.getXPosition() + 60, self.getYPosition() - 60,
-                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -5657,9 +5647,6 @@ class GreenBlob():
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
-        render_enemy_health_bar(self.screen,
-                                 self.getXPosition() + 60, self.getYPosition() - 60,
-                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def drawDestruction(self, damage):
         self.destructionAnimation += 1
@@ -6671,9 +6658,6 @@ class ShadowShaman():
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
-        render_enemy_health_bar(self.screen,
-                                 self.getXPosition() + 60, self.getYPosition() - 60,
-                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def setStunned(self, value):
         self.stunned = value
