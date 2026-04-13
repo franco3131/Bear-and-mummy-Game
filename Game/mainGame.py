@@ -1948,7 +1948,7 @@ class mainGame:
                 _q_key_down = keys[pygame.K_q]
                 _q_key_fresh = _q_key_down and not _q_key_prev
                 _q_key_prev = _q_key_down
-                _up_combo = keys[pygame.K_UP] and (keys[pygame.K_a] or keys[pygame.K_x])
+                _up_combo = keys[pygame.K_UP] and keys[pygame.K_a]
                 _up_combo_fresh = _up_combo and not getattr(self, '_up_combo_prev', False)
                 self._up_combo_prev = _up_combo
                 _lightning_trigger = _q_key_fresh or _up_combo_fresh
