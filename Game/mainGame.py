@@ -2357,7 +2357,6 @@ class mainGame:
                                         self.crit_sound.play()
                                     elif self.hit_sound:
                                         self.hit_sound.play()
-                                    hurtTimer = 0
                                 else:
                                     deflectTimer = 40
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
@@ -2375,7 +2374,6 @@ class mainGame:
                                 else:
                                     _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
                                     if _snd: _snd.play()
-                                hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
                             bear.setXPosition(bear.getXPosition() - STEP)
@@ -2410,7 +2408,6 @@ class mainGame:
                                         self.crit_sound.play()
                                     elif self.hit_sound:
                                         self.hit_sound.play()
-                                    hurtTimer = 0
                                 else:
                                     deflectTimer = 40
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
@@ -2428,7 +2425,6 @@ class mainGame:
                                 else:
                                     _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
                                     if _snd: _snd.play()
-                                hurtTimer = 0
                     for block in self.blocks:
                         if block.getIsLeftBoundary():
                             bear.setXPosition(bear.getXPosition() - STEP)
@@ -2733,7 +2729,6 @@ class mainGame:
                                     monster.setStunned(1)
                                     monster.setHealth(monster.getHealth() - bear.getDamageAttack())
                                     if self.hit_sound: self.hit_sound.play()
-                                    hurtTimer = 0
                                 else:
                                     deflectTimer = 40
                                     deflectPos = (monster.getXPosition() + 70, monster.getYPosition() + 120)
@@ -2748,7 +2743,6 @@ class mainGame:
                                 monster.setHealth(monster.getHealth() - bear.getDamageAttack())
                                 _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
                                 if _snd: _snd.play()
-                                hurtTimer = 0
 
                 # ---- ESC: quit -------------------------------------------
                 elif keys[pygame.K_ESCAPE]:
