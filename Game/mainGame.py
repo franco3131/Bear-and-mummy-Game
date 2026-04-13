@@ -1797,7 +1797,7 @@ class mainGame:
                 pygame.draw.circle(self.screen, (255, 215, 0), (_purse_cx, _purse_cy), 4)
                 render_hud_text_outlined(self.screen, _FONT_HUD_LABEL, f'{bear.getCoins()} coins',
                                          _left_x + 50, _footer_y + 8, (255, 230, 80))
-                _ctrl_text = '[UP/DOWN] select    [X] buy    [ENTER/ESC] close'
+                _ctrl_text = '[UP/DOWN] select    [X] buy    [ENTER] close'
                 _ctrl_surf = _FONT_HUD_VAL.render(_ctrl_text, True, (180, 165, 210))
                 self.screen.blit(_ctrl_surf, (_left_x + _item_w - _ctrl_surf.get_width() - 8, _footer_y + 30))
 
@@ -4177,9 +4177,11 @@ class mainGame:
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.waterfalls = []
 
-            block1 = Block(1100, 200, 2000, 60, "greyRock", self.screen)
-            block2 = Block(1300, 240, 1000, 60, "greyRock", self.screen)
-            self.blocks.extend([block1, block2])
+            block1 = Block(1100, 280, 200, 50, "greyRock", self.screen)
+            block2 = Block(1500, 180, 200, 50, "greyRock", self.screen)
+            block3 = Block(1900, 250, 200, 50, "greyRock", self.screen)
+            block4 = Block(2300, 220, 200, 50, "greyRock", self.screen)
+            self.blocks.extend([block1, block2, block3, block4])
 
             x = 1050
             for _ in range(6):
@@ -4189,7 +4191,7 @@ class mainGame:
             self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen, self.blob_jump_sound))
             self.greenBlobs.append(GreenBlob(1900, 300, 100, 100, self.screen, self.blob_jump_sound))
             self._secret_box_spawned = True
-            secret_block = DestroyableBlock(1570, 140, 80, 80, self.screen, secret=True)
+            secret_block = DestroyableBlock(1550, 110, 80, 80, self.screen, secret=True)
             self.destroyable_blocks.append(secret_block)
 
         # ── Zone 4.2 @ 29 000 – mini frankenbeares with rainbow lasers ────────
