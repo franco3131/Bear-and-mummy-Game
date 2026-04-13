@@ -5004,6 +5004,11 @@ class Mummy():
         self._sep_offset = 0.0
         self._personality = random.choice(['aggressive', 'cautious', 'flanker'])
         self._preferred_gap = random.randint(50, 120)
+        self._vy = 0.0
+        self._gravity = 0.5
+        self._on_ground = True
+        self._jump_cooldown = 0
+        self._FLOOR_Y = 400
         self.fire = pygame.image.load("Game/Images/fire.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.hurtMummy = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
@@ -5179,17 +5184,69 @@ class Mummy():
             by = b.getBlockYPosition()
             bx2 = bx + b.getWidth()
             by2 = by + b.getHeight()
-            # Vertical overlap?
-            if m_bottom <= by or m_top >= by2:
+            if m_bottom <= by + 6 or m_top >= by2:
                 continue
-            # Horizontal overlap?
             if m_right > bx and m_left < bx2:
                 return True
         return False
 
+    def _apply_gravity_and_platforms(self):
+        if self.height > 100:
+            return
+        if self._jump_cooldown > 0:
+            self._jump_cooldown -= 1
+
+        self._vy += self._gravity
+        self.y += self._vy
+
+        feet_y = self.y + self.height
+        self._on_ground = False
+
+        for b in self.blocks:
+            bx = b.getBlockXPosition()
+            by = b.getBlockYPosition()
+            bw = b.getWidth()
+            bh = b.getHeight()
+            if self._vy >= 0 and self.x + self.width > bx + 10 and self.x < bx + bw - 10:
+                old_feet = feet_y - self._vy
+                if old_feet <= by + 4 and feet_y >= by:
+                    self.y = by - self.height
+                    self._vy = 0
+                    self._on_ground = True
+                    break
+
+        if self.y + self.height >= self._FLOOR_Y:
+            self.y = self._FLOOR_Y - self.height
+            self._vy = 0
+            self._on_ground = True
+
+        if self._on_ground and self._jump_cooldown <= 0:
+            feet_y = self.y + self.height
+            on_platform = feet_y < self._FLOOR_Y - 5
+
+            if on_platform:
+                bear_below = self._bear_y > self.y + 40
+                if bear_below and random.random() < 0.02:
+                    self._vy = 0
+                    self._on_ground = False
+                    self._jump_cooldown = 60
+                elif random.random() < 0.008:
+                    self._vy = -8 - random.random() * 2
+                    self._on_ground = False
+                    self._jump_cooldown = 90
+            else:
+                bear_above = self._bear_y < self.y - 60
+                if bear_above and self._aggro and random.random() < 0.025:
+                    self._vy = -10 - random.random() * 2
+                    self._on_ground = False
+                    self._jump_cooldown = 60
+
     def drawMonster(self):
         _dy = 20  # push sprite down so feet touch the floor
         is_big = self.height > 100
+
+        if not is_big:
+            self._apply_gravity_and_platforms()
 
         # ── Walking frames ────────────────────────────────────────────────────
         if self.stunned == 0:
