@@ -1434,7 +1434,7 @@ class mainGame:
         hurtTimer = 0
         background = Background(self.screen)
         self._bg_ref = background
-        for x in [700, 900, 1100, 1300, 1500]:
+        for x in [700, 1000, 1300, 1600]:
             mummy = Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
             self.mummys.append(mummy)
         self._fireball_tutorial_shown = False
@@ -3829,7 +3829,7 @@ class mainGame:
                     _b6 = Block(1470, 190, 100, 60,  "monster", self.screen)
                     _b8 = Block(1600, 100, 250, 300, "monster", self.screen)
                     self.blocks.extend([_b1, _b2, _b3, _b5, _b6, _b7, _b8])
-                    for _mx in [700, 900, 1100, 1300, 1500]:
+                    for _mx in [700, 1000, 1300, 1600]:
                         _m = Mummy(_mx, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                         _m.health = int(_m.health * _ng_hp_mult)
                         _m.damageAttack = int(_m.damageAttack * _ng_dmg_mult)
@@ -3993,16 +3993,14 @@ class mainGame:
             _lr = self.lion_roar_sound
             self.monkey_mummies.extend([
                 MonkeyMummy(1150, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(1600, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
-                MonkeyMummy(2000, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                MonkeyMummy(1700, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
             ])
             self.snakes.extend([
-                Snake(1300, 320, self.screen),
-                Snake(1800, 320, self.screen),
+                Snake(1400, 320, self.screen),
+                Snake(2000, 320, self.screen),
             ])
             self.lions.extend([
-                Lion(1450, 300, self.screen, _lr),
-                Lion(1900, 300, self.screen, _lr),
+                Lion(1550, 300, self.screen, _lr),
             ])
 
         if (self._monkey_level_active and not self._jungle_zone2_active
@@ -4026,20 +4024,16 @@ class mainGame:
                 _lr = self.lion_roar_sound
                 self.monkey_mummies.extend([
                     MonkeyMummy(1100, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1400, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
-                    MonkeyMummy(1700, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
+                    MonkeyMummy(1600, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
                     MonkeyMummy(2100, 220, 180, 180, self.mummy1, self.mummy2, self.screen, _ms),
                 ])
                 self.snakes.extend([
-                    Snake(1200, 320, self.screen),
-                    Snake(1600, 320, self.screen),
-                    Snake(2000, 320, self.screen),
-                    Snake(2300, 320, self.screen),
+                    Snake(1350, 320, self.screen),
+                    Snake(1900, 320, self.screen),
                 ])
                 self.lions.extend([
-                    Lion(1350, 300, self.screen, _lr),
-                    Lion(1750, 300, self.screen, _lr),
-                    Lion(2200, 300, self.screen, _lr),
+                    Lion(1450, 300, self.screen, _lr),
+                    Lion(2000, 300, self.screen, _lr),
                 ])
 
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
@@ -4059,11 +4053,10 @@ class mainGame:
 
             # Witch-heavy zone — no mummies
             witch1 = Witch(1100, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1350, 280, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(1550, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch4 = Witch(1750, 230, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch5 = Witch(1950, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2, witch3, witch4, witch5])
+            witch2 = Witch(1450, 280, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(1800, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch4 = Witch(2100, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            self.witches.extend([witch1, witch2, witch3, witch4])
             self.snakes.append(Snake(1500, 220, self.screen))
 
         # ── Zone 1.5 @ 11 000 – "Crumbling Ruins" gauntlet ───────────────────
@@ -4091,7 +4084,7 @@ class mainGame:
                                  coffin1, coffin2, coffin3, coffin4])
 
             # ── Five floor mummies – coffins act as natural patrol walls ──────
-            for x in [1030, 1230, 1450, 1660, 1860]:
+            for x in [1030, 1300, 1550, 1800]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
@@ -4116,19 +4109,16 @@ class mainGame:
             self.blocks.extend([block1, block2])
 
             greenBlob  = GreenBlob(1050, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob2 = GreenBlob(1250, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob3 = GreenBlob(1450, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob4 = GreenBlob(1700, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob5 = GreenBlob(2000, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob6 = GreenBlob(2300, 300, 100, 100, self.screen, self.blob_jump_sound)
-            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
-                                    greenBlob4, greenBlob5, greenBlob6])
+            greenBlob2 = GreenBlob(1400, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob3 = GreenBlob(1750, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob4 = GreenBlob(2100, 300, 100, 100, self.screen, self.blob_jump_sound)
+            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3, greenBlob4])
 
             x = 1950
-            for _ in range(10):
+            for _ in range(6):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 320
+                x += 450
 
         # ── Zone 3 @ 18 500 – first witch encounter (3 witches) ──────────────
         elif not self._monkey_level_active and backgroundScrollX > 18500 and not self.activeMonsters[2]:
@@ -4144,15 +4134,14 @@ class mainGame:
             self.blocks.extend([block1, block2, block3, block4])
 
             witch1 = Witch(1200, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1500, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(1700, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch4 = Witch(1950, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2, witch3, witch4])
+            witch2 = Witch(1600, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(2000, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            self.witches.extend([witch1, witch2, witch3])
             
             shaman = ShadowShaman(1400, 60, self.witch, self.witch2, self.screen)
             self.shadowShamans.append(shaman)
             
-            for x in [1030, 1350, 1800]:
+            for x in [1030, 1500, 1900]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
             self.triggerFire = True
@@ -4193,12 +4182,12 @@ class mainGame:
             self.blocks.extend([block1, block2])
 
             x = 1050
-            for _ in range(10):
+            for _ in range(6):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 200
+                x += 400
             self.greenBlobs.append(GreenBlob(1300, 300, 100, 100, self.screen, self.blob_jump_sound))
-            self.greenBlobs.append(GreenBlob(1700, 300, 100, 100, self.screen, self.blob_jump_sound))
+            self.greenBlobs.append(GreenBlob(1900, 300, 100, 100, self.screen, self.blob_jump_sound))
             self._secret_box_spawned = True
             secret_block = DestroyableBlock(1570, 140, 80, 80, self.screen, secret=True)
             self.destroyable_blocks.append(secret_block)
@@ -4231,15 +4220,14 @@ class mainGame:
             self.blocks.extend([block1, block2, block3])
 
             x = 1050
-            for _ in range(8):
+            for _ in range(5):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 240
+                x += 400
 
             witch1 = Witch(1500, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1750, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(2000,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2, witch3])
+            witch2 = Witch(1900, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            self.witches.extend([witch1, witch2])
 
         # ── Zone 5.5 @ 36 500 – snake encounter with platform gauntlet ────────
         elif not self._monkey_level_active and backgroundScrollX > 36500 and not getattr(self, '_zone55_active', False):
@@ -4272,18 +4260,15 @@ class mainGame:
             self.blocks.extend([block1, block2, block3, block4])
 
             greenBlob  = GreenBlob(1030, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob2 = GreenBlob(1220, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob3 = GreenBlob(1400, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob4 = GreenBlob(1600, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob5 = GreenBlob(1900, 300, 100, 100, self.screen, self.blob_jump_sound)
-            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3,
-                                    greenBlob4, greenBlob5])
+            greenBlob2 = GreenBlob(1450, 300, 100, 100, self.screen, self.blob_jump_sound)
+            greenBlob3 = GreenBlob(1900, 300, 100, 100, self.screen, self.blob_jump_sound)
+            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3])
 
             x = 1350
-            for _ in range(5):
+            for _ in range(4):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 380
+                x += 500
 
             mini1 = MiniFrankenBear(1500, 160, self.screen)
             mini2 = MiniFrankenBear(1900, 200, self.screen)
@@ -4307,7 +4292,7 @@ class mainGame:
             witch3 = Witch(1800, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
             witch4 = Witch(1100, 120, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3, witch4])
-            for x in [1050, 1350, 1650, 1950]:
+            for x in [1050, 1450, 1850]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
@@ -4332,7 +4317,7 @@ class mainGame:
             self.spikes.append(SpikeBlock(1600, 340, self.screen))
             self.spikes.append(SpikeBlock(1900, 340, self.screen))
 
-            for x in [1000, 1250, 1500, 1750]:
+            for x in [1000, 1400, 1800]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
             witch1 = Witch(1400, 180, self.witch, self.witch2, self.screen, self.fireball_sound)
@@ -4371,12 +4356,11 @@ class mainGame:
 
             self.mummys.extend([
                 Mummy(1050, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
-                Mummy(1400, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
-                Mummy(1750, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1550, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
             ])
             self.greenBlobs.extend([
-                GreenBlob(1250, 300, 100, 100, self.screen, self.blob_jump_sound),
-                GreenBlob(1550, 300, 100, 100, self.screen, self.blob_jump_sound),
+                GreenBlob(1300, 300, 100, 100, self.screen, self.blob_jump_sound),
+                GreenBlob(1800, 300, 100, 100, self.screen, self.blob_jump_sound),
             ])
             self.triggerFire = True
 
