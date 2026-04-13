@@ -1546,9 +1546,45 @@ class mainGame:
                                     elif item_type == 'lightning':
                                         bear.has_lightning = True
                                         shop_last_weapon_bought = 'lightning'
+                                        shop_open = False
+                                        if self.shop_close_sound: self.shop_close_sound.play()
+                                        bear.setArrayText(['\u26A1 Lightning bought! \u26A1',
+                                            'Press UP + A to strike!',
+                                            'Press "s" to continue'])
+                                        bear.setEndText(False)
+                                        self.lightning_charge = max(self.lightning_charge, 1.0)
+                                        if not bear.getLeftDirection():
+                                            _demo_lx = bear.getXPosition() + 140
+                                        else:
+                                            _demo_lx = bear.getXPosition() - 80
+                                        self.lightning_x = int(_demo_lx)
+                                        self.lightning_anim = 28
+                                        if self.explosion_sound:
+                                            self.explosion_sound.play()
                                     elif item_type == 'lightning2':
                                         bear.has_lightning_2 = True
                                         shop_last_weapon_bought = 'lightning2'
+                                        shop_open = False
+                                        if self.shop_close_sound: self.shop_close_sound.play()
+                                        bear.setArrayText(['\u26A1 Lightning 2 bought! \u26A1',
+                                            'Press UP + A for 3 bolts!',
+                                            'Press "s" to continue'])
+                                        bear.setEndText(False)
+                                        self.lightning_charge = max(self.lightning_charge, 1.0)
+                                        if not bear.getLeftDirection():
+                                            _demo_lx = bear.getXPosition() + 140
+                                        else:
+                                            _demo_lx = bear.getXPosition() - 80
+                                        _demo_dir = 1 if not bear.getLeftDirection() else -1
+                                        for _bi, _off in enumerate([0, 120 * _demo_dir, 240 * _demo_dir]):
+                                            self.lightning2_targets.append({
+                                                'x': int(_demo_lx + _off),
+                                                'anim': 0,
+                                                'delay': _bi * 12,
+                                                'dmg': 0
+                                            })
+                                        if self.explosion_sound:
+                                            self.explosion_sound.play()
                                     elif item_type == '50pct':
                                         bear.has_50pct_protection = True
                                     elif item_type == 'big_fireball':
@@ -1563,41 +1599,7 @@ class mainGame:
                         elif event.key == pygame.K_ESCAPE:
                             shop_open = False
                             if self.shop_close_sound: self.shop_close_sound.play()
-                            if shop_last_weapon_bought == 'lightning':
-                                bear.setArrayText(['\u26A1 Lightning bought! \u26A1',
-                                    'Press UP + A to strike!',
-                                    'Press "s" to continue'])
-                                bear.setEndText(False)
-                                self.lightning_charge = max(self.lightning_charge, 1.0)
-                                if not bear.getLeftDirection():
-                                    _demo_lx = bear.getXPosition() + 140
-                                else:
-                                    _demo_lx = bear.getXPosition() - 80
-                                self.lightning_x = int(_demo_lx)
-                                self.lightning_anim = 28
-                                if self.explosion_sound:
-                                    self.explosion_sound.play()
-                            elif shop_last_weapon_bought == 'lightning2':
-                                bear.setArrayText(['\u26A1 Lightning 2 bought! \u26A1',
-                                    'Press UP + A for 3 bolts!',
-                                    'Press "s" to continue'])
-                                bear.setEndText(False)
-                                self.lightning_charge = max(self.lightning_charge, 1.0)
-                                if not bear.getLeftDirection():
-                                    _demo_lx = bear.getXPosition() + 140
-                                else:
-                                    _demo_lx = bear.getXPosition() - 80
-                                _demo_dir = 1 if not bear.getLeftDirection() else -1
-                                for _bi, _off in enumerate([0, 120 * _demo_dir, 240 * _demo_dir]):
-                                    self.lightning2_targets.append({
-                                        'x': int(_demo_lx + _off),
-                                        'anim': 0,
-                                        'delay': _bi * 12,
-                                        'dmg': 0
-                                    })
-                                if self.explosion_sound:
-                                    self.explosion_sound.play()
-                            elif shop_last_weapon_bought == 'aimer':
+                            if shop_last_weapon_bought == 'aimer':
                                 bear.setArrayText(['Aimer bought!',
                                     'Hold UP/DOWN while pressing X',
                                     'to aim your fireballs!',
