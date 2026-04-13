@@ -6700,11 +6700,67 @@ class SpikeBlock():
 
 # ---------------------------------------------------------------------------
 class ShadowShaman():
+    @staticmethod
+    def _build_shaman_sprite(w, h, hurt=False):
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        cx, cy = w // 2, h // 2
+
+        robe_col = (140, 40, 40) if hurt else (30, 10, 50)
+        robe_hi  = (180, 60, 60) if hurt else (50, 20, 80)
+        pygame.draw.ellipse(surf, robe_col, (cx - 30, cy + 5, 60, 55))
+        pygame.draw.polygon(surf, robe_col, [
+            (cx - 35, cy + 10), (cx + 35, cy + 10),
+            (cx + 45, h - 5), (cx - 45, h - 5)])
+        for i in range(3):
+            _fy = cy + 25 + i * 14
+            pygame.draw.arc(surf, robe_hi,
+                            (cx - 38 + i * 3, _fy, 76 - i * 6, 10), 0, 3.14, 2)
+
+        hood_col = (20, 8, 40) if not hurt else (120, 30, 30)
+        pygame.draw.ellipse(surf, hood_col, (cx - 28, cy - 30, 56, 50))
+        pygame.draw.polygon(surf, hood_col, [
+            (cx, cy - 45), (cx - 18, cy - 25), (cx + 18, cy - 25)])
+
+        skull_col = (200, 200, 180) if not hurt else (255, 180, 180)
+        pygame.draw.ellipse(surf, skull_col, (cx - 18, cy - 22, 36, 32))
+
+        eye_glow = (0, 255, 100) if not hurt else (255, 80, 80)
+        eye_core = (180, 255, 200) if not hurt else (255, 200, 200)
+        for ex in [cx - 8, cx + 8]:
+            pygame.draw.circle(surf, eye_glow, (ex, cy - 10), 5)
+            pygame.draw.circle(surf, eye_core, (ex, cy - 10), 2)
+
+        pygame.draw.polygon(surf, (40, 40, 40), [
+            (cx - 3, cy - 2), (cx + 3, cy - 2), (cx, cy + 2)])
+        pygame.draw.line(surf, (60, 20, 20), (cx - 8, cy + 6), (cx + 8, cy + 6), 2)
+
+        staff_col = (80, 50, 20)
+        sx = cx + 30
+        pygame.draw.line(surf, staff_col, (sx, cy - 20), (sx, h - 5), 3)
+        pygame.draw.line(surf, (60, 35, 10), (sx - 1, cy - 20), (sx - 1, h - 5), 1)
+        orb_col = (100, 0, 200) if not hurt else (255, 60, 60)
+        orb_glow = (160, 80, 255) if not hurt else (255, 150, 150)
+        pygame.draw.circle(surf, orb_glow, (sx, cy - 25), 10)
+        pygame.draw.circle(surf, orb_col, (sx, cy - 25), 7)
+        pygame.draw.circle(surf, (255, 255, 255), (sx - 2, cy - 28), 2)
+
+        _mist = pygame.Surface((w, h), pygame.SRCALPHA)
+        for _ in range(6):
+            _mx = cx + random.randint(-35, 35)
+            _my = random.randint(h - 25, h - 5)
+            _mr = random.randint(8, 18)
+            _ma = random.randint(30, 70)
+            mc = (80, 40, 120, _ma) if not hurt else (200, 80, 80, _ma)
+            pygame.draw.circle(_mist, mc, (_mx, _my), _mr)
+        surf.blit(_mist, (0, 0))
+
+        return surf
+
     def __init__(self, x, y, witch1Image, witch2Image, screen):
-        self.witch = pygame.transform.scale(witch1Image, (120, 120))
-        self.witch2 = pygame.transform.scale(witch2Image, (120, 120))
-        self.hurtWitch = pygame.image.load("Game/Images/Bear/hurtWitch.png")
-        self.hurtWitch = pygame.transform.scale(self.hurtWitch, (120, 120))
+        _w, _h = 120, 120
+        self.witch  = ShadowShaman._build_shaman_sprite(_w, _h, hurt=False)
+        self.witch2 = ShadowShaman._build_shaman_sprite(_w, _h, hurt=False)
+        self.hurtWitch = ShadowShaman._build_shaman_sprite(_w, _h, hurt=True)
         self.directionX = -1 * random.randint(1, 2)
         self.x = x
         self.y = y
@@ -7407,7 +7463,7 @@ class Snake:
         self.width = 220
         self.height = 100
         self.y = self.FLOOR_Y - self.height
-        self.health = int(15 * 1.20)
+        self.health = int(15 * 1.80)
         self.max_health = self.health
         self.speed = random.choice([1, 1, 2, 2])
         self.stunned = 0
