@@ -7207,7 +7207,7 @@ class MiniFrankenBear():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
@@ -7217,9 +7217,6 @@ class MiniFrankenBear():
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.x + 40, self.y - 40,
                             alpha=alpha)
-        render_enemy_health_bar(self.screen,
-                                 self.x + 40, self.y - 40,
-                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()))
 
     def setStunned(self, value):
         self.stunned = value
@@ -7634,22 +7631,16 @@ class Snake:
 
     def displayDamageOnMonster(self, damage):
         """Display damage number above snake."""
-        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
-        
-        font = get_font('damage')
-        if font:
-            render_damage_text(self.screen, font, damage,
-                             self.getXPosition() + 40, self.getYPosition() - 40,
-                             alpha=alpha)
-            render_enemy_health_bar(self.screen,
-                                   self.getXPosition() + 40, self.getYPosition() - 40,
-                                   self.getHealth(), self.max_health)
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                         self.getXPosition() + 40, self.getYPosition() - 40,
+                         alpha=alpha)
 
     def _get_current_frame(self):
         use_frame2 = (self._anim_timer // 20) % 2 == 1
@@ -8124,22 +8115,16 @@ class MonkeyMummy:
     
     def displayDamageOnMonster(self, damage):
         """Display damage number above monkey mummy."""
-        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
-        
-        font = get_font('damage')
-        if font:
-            render_damage_text(self.screen, font, damage,
-                             self.getXPosition() + 40, self.getYPosition() - 40,
-                             alpha=alpha)
-            render_enemy_health_bar(self.screen,
-                                   self.getXPosition() + 40, self.getYPosition() - 40,
-                                   self.getHealth(), self.max_health)
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                         self.getXPosition() + 40, self.getYPosition() - 40,
+                         alpha=alpha)
     
     def _get_anim_frame(self):
         if self._land_timer > 0:
@@ -8408,22 +8393,16 @@ class Lion:
         return self.destructionAnimation
 
     def displayDamageOnMonster(self, damage):
-        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
-
-        font = get_font('damage')
-        if font:
-            render_damage_text(self.screen, font, damage,
-                             self.getXPosition() + 45, self.getYPosition() - 30,
-                             alpha=alpha)
-            render_enemy_health_bar(self.screen,
-                                   self.getXPosition() + 45, self.getYPosition() - 30,
-                                   self.getHealth(), self.max_health)
+        render_damage_text(self.screen, _FONT_DAMAGE, damage,
+                         self.getXPosition() + 45, self.getYPosition() - 30,
+                         alpha=alpha)
 
     def _get_anim_frame(self):
         if self.is_charging:
