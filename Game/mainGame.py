@@ -5148,8 +5148,7 @@ class Mummy():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        # compute a fade-in alpha from the stunned counter (fade over 15 frames for obvious effect)
-        stunned_val = getattr(self, 'stunned', getattr(self, 'isHurtTimer', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
@@ -5468,7 +5467,7 @@ class Witch():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        stunned_val = getattr(self, 'stunned', getattr(self, 'isHurtTimer', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
@@ -5776,7 +5775,7 @@ class GreenBlob():
         return self.destructionAnimation
 
     def displayDamageOnMonster(self, damage):
-        stunned_val = getattr(self, 'stunned', getattr(self, 'isHurtTimer', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
@@ -6850,7 +6849,7 @@ class ShadowShaman():
         return self.damageReceived
 
     def displayDamageOnMonster(self, damage):
-        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
@@ -7334,18 +7333,16 @@ class FrankenBear():
         return self.health
 
     def displayDamageOnMonster(self, damage):
-        # boss uses a larger font for bigger impact
-        stunned_val = getattr(self, 'isHurtTimer', getattr(self, 'stunned', 1))
+        stunned_val = getattr(self, 'stunned', 1)
         try:
             s = int(stunned_val)
         except Exception:
             s = 1
         fade_frames = 12
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
-        render_damage_text(self.screen, _FONT_BOSS_DAMAGE, damage, 450, 130,
+        render_damage_text(self.screen, _FONT_BOSS_DAMAGE, damage,
+                            int(self.x) + 120, int(self.y) - 30,
                             alpha=alpha)
-        render_enemy_health_bar(self.screen, 450, 130,
-                                 self.getHealth(), getattr(self, 'max_health', self.getHealth()), w=220, h=16)
 
     def _draw_boss_details(self):
         _bx, _by = int(self.x), int(self.y)
