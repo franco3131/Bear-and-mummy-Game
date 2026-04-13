@@ -3725,7 +3725,7 @@ class mainGame:
                 else:
                     self._jungle_unlocked = False
                     background._ng_blue = True
-                    _ng_hp_mult = 1.0 + 10.0 * self.newGamePlusLevel
+                    _ng_hp_mult = (1.0 + 10.0 * self.newGamePlusLevel) * 0.7
                     _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
                     _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
                     _ng_spd_mult = 1.0 + 0.2 * self.newGamePlusLevel
@@ -4352,7 +4352,7 @@ class mainGame:
                             setattr(_m, attr, _tinted)
 
         if self.newGamePlusLevel > 0:
-            _ng_hp_m = 1.0 + 10.0 * self.newGamePlusLevel
+            _ng_hp_m = (1.0 + 10.0 * self.newGamePlusLevel) * 0.7
             _ng_dmg_m = 1.0 + 3.0 * self.newGamePlusLevel
             _ng_exp_m = 1.0 + 1.0 * self.newGamePlusLevel
             _ng_spd_m = 1.0 + 0.2 * self.newGamePlusLevel
