@@ -535,7 +535,7 @@ class mainGame:
             self.enemy_spawn_sound = _make_snd(_smp)
             self.enemy_spawn_sound.set_volume(0.35)
 
-            pygame.mixer.set_num_channels(16)
+            pygame.mixer.set_num_channels(18)
 
             _LOOP_LEN = 4.0
             _LN = int(_RATE * _LOOP_LEN)
@@ -584,6 +584,21 @@ class mainGame:
                 _smp.append(max(-1.0, min(1.0, _s * _fade * (0.4 + 0.15*_slow))))
             self._layer_choir = _make_snd(_smp)
 
+            _smp = []
+            _bell_freqs = [523, 659, 784, 1047]
+            for _i in range(_LN):
+                _t = _i / _RATE
+                _beat = _math.fmod(_t, 1.0)
+                _bell_idx = int(_t) % len(_bell_freqs)
+                _f = _bell_freqs[_bell_idx]
+                _strike = _math.exp(-_beat * 6.0)
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.35 * _strike
+                      + _math.sin(2*_math.pi*_f*2.0*_t) * 0.15 * _strike
+                      + _math.sin(2*_math.pi*_f*3.0*_t) * 0.08 * _strike)
+                _fade = min(1.0, _i/(_RATE*0.3)) * min(1.0, (_LN-_i)/(_RATE*0.3))
+                _smp.append(max(-1.0, min(1.0, _s * _fade * 0.45)))
+            self._layer_bells = _make_snd(_smp)
+
             self._tension_layers = [
                 {'sound': self._layer_heartbeat, 'channel': pygame.mixer.Channel(12),
                  'threshold': 500,  'max_vol': 0.18, 'current_vol': 0.0, 'active': False},
@@ -593,6 +608,8 @@ class mainGame:
                  'threshold': 4000, 'max_vol': 0.16, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_choir,     'channel': pygame.mixer.Channel(15),
                  'threshold': 8000, 'max_vol': 0.13, 'current_vol': 0.0, 'active': False},
+                {'sound': self._layer_bells,     'channel': pygame.mixer.Channel(16),
+                 'threshold': 30000, 'max_vol': 0.12, 'current_vol': 0.0, 'active': False},
             ]
             self._tension_layers_ready = True
 
@@ -917,6 +934,24 @@ class mainGame:
         if self.water_sound and getattr(self, '_water_playing', False):
             self.water_sound.stop()
             self._water_playing = False
+
+        self.isFinalBossDestroyed = False
+        self._triggerNewGamePlus = False
+        self._triggerJungleTransition = False
+
+        if hasattr(self, '_bg_ref') and self._bg_ref:
+            self._bg_ref._jungle_mode = False
+            self._bg_ref._black_latched = False
+
+        self._current_music = None
+        if restart_dist < 34000:
+            self._switch_music("deep_crypt")
+        elif restart_dist < 45000:
+            self._switch_music("halfway")
+        elif restart_dist < 56500:
+            self._switch_music("final_push")
+        else:
+            self._switch_music("final_push")
 
         bear.setXPosition(150)
         bear.setYPosition(300)
@@ -3090,13 +3125,15 @@ class mainGame:
                             _exp_gain = int(_exp_gain * 1.75)
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         boss_to_remove.append(monster)
+                        self.newGamePlusLevel += 1
                         bear.setArrayText([
                             'FINAL BOSS DEFEATED!', '',
-                            'THE JUNGLE AWAITS...', '',
+                            'NEW GAME + ' + str(self.newGamePlusLevel) + ' UNLOCKED!',
+                            '', 'The world grows stronger...', '',
                             'Press "s" to continue'])
                         bear.setEndText(False)
                         self.isFinalBossDestroyed = True
-                        self._triggerJungleTransition = True
+                        self._triggerNewGamePlus = True
             for monster in boss_to_remove:
                 if monster in self.frankenbear:
                     self.frankenbear.remove(monster)
