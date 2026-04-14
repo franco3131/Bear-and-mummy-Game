@@ -535,6 +535,44 @@ class mainGame:
             self.enemy_spawn_sound = _make_snd(_smp)
             self.enemy_spawn_sound.set_volume(0.35)
 
+            _n = int(_RATE * 0.18)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 180 - 80 * (_t / 0.18)
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.4
+                      + _math.sin(2*_math.pi*_f*1.5*_t) * 0.2
+                      + _rnd.gauss(0, 0.08))
+                _env = min(_i/(_RATE*0.01), 1.0) * ((1.0 - _t/0.18) ** 1.5)
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.5)))
+            self.mummy_jump_sound = _make_snd(_smp)
+            self.mummy_jump_sound.set_volume(0.20)
+
+            _n = int(_RATE * 0.22)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 500 + 300 * _math.sin(2*_math.pi*8*_t)
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.35
+                      + _math.sin(2*_math.pi*_f*2*_t) * 0.15
+                      + _rnd.gauss(0, 0.15))
+                _env = min(_i/(_RATE*0.01), 1.0) * ((1.0 - _t/0.22) ** 1.2)
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.5)))
+            self.witch_cast_sound = _make_snd(_smp)
+            self.witch_cast_sound.set_volume(0.25)
+
+            _n = int(_RATE * 0.12)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 250 + 150 * _t / 0.12
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.3
+                      + _rnd.gauss(0, 0.2))
+                _env = min(_i/(_RATE*0.005), 1.0) * ((1.0 - _t/0.12) ** 2.0)
+                _smp.append(max(-1.0, min(1.0, _s * _env * 0.45)))
+            self.fireball_bounce_sound = _make_snd(_smp)
+            self.fireball_bounce_sound.set_volume(0.18)
+
             pygame.mixer.set_num_channels(18)
 
             _LOOP_LEN = 4.0
@@ -649,6 +687,9 @@ class mainGame:
             self.enemy_spawn_sound = None
             self.monkey_screech_sound = None
             self.lion_roar_sound = None
+            self.mummy_jump_sound = None
+            self.witch_cast_sound = None
+            self.fireball_bounce_sound = None
             self._tension_layers = []
             self._tension_layers_ready = False
         init_fonts()
@@ -1870,9 +1911,6 @@ class mainGame:
             bear.update_coyote(_on_ground)
             bear.tick_jump_buffer()
 
-            if bear.getLevel() >= 14 and not self._silver_applied:
-                self._apply_silver_tint()
-
             if bear.getEndText():
 
                 keys = pygame.key.get_pressed()
@@ -1884,9 +1922,8 @@ class mainGame:
                     _base_cd = 30
                     if getattr(bear, 'has_aimer', False):
                         _base_cd = 12
-                    _lvl_cd = bear.getLevel()
-                    if _lvl_cd >= 14:
-                        _base_cd = max(5, int(_base_cd * (0.70 ** (_lvl_cd - 13))))
+                    if bear.getLevel() >= 14:
+                        _base_cd = max(5, int(_base_cd * 0.95))
                     playerFireCooldown = _base_cd
                     _lvl = bear.getLevel()
                     _eff_lvl = min(_lvl, 9)
@@ -1912,9 +1949,7 @@ class mainGame:
                             if bear.getLeftDirection()
                             else bear.getXPosition() + 100)
                     fb_y = bear.getYPosition() + 30
-                    if _lvl >= 14:
-                        _fb_img = self.fireballSilver
-                    elif _lvl >= 12:
+                    if _lvl >= 12:
                         _fb_img = self.fireballGold
                     elif _lvl >= 10:
                         _fb_img = self.fireballRainbow
@@ -1933,9 +1968,7 @@ class mainGame:
                                  size=(78, 78) if getattr(bear, 'has_big_fireball', False) else (60, 60)))
                     if getattr(bear, 'has_big_fireball', False):
                         self.playerFires[-1].damageAttack = int(self.playerFires[-1].damageAttack * 1.2)
-                    if _lvl >= 10 and self.fire_sound_silver:
-                        self.fire_sound_silver.play()
-                    elif self.fire_sound:
+                    if self.fire_sound:
                         self.fire_sound.play()
                     attackingAnimationCounter = 1
 
@@ -2901,6 +2934,8 @@ class mainGame:
             # ---- Monster lifecycle ---------------------------------------
             for mummy in self.mummys:
                 mummy.setBlocks(self.blocks)
+                if not hasattr(mummy, '_jump_sound'):
+                    mummy._jump_sound = self.mummy_jump_sound
             
             for mm in self.monkey_mummies:
                 mm.setBlocks(self.blocks)
@@ -3187,6 +3222,8 @@ class mainGame:
                 self.triggerFire = False
                 for witch in self.witches:
                     witch.setThrowsFireBalls(True)
+                    if self.witch_cast_sound:
+                        self.witch_cast_sound.play()
                     for _ in range(1):
                         _fb = FireBall(witch.getXPosition(), witch.getYPosition(),
                                        random.randint(-7, 7), random.randint(1, 12),
@@ -3194,6 +3231,7 @@ class mainGame:
                         _fb.damageAttack = max(4, int(bear.getMaxHp() * 0.05))
                         if getattr(self, '_hardMode', False):
                             _fb.damageAttack = int(_fb.damageAttack * 1.8)
+                        _fb._bounce_sound = self.fireball_bounce_sound
                         self.fires.append(_fb)
 
             # ---- Player fireballs -----------------------------------------
@@ -3492,6 +3530,7 @@ class mainGame:
                                 _bfb.damageAttack = max(4, int(bear.getMaxHp() * 0.05))
                                 if getattr(self, '_hardMode', False):
                                     _bfb.damageAttack = int(_bfb.damageAttack * 1.8)
+                                _bfb._bounce_sound = self.fireball_bounce_sound
                                 self.bossFires.append(_bfb)
 
                     boss_fires_to_remove = []
@@ -3996,7 +4035,7 @@ class mainGame:
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
-            self._z1_mummy.setXPosition(500)  # Place boss in centre of arena, clear of both wall blocks
+            self._z1_mummy.setXPosition(1200)  # Start further right; walks toward player
             self.mummys.append(self._z1_mummy)
 
             self.door1 = self._z1_door
@@ -4090,10 +4129,10 @@ class mainGame:
             self.blocks.extend([plat1, plat2, plat3, plat4, plat5])
 
             # Witch-heavy zone — no mummies
-            witch1 = Witch(1100, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1450, 280, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(1800, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch4 = Witch(2100, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch1 = Witch(1500, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1850, 280, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(2200, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch4 = Witch(2550, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3, witch4])
             self.snakes.append(Snake(1500, 220, self.screen))
 
@@ -4131,8 +4170,8 @@ class mainGame:
             self.greenBlobs.append(GreenBlob(1720, 300, 100, 100, self.screen, self.blob_jump_sound))
 
             # ── Two witches: one low-and-close, one high-and-far ─────────────
-            witch1 = Witch(1520,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1950, 140, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch1 = Witch(1800,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(2200, 140, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2])
             self.triggerFire = True
 
@@ -4171,9 +4210,9 @@ class mainGame:
             block4 = Block(950,  340, 600, 60,  "greyRock", self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            witch1 = Witch(1200, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1600, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(2000, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch1 = Witch(1600, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(2000, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(2400, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3])
             
             shaman = ShadowShaman(1400, 60, self.witch, self.witch2, self.screen)
@@ -4265,8 +4304,8 @@ class mainGame:
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
                 x += 400
 
-            witch1 = Witch(1500, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1900, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch1 = Witch(1800, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(2300, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2])
 
         # ── Zone 5.5 @ 36 500 – snake encounter with platform gauntlet ────────
@@ -4327,10 +4366,10 @@ class mainGame:
             block3 = Block(1580, 280, 100, 60, "checkered", self.screen)
             self.blocks.extend([block1, block2, block3])
 
-            witch1 = Witch(1600, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1300, 250, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(1800, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch4 = Witch(1100, 120, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch1 = Witch(1900, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(1600, 250, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch3 = Witch(2200, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch4 = Witch(1400, 120, self.witch, self.witch2, self.screen, self.fireball_sound)
             self.witches.extend([witch1, witch2, witch3, witch4])
             for x in [1050, 1450, 1850]:
                 self.mummys.append(
@@ -5300,16 +5339,22 @@ class Mummy():
                     self._vy = 0
                     self._on_ground = False
                     self._jump_cooldown = 60
+                    _js = getattr(self, '_jump_sound', None)
+                    if _js: _js.play()
                 elif random.random() < 0.008:
                     self._vy = -8 - random.random() * 2
                     self._on_ground = False
                     self._jump_cooldown = 90
+                    _js = getattr(self, '_jump_sound', None)
+                    if _js: _js.play()
             else:
                 bear_above = self._bear_y < self.y - 60
                 if bear_above and self._aggro and random.random() < 0.025:
                     self._vy = -10 - random.random() * 2
                     self._on_ground = False
                     self._jump_cooldown = 60
+                    _js = getattr(self, '_jump_sound', None)
+                    if _js: _js.play()
 
     def drawMonster(self):
         _dy = 20  # push sprite down so feet touch the floor
@@ -5723,6 +5768,8 @@ class FireBall():
         else:
             self.vel_y *= -1
             self.y -= self.vel_y
+            _bs = getattr(self, '_bounce_sound', None)
+            if _bs: _bs.play()
         self.screen.blit(self.fire, (self.x, self.y))
 
     def drawFireBallFrozen(self):
