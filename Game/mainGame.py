@@ -789,6 +789,8 @@ class mainGame:
         self.lightning2_targets = []
         self.lightning2_cooldown = 0
         self.monkey_mummies = []
+        self.bombs = []
+        self._bomb_spawn_timer = 0
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -957,7 +959,7 @@ class mainGame:
         self.coins = []; self.blocks = []; self.destroyable_blocks = []
         self.beamProjectiles = []; self.waterfalls = []
         self.spikes = []; self.door = []; self.keys = []
-        self.frankenbear = []
+        self.frankenbear = []; self.bombs = []; self._bomb_spawn_timer = 0
 
         for i, (threshold, flag_idx) in enumerate(self._ZONE_THRESHOLDS):
             if threshold >= zone_start:
@@ -2180,6 +2182,8 @@ class mainGame:
                                     db.setblockXPosition(db.getBlockXPosition() - STEP)
                                 for _bp in self.beamProjectiles:
                                     _bp["x"] -= STEP
+                                for _b in self.bombs:
+                                    _b["x"] -= STEP
                                 for block in self.blocks:
                                     if not block.getIsLeftBoundary():
                                         block.setblockXPosition(block.getBlockXPosition() - STEP)
@@ -2222,6 +2226,8 @@ class mainGame:
                                     db.setblockXPosition(db.getBlockXPosition() - STEP)
                                 for _bp in self.beamProjectiles:
                                     _bp["x"] -= STEP
+                                for _b in self.bombs:
+                                    _b["x"] -= STEP
                                 for block in self.blocks:
                                     if not block.getIsLeftBoundary():
                                         block.setblockXPosition(block.getBlockXPosition() - STEP)
@@ -2314,6 +2320,8 @@ class mainGame:
                                 db.setblockXPosition(db.getBlockXPosition() + STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] += STEP
+                            for _b in self.bombs:
+                                _b["x"] += STEP
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
@@ -2346,6 +2354,8 @@ class mainGame:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] += STEP
+                            for _b in self.bombs:
+                                _b["x"] += STEP
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
@@ -2558,6 +2568,8 @@ class mainGame:
                                 db.setblockXPosition(db.getBlockXPosition() - STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] -= STEP
+                            for _b in self.bombs:
+                                _b["x"] -= STEP
                             for block in self.blocks:
                                 if not block.getIsLeftBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -2664,6 +2676,8 @@ class mainGame:
                                 db.setblockXPosition(db.getBlockXPosition() - STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] -= STEP
+                            for _b in self.bombs:
+                                _b["x"] -= STEP
                             for block in self.blocks:
                                 block.setblockXPosition(block.getBlockXPosition() - STEP)
                             backgroundScrollX = bear.getXPosition()
@@ -2702,6 +2716,8 @@ class mainGame:
                                 db.setblockXPosition(db.getBlockXPosition() + STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] += STEP
+                            for _b in self.bombs:
+                                _b["x"] += STEP
                             for block in self.blocks:
                                 if not block.getIsRightBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -2798,6 +2814,8 @@ class mainGame:
                                 obj.setXPosition(obj.getXPosition() + STEP)
                             for _bp in self.beamProjectiles:
                                 _bp["x"] += STEP
+                            for _b in self.bombs:
+                                _b["x"] += STEP
                             for block in self.blocks:
                                 block.setblockXPosition(block.getBlockXPosition() + STEP)
                             backgroundScrollX = bear.getXPosition() - STEP
@@ -3451,6 +3469,113 @@ class mainGame:
                 if _vb in self.venom_balls:
                     self.venom_balls.remove(_vb)
 
+            if not _popup_active and totalDistance < 30000 and totalDistance > 500:
+                self._bomb_spawn_timer += 1
+                _bomb_interval = max(120, 300 - totalDistance // 200)
+                if self._bomb_spawn_timer >= _bomb_interval:
+                    self._bomb_spawn_timer = 0
+                    import random as _br
+                    _bx = _br.randint(50, 800)
+                    self.bombs.append({
+                        'x': float(_bx), 'y': -40.0, 'vy': 3.0,
+                        'landed': False, 'timer': 180, 'exploding': False,
+                        'explode_anim': 0
+                    })
+
+            _bombs_remove = []
+            _bear_cx = bear.getXPosition() + 50
+            _bear_cy = bear.getYPosition() + 50
+            for _bomb in self.bombs:
+                if _popup_active:
+                    _bx_i = int(_bomb['x'])
+                    _by_i = int(_bomb['y'])
+                    if _bomb['exploding']:
+                        _ea = _bomb['explode_anim']
+                        _er = min(80, _ea * 4)
+                        _alpha = max(0, 255 - _ea * 8)
+                        _es = pygame.Surface((_er*2, _er*2), pygame.SRCALPHA)
+                        pygame.draw.circle(_es, (255, 120, 0, _alpha), (_er, _er), _er)
+                        pygame.draw.circle(_es, (255, 220, 50, min(255, _alpha+30)), (_er, _er), max(1, _er//2))
+                        self.screen.blit(_es, (_bx_i - _er, _by_i - _er))
+                    elif _bomb['landed']:
+                        pygame.draw.circle(self.screen, (40, 40, 40), (_bx_i, _by_i), 18)
+                        pygame.draw.circle(self.screen, (80, 80, 80), (_bx_i, _by_i), 14)
+                        pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - 22), 5)
+                        _secs = max(0, (_bomb['timer'] + 59) // 60)
+                        _ct = _FONT_HUD.render(str(_secs), True, (255, 255, 255))
+                        self.screen.blit(_ct, (_bx_i - _ct.get_width()//2, _by_i - _ct.get_height()//2))
+                    else:
+                        pygame.draw.circle(self.screen, (40, 40, 40), (_bx_i, _by_i), 16)
+                        pygame.draw.circle(self.screen, (80, 80, 80), (_bx_i, _by_i), 12)
+                        pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - 18), 4)
+                    continue
+
+                if _bomb['exploding']:
+                    _bomb['explode_anim'] += 1
+                    _ea = _bomb['explode_anim']
+                    _er = min(80, _ea * 4)
+                    _alpha = max(0, 255 - _ea * 8)
+                    _es = pygame.Surface((_er*2, _er*2), pygame.SRCALPHA)
+                    pygame.draw.circle(_es, (255, 120, 0, _alpha), (_er, _er), _er)
+                    pygame.draw.circle(_es, (255, 220, 50, min(255, _alpha+30)), (_er, _er), max(1, _er//2))
+                    self.screen.blit(_es, (int(_bomb['x']) - _er, int(_bomb['y']) - _er))
+                    if _ea >= 30:
+                        _bombs_remove.append(_bomb)
+                elif _bomb['landed']:
+                    _bomb['timer'] -= 1
+                    _bx_i = int(_bomb['x'])
+                    _by_i = int(_bomb['y'])
+                    _pulse = abs(math.sin(pygame.time.get_ticks() * 0.008)) * 0.3
+                    _secs = max(0, (_bomb['timer'] + 59) // 60)
+                    _flash = (255, 60, 60) if _bomb['timer'] < 60 and _bomb['timer'] % 10 < 5 else (40, 40, 40)
+                    pygame.draw.circle(self.screen, _flash, (_bx_i, _by_i), int(18 + _pulse * 4))
+                    pygame.draw.circle(self.screen, (80, 80, 80), (_bx_i, _by_i), 14)
+                    pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - 22), 5)
+                    _fuse_glow = int(abs(math.sin(pygame.time.get_ticks() * 0.015)) * 80)
+                    pygame.draw.circle(self.screen, (255, 200 + min(55, _fuse_glow), 50), (_bx_i, _by_i - 24), 3)
+                    _ct = _FONT_HUD.render(str(_secs), True, (255, 255, 255))
+                    _ct_outline = _FONT_HUD.render(str(_secs), True, (0, 0, 0))
+                    for _ox, _oy in [(-1,0),(1,0),(0,-1),(0,1)]:
+                        self.screen.blit(_ct_outline, (_bx_i - _ct.get_width()//2 + _ox, _by_i - _ct.get_height()//2 + _oy))
+                    self.screen.blit(_ct, (_bx_i - _ct.get_width()//2, _by_i - _ct.get_height()//2))
+
+                    if _bomb['timer'] <= 0:
+                        _bomb['exploding'] = True
+                        _bomb['explode_anim'] = 0
+                        if getattr(self, 'explosion_sound', None):
+                            self.explosion_sound.play()
+                        _dx_b = _bear_cx - _bomb['x']
+                        _dy_b = _bear_cy - _bomb['y']
+                        _dist_b = math.sqrt(_dx_b*_dx_b + _dy_b*_dy_b)
+                        if _dist_b < 120 and hurtTimer > 60:
+                            _bomb_dmg = max(8, int(bear.getMaxHp() * 0.15))
+                            bear.applyDamage(_bomb_dmg)
+                            bear.displayDamageOnBear(_bomb_dmg, "bomb")
+                            hurtTimer = 0
+                            if getattr(self, 'bear_hurt_sound', None):
+                                self.bear_hurt_sound.play()
+                else:
+                    _bomb['y'] += _bomb['vy']
+                    _bomb['vy'] += 0.15
+                    if _bomb['y'] >= 385:
+                        _bomb['y'] = 385.0
+                        _bomb['landed'] = True
+                        _bomb['vy'] = 0.0
+                    _bx_i = int(_bomb['x'])
+                    _by_i = int(_bomb['y'])
+                    pygame.draw.circle(self.screen, (40, 40, 40), (_bx_i, _by_i), 16)
+                    pygame.draw.circle(self.screen, (80, 80, 80), (_bx_i, _by_i), 12)
+                    pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - 18), 4)
+                    _trail_alpha = max(0, 180 - int(_bomb['vy'] * 15))
+                    if _trail_alpha > 30:
+                        _ts = pygame.Surface((8, 16), pygame.SRCALPHA)
+                        _ts.fill((255, 160, 50, _trail_alpha))
+                        self.screen.blit(_ts, (_bx_i - 4, _by_i - 30))
+
+            for _bomb in _bombs_remove:
+                if _bomb in self.bombs:
+                    self.bombs.remove(_bomb)
+
             if (totalDistance > 30000 and not getattr(self, '_checkpoint_saved', False)
                     and bear.getEndText() and not self.escape
                     and not getattr(self, '_monkey_level_active', False)):
@@ -3521,6 +3646,7 @@ class mainGame:
                 self.blocks = []
                 self.greenBlobs = []
                 self.fires = []
+                self.bombs = []
                 self.activeMonsters[1] = True
 
             if totalDistance > 60000:
