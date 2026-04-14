@@ -573,7 +573,7 @@ class mainGame:
             self.fireball_bounce_sound = _make_snd(_smp)
             self.fireball_bounce_sound.set_volume(0.18)
 
-            pygame.mixer.set_num_channels(18)
+            pygame.mixer.set_num_channels(19)
 
             _LOOP_LEN = 4.0
             _LN = int(_RATE * _LOOP_LEN)
@@ -637,6 +637,20 @@ class mainGame:
                 _smp.append(max(-1.0, min(1.0, _s * _fade * 0.45)))
             self._layer_bells = _make_snd(_smp)
 
+            _smp = []
+            for _i in range(_LN):
+                _t = _i / _RATE
+                _vib = 5.5 * _math.sin(2*_math.pi*5.8*_t)
+                _bow = min(1.0, _i/(_RATE*0.08)) * (0.7 + 0.3*_math.sin(2*_math.pi*0.4*_t))
+                _s = (_math.sin(2*_math.pi*(440+_vib)*_t) * 0.30
+                      + _math.sin(2*_math.pi*(880+_vib*2)*_t) * 0.18
+                      + _math.sin(2*_math.pi*(1320+_vib*3)*_t) * 0.10
+                      + _math.sin(2*_math.pi*(1760+_vib*4)*_t) * 0.05
+                      + _rnd.gauss(0, 0.015))
+                _fade = min(1.0, _i/(_RATE*0.4)) * min(1.0, (_LN-_i)/(_RATE*0.4))
+                _smp.append(max(-1.0, min(1.0, _s * _fade * _bow * 0.55)))
+            self._layer_violin = _make_snd(_smp)
+
             self._tension_layers = [
                 {'sound': self._layer_heartbeat, 'channel': pygame.mixer.Channel(12),
                  'threshold': 500,  'max_vol': 0.18, 'current_vol': 0.0, 'active': False},
@@ -646,6 +660,8 @@ class mainGame:
                  'threshold': 4000, 'max_vol': 0.16, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_choir,     'channel': pygame.mixer.Channel(15),
                  'threshold': 8000, 'max_vol': 0.13, 'current_vol': 0.0, 'active': False},
+                {'sound': self._layer_violin,    'channel': pygame.mixer.Channel(17),
+                 'threshold': 36000, 'max_vol': 0.15, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_bells,     'channel': pygame.mixer.Channel(16),
                  'threshold': 30000, 'max_vol': 0.12, 'current_vol': 0.0, 'active': False},
             ]
@@ -1119,8 +1135,8 @@ class mainGame:
                 (14, 4), (4, 8), (4, 16), (14, 28), (24, 16), (24, 8)])
             self.screen.blit(_shield, (bx + 36, by - 18))
 
-    _WALK_BOB = (-2, 3, 5, 3)
-    _WALK_LEAN = (0.0, 1.5, 0.0, -1.5)
+    _WALK_BOB = (2, -1, 2, -1)
+    _WALK_LEAN = (1.2, 0.0, -1.2, 0.0)
 
     def _precompute_walk_lean(self):
         lean_angles = self._WALK_LEAN
@@ -2112,9 +2128,11 @@ class mainGame:
                     # and ground-start sections below).
                     # Uses STEP look-ahead: would moving right by STEP put the
                     # bear's right edge at or past the block's left edge?
-                    def _tall_wall_ahead(bx):
+                    def _tall_wall_ahead(bx, ignore=None):
                         bear_right = bx + 100
                         for blk in self.blocks:
+                            if blk is ignore:
+                                continue
                             if ((bear_right + STEP) >= blk.getBlockXPosition()
                                     and bear_right < blk.getBlockXPosition() + blk.getWidth()
                                     and (blk.getBlockYPosition() + blk.getHeight()) >= 380):
@@ -2124,11 +2142,15 @@ class mainGame:
                     _jump_right_moved = False
                     if airborne:
                         totalDistance += STEP
+                        _src = getattr(bear, 'sourceBlock', None)
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            if _src:
+                                _src.setIsLeftBoundary(False)
+                                _src.setIsRightBoundary(False)
                             if (not any(b.getIsLeftBoundary() for b in self.blocks)
-                                    and not _tall_wall_ahead(bear.getXPosition())):
+                                    and not _tall_wall_ahead(bear.getXPosition(), _src)):
                                 bear.setXPosition(bear.getXPosition() + STEP)
                                 backgroundScrollX = bear.getXPosition() - STEP
                                 background.setXPosition(backgroundScrollX)
@@ -2138,8 +2160,11 @@ class mainGame:
                         else:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            if _src:
+                                _src.setIsLeftBoundary(False)
+                                _src.setIsRightBoundary(False)
                             if (any(b.getIsLeftBoundary() for b in self.blocks)
-                                    or _tall_wall_ahead(bear.getXPosition())):
+                                    or _tall_wall_ahead(bear.getXPosition(), _src)):
                                 totalDistance -= STEP
                             else:
                                 _jump_right_moved = True
@@ -2261,9 +2286,13 @@ class mainGame:
                     _jump_left_moved = False
                     if airborne:
                         totalDistance -= STEP
+                        _src = getattr(bear, 'sourceBlock', None)
                         if bear.getXPosition() > self.leftBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            if _src:
+                                _src.setIsLeftBoundary(False)
+                                _src.setIsRightBoundary(False)
                             if not any(b.getIsRightBoundary() for b in self.blocks):
                                 bear.setXPosition(bear.getXPosition() - STEP)
                                 backgroundScrollX = bear.getXPosition() + STEP
@@ -2601,15 +2630,16 @@ class mainGame:
                     elif bear.getJumpStatus() or bear.getLeftJumpStatus():
                         if bear.getXPosition() < self.rightBoundary:
                             jumpTimer = 0
-                            # Check for wall: does bear's right edge overlap a block's left edge?
                             bear_right = bear.getXPosition() + 100
                             _wall_right = False
+                            _src = getattr(bear, 'sourceBlock', None)
                             for block in self.blocks:
+                                if block is _src:
+                                    continue
                                 blx = block.getBlockXPosition()
                                 brx = blx + block.getWidth()
                                 bty = block.getBlockYPosition()
                                 bby = bty + block.getHeight()
-                                # Left boundary: bear's right edge in block's horizontal span
                                 if (bear_right > blx and bear.getXPosition() < brx
                                         and bear.getYPosition() < bby and bear.getYPosition() + 100 > bty):
                                     _wall_right = True
@@ -2739,15 +2769,16 @@ class mainGame:
                     elif bear.getJumpStatus() or bear.getLeftJumpStatus():
                         jumpTimer = 0
                         if bear.getXPosition() > self.leftBoundary:
-                            # Check for wall: does bear's left edge overlap a block's right edge?
                             bear_left = bear.getXPosition()
                             _wall_left = False
+                            _src = getattr(bear, 'sourceBlock', None)
                             for block in self.blocks:
+                                if block is _src:
+                                    continue
                                 blx = block.getBlockXPosition()
                                 brx = blx + block.getWidth()
                                 bty = block.getBlockYPosition()
                                 bby = bty + block.getHeight()
-                                # Right boundary: bear's left edge in block's horizontal span
                                 if (bear_left < brx and bear_left + 100 > blx
                                         and bear.getYPosition() < bby and bear.getYPosition() + 100 > bty):
                                     _wall_left = True
@@ -2866,6 +2897,13 @@ class mainGame:
                         else:
                             monster.setHurtTimer(0)
 
+            _airborne = bear.getJumpStatus() or bear.getLeftJumpStatus()
+            if _airborne:
+                if bear.getJumpStatus():
+                    bear.jump(self.blocks)
+                elif bear.getLeftJumpStatus():
+                    bear.leftJump(self.blocks)
+
             # ---- Attack animation (always runs, fixes 1-frame flicker gap) ------
             if 1 <= attackingAnimationCounter < 12:
                 attackingAnimationCounter += 1
@@ -2877,20 +2915,21 @@ class mainGame:
                                      (bear.getXPosition(), bear.getYPosition()))
             elif attackingAnimationCounter >= 12:
                 attackingAnimationCounter = 0
-                # Draw idle sprite on the reset frame so the bear never vanishes
-                self._draw_idle_bear(bear)
+                if not _airborne:
+                    self._draw_idle_bear(bear)
             elif 1 <= attackingLeftAnimtationCounter < 12:
                 attackingLeftAnimtationCounter += 1
                 self.screen.blit(self.bearAttackingLeft,
                                  (bear.getXPosition(), bear.getYPosition()))
             elif attackingLeftAnimtationCounter >= 12:
                 attackingLeftAnimtationCounter = 0
-                # Draw idle sprite on the reset frame so the bear never vanishes
-                self._draw_idle_bear(bear)
-            elif bear.getJumpStatus():
-                bear.jump(self.blocks)
-            elif bear.getLeftJumpStatus():
-                bear.leftJump(self.blocks)
+                if not _airborne:
+                    self._draw_idle_bear(bear)
+            elif not _airborne:
+                if bear.getJumpStatus():
+                    bear.jump(self.blocks)
+                elif bear.getLeftJumpStatus():
+                    bear.leftJump(self.blocks)
 
 
             self._draw_grace_indicator(bear, hurtTimer)

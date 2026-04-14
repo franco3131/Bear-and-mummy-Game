@@ -170,3 +170,7 @@ python main.py
 - **Lightning key changed S→Q** — lightning strike key remapped to Q; all HUD labels, shop descriptions, popup text, and intro message updated
 - **Controls hint bar** — semi-transparent key guide at bottom of screen shows all controls; fades out as you progress through the level
 - **Intro popup updated** — shows all key bindings (Z:Attack, X:Fireball, ENTER:Shop, C:Beam, Q:Lightning)
+- **Violin tension layer** — synthesized violin (A4 fundamental with 4 harmonics, vibrato, bow pressure modulation) fades in at 40% game progress (distance 36000); plays on channel 17 throughout remaining gameplay
+- **Jump+attack air-float fix** — bear now falls properly during mid-air attacks; jump physics runs before attack animation rendering instead of being skipped by the elif chain
+- **Platform jump movement fix** — jumping from a platform no longer blocks horizontal movement; sourceBlock is excluded from wall collision checks in all airborne movement paths (Z+RIGHT, Z+LEFT, RIGHT, LEFT)
+- **Walk animation polished** — symmetric bob (2/-1/2/-1) and lean (1.2°/0°/-1.2°/0°) for consistent natural stride; stride frames bob down, passing frames bob up
