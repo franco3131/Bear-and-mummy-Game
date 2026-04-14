@@ -176,6 +176,11 @@ python main.py
 - **Walk animation polished** — symmetric bob (2/-1/2/-1) and lean (1.2°/0°/-1.2°/0°) for consistent natural stride; stride frames bob down, passing frames bob up
 - **Sky bombs** — bombs drop every 30 seconds in first half (distance < 30000); random countdown (1-3 seconds); normal bombs deal 30% max HP; 20% chance of big bomb (purple, larger, skull icon) dealing 40% HP with bigger blast radius; scroll with world; cleared at boss zone
 - **ShadowShaman power orbs** — every 4 seconds when in range, ShadowShaman fires 4-7 green energy orbs in a radial burst; orbs wobble on sinusoidal paths with trailing particles; deal 8% max HP on contact
-- **Witch beam attack** — 15% chance per fireball throw, witch fires a purple diagonal beam from arm to floor; beam extends with progress animation and floor sparks; deals 10% max HP; single-hit per beam
+- **Witch beam attack** — 15% chance per fireball throw (only one beam at a time), witch fires a purple diagonal beam from arm to floor; beam extends with progress animation and floor sparks; deals 10% max HP; single-hit per beam; has its own descending-frequency laser sound effect
 - **Improved witch AI** — witches now use 5 states: approach, strafe, dive (fast rush), retreat, orbit; faster speeds; shorter state durations; more frequent direction changes for dynamic movement
-- **Heart drops** — when bear HP < 30%, killed monsters have 30% chance to drop a heart pickup; heart falls to the floor with gravity; collecting it grants +10 HP and +1 coin; hearts last 7 seconds before vanishing
+- **Heart drops** — when bear HP < 30%: 50% drop chance; when HP < 15%: 75% drop chance; heart falls to floor with gravity; collecting grants +10 HP and +1 coin; hearts last 7 seconds; critical HP popup warns player about this mechanic
+- **Enemy defense** — every monster spawns with a random 1-10% defense stat that reduces incoming damage; applied to all melee, fireball, and beam attacks
+- **Boss health bar lowered** — FrankenBear's health bar renders near the bottom of the boss sprite instead of above it
+- **Seamless game start** — selecting a mode fades smoothly to black (no white flash, no text labels); game fades in from black with music volume ramping up over 1 second
+- **ShadowShaman 4 attack patterns** — radial burst, spiral, cross, and aimed fan; 6-10 orbs per volley with varied colors (green, lime, teal, chartreuse); per-shaman cooldown so multiple shamans fire independently
+- **Bombs drop near player** — bombs now land within 50-250px of the bear's position instead of randomly across the screen

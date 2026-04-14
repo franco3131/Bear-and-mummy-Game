@@ -70,6 +70,12 @@ def render_hud_text_outlined(screen, font, text, x, y, color, outline=(0, 0, 0))
     screen.blit(font.render(text, True, color), (x, y))
 
 
+def _apply_defense(monster, dmg):
+    """Reduce damage by monster's defense percentage (1-10%)."""
+    defense = getattr(monster, '_defense', 0.0)
+    return max(1, int(dmg * (1.0 - defense)))
+
+
 def render_enemy_health_bar(screen, x, y, health, max_health, w=120, h=12):
     """Percentage-based health bar: health/max_health = fill%.
     Example: 50/100 hp → bar is exactly 50% filled."""
@@ -561,6 +567,20 @@ class mainGame:
             self.witch_cast_sound = _make_snd(_smp)
             self.witch_cast_sound.set_volume(0.25)
 
+            _n = int(_RATE * 0.45)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 800 - 600 * (_t / 0.45)
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.3
+                      + _math.sin(2*_math.pi*_f*1.5*_t) * 0.15
+                      + _math.sin(2*_math.pi*_f*0.5*_t) * 0.1)
+                _env = min(_i/(_RATE*0.02), 1.0) * max(0.0, 1.0 - _t/0.45) ** 0.8
+                _crackle = _rnd.gauss(0, 0.08) * (1.0 - _t/0.45)
+                _smp.append(max(-1.0, min(1.0, (_s + _crackle) * _env * 0.6)))
+            self.witch_beam_sound = _make_snd(_smp)
+            self.witch_beam_sound.set_volume(0.30)
+
             _n = int(_RATE * 0.12)
             _smp = []
             for _i in range(_n):
@@ -705,6 +725,7 @@ class mainGame:
             self.lion_roar_sound = None
             self.mummy_jump_sound = None
             self.witch_cast_sound = None
+            self.witch_beam_sound = None
             self.fireball_bounce_sound = None
             self._tension_layers = []
             self._tension_layers_ready = False
@@ -879,6 +900,7 @@ class mainGame:
         self._100_coin_milestone = False
         self._last_coin_milestone = 0
         self._first_coin_popup_shown = False
+        self._critical_hp_popup_shown = False
         self._beam_ever_shown = False
         self._post_boss_platform_popup_shown = False
         self._boss_door_passed = False
@@ -1280,7 +1302,7 @@ class mainGame:
                             _dmg = bear.getDamageAttack()
                             enemy.setDamageReceived(_dmg)
                             enemy.setStunned(1)
-                            enemy.setHealth(enemy.getHealth() - _dmg)
+                            enemy.setHealth(enemy.getHealth() - _apply_defense(enemy, _dmg))
 
             for enemy in [monkey, lion]:
                 if hasattr(enemy, 'getHealth') and enemy.getHealth() > 0:
@@ -1443,14 +1465,10 @@ class mainGame:
 
         self._hard_mode_selected = (selected == 1)
 
-        mode_label = "HARD MODE" if selected == 1 else "NORMAL MODE"
-        mode_color = (255, 60, 60) if selected == 1 else (100, 220, 130)
-        label_font = pygame.font.SysFont(None, 72, bold=True)
-        sub_font = pygame.font.SysFont(None, 28)
-
         _last_frame = self.screen.copy()
+        _transition_len = 90
 
-        for frame in range(120):
+        for frame in range(_transition_len):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -1458,56 +1476,29 @@ class mainGame:
 
             self.screen.blit(_last_frame, (0, 0))
 
-            if frame < 20:
-                flash_alpha = int(255 * (1.0 - frame / 20.0))
-                flash = pygame.Surface((900, 700), pygame.SRCALPHA)
-                flash.fill((255, 255, 255, flash_alpha))
-                self.screen.blit(flash, (0, 0))
+            fade_t = frame / float(_transition_len)
+            fade_alpha = int(255 * min(1.0, fade_t * 1.5))
+            dark = pygame.Surface((900, 700), pygame.SRCALPHA)
+            dark.fill((0, 0, 0, fade_alpha))
+            self.screen.blit(dark, (0, 0))
 
-            if frame >= 10:
-                t = min(1.0, (frame - 10) / 30.0)
-                ease = t * t * (3 - 2 * t)
-                label_surf = label_font.render(mode_label, True, mode_color)
-                lx = 450 - label_surf.get_width() // 2
-                ly = int(350 - 40 * ease)
-                label_alpha = int(255 * min(1.0, (frame - 10) / 15.0))
-                label_surf.set_alpha(label_alpha)
-                outline = label_font.render(mode_label, True, (0, 0, 0))
-                outline.set_alpha(label_alpha)
-                for dx, dy in [(-2,0),(2,0),(0,-2),(0,2),(-2,-2),(2,2)]:
-                    self.screen.blit(outline, (lx + dx, ly + dy))
-                self.screen.blit(label_surf, (lx, ly))
-
-                if frame >= 25:
-                    sub_text = "Prepare yourself..." if selected == 1 else "Let the adventure begin..."
-                    sub_surf = sub_font.render(sub_text, True, (200, 195, 210))
-                    sub_alpha = int(255 * min(1.0, (frame - 25) / 15.0))
-                    sub_surf.set_alpha(sub_alpha)
-                    self.screen.blit(sub_surf, (450 - sub_surf.get_width() // 2, ly + 60))
-
-            if frame >= 70:
-                fade_t = (frame - 70) / 50.0
-                fade_alpha = int(255 * min(1.0, fade_t))
-                dark = pygame.Surface((900, 700), pygame.SRCALPHA)
-                dark.fill((0, 0, 0, fade_alpha))
-                self.screen.blit(dark, (0, 0))
-
-            if frame >= 60:
-                vol = max(0.0, 1.0 - (frame - 60) / 50.0)
-                try:
-                    pygame.mixer.music.set_volume(0.35 * vol)
-                except Exception:
-                    pass
+            menu_vol = max(0.0, 1.0 - fade_t)
+            try:
+                pygame.mixer.music.set_volume(0.35 * menu_vol)
+            except Exception:
+                pass
 
             pygame.display.update()
             clock.tick(60)
 
         try:
             pygame.mixer.music.load("Game/Sounds/spooky_peaceful.wav")
-            pygame.mixer.music.set_volume(0.35)
+            pygame.mixer.music.set_volume(0.0)
             pygame.mixer.music.play(-1)
         except Exception:
             pass
+
+        self._game_fade_in = 60
 
         return selected
 
@@ -2054,7 +2045,7 @@ class mainGame:
                             if dist < shock_radius:
                                 enemy.setDamageReceived(shock_damage)
                                 enemy.setStunned(3)
-                                enemy.setHealth(enemy.getHealth() - shock_damage)
+                                enemy.setHealth(enemy.getHealth() - _apply_defense(enemy, shock_damage))
                 elif keys[pygame.K_d] and self.weapon_cooldown > 0:
                     # D not on cooldown for attack: crouch only on floor
                     if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
@@ -2106,7 +2097,7 @@ class mainGame:
                                 if hasattr(_le, 'getHealth') and _le.getHealth() > 0:
                                     _er = pygame.Rect(_le.getXPosition(), _le.getYPosition(), 100, 100)
                                     if _lrect.colliderect(_er):
-                                        _le.setHealth(_le.getHealth() - _ldmg)
+                                        _le.setHealth(_le.getHealth() - _apply_defense(_le, _ldmg))
                                         _le.setDamageReceived(_ldmg)
                                         if hasattr(_le, 'setStunned'):
                                             _le.setStunned(6)
@@ -2122,7 +2113,7 @@ class mainGame:
                             if hasattr(_le, 'getHealth') and _le.getHealth() > 0:
                                 _er = pygame.Rect(_le.getXPosition(), _le.getYPosition(), 100, 100)
                                 if _lrect.colliderect(_er):
-                                    _le.setHealth(_le.getHealth() - _ldmg)
+                                    _le.setHealth(_le.getHealth() - _apply_defense(_le, _ldmg))
                                     _le.setDamageReceived(_ldmg)
                                     if hasattr(_le, 'setStunned'):
                                         _le.setStunned(6)
@@ -2489,7 +2480,7 @@ class mainGame:
                                                         bear.getLeftDirection()):
                                     monster.setDamageReceived(_dmg)
                                     monster.setStunned(1)
-                                    monster.setHealth(monster.getHealth() - _dmg)
+                                    monster.setHealth(monster.getHealth() - _apply_defense(monster, _dmg))
                                     if _is_crit and self.crit_sound:
                                         self.crit_sound.play()
                                     elif self.hit_sound:
@@ -2505,7 +2496,7 @@ class mainGame:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(_dmg)
                                 monster.setStunned(1)
-                                monster.setHealth(monster.getHealth() - _dmg)
+                                monster.setHealth(monster.getHealth() - _apply_defense(monster, _dmg))
                                 if _is_crit and self.crit_sound:
                                     self.crit_sound.play()
                                 else:
@@ -2540,7 +2531,7 @@ class mainGame:
                                                         bear.getLeftDirection()):
                                     monster.setDamageReceived(_dmg)
                                     monster.setStunned(1)
-                                    monster.setHealth(monster.getHealth() - _dmg)
+                                    monster.setHealth(monster.getHealth() - _apply_defense(monster, _dmg))
                                     if _is_crit and self.crit_sound:
                                         self.crit_sound.play()
                                     elif self.hit_sound:
@@ -2556,7 +2547,7 @@ class mainGame:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(_dmg)
                                 monster.setStunned(1)
-                                monster.setHealth(monster.getHealth() - _dmg)
+                                monster.setHealth(monster.getHealth() - _apply_defense(monster, _dmg))
                                 if _is_crit and self.crit_sound:
                                     self.crit_sound.play()
                                 else:
@@ -2898,7 +2889,7 @@ class mainGame:
                                                         bear.getLeftDirection()):
                                     monster.setDamageReceived(bear.getDamageAttack())
                                     monster.setStunned(1)
-                                    monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                    monster.setHealth(monster.getHealth() - _apply_defense(monster, bear.getDamageAttack()))
                                     if self.hit_sound: self.hit_sound.play()
                                 else:
                                     deflectTimer = 40
@@ -2911,7 +2902,7 @@ class mainGame:
                                     monster.setXPosition(monster.getXPosition() + STEP)
                                 monster.setDamageReceived(bear.getDamageAttack())
                                 monster.setStunned(1)
-                                monster.setHealth(monster.getHealth() - bear.getDamageAttack())
+                                monster.setHealth(monster.getHealth() - _apply_defense(monster, bear.getDamageAttack()))
                                 _snd = self.boss_hit_sound if monster in self.frankenbear else self.hit_sound
                                 if _snd: _snd.play()
 
@@ -3113,7 +3104,9 @@ class mainGame:
                         to_remove.append(monster)
 
             for monster in to_remove:
-                if bear.getHp() < bear.getMaxHp() * 0.30 and random.random() < 0.30:
+                _hp_ratio = bear.getHp() / max(1, bear.getMaxHp())
+                _heart_chance = 0.75 if _hp_ratio < 0.15 else (0.50 if _hp_ratio < 0.30 else 0.0)
+                if _heart_chance > 0 and random.random() < _heart_chance:
                     self.heart_drops.append({
                         'x': float(monster.getXPosition() + 40),
                         'y': float(monster.getYPosition()),
@@ -3336,11 +3329,13 @@ class mainGame:
 
             if self.triggerFire and not self.fires and self.witches:
                 self.triggerFire = False
+                _beam_fired = False
                 for witch in self.witches:
                     witch.setThrowsFireBalls(True)
                     if self.witch_cast_sound:
                         self.witch_cast_sound.play()
-                    if random.random() < 0.15:
+                    if not _beam_fired and not self.witch_beams and random.random() < 0.15:
+                        _beam_fired = True
                         _wb_x1 = witch.getXPosition() + 50
                         _wb_y1 = witch.getYPosition() + 50
                         _wb_dir = 1 if bear.getXPosition() > witch.getXPosition() else -1
@@ -3350,6 +3345,8 @@ class mainGame:
                             'x1': _wb_x1, 'y1': _wb_y1, 'x2': _wb_x2, 'y2': _wb_y2,
                             'life': 50, 'progress': 0.0, 'hit': False
                         })
+                        if getattr(self, 'witch_beam_sound', None):
+                            self.witch_beam_sound.play()
                     for _ in range(1):
                         _fb = FireBall(witch.getXPosition(), witch.getYPosition(),
                                        random.randint(-7, 7), random.randint(1, 12),
@@ -3382,7 +3379,7 @@ class mainGame:
                             _fb_dmg *= 2
                         monster.setDamageReceived(_fb_dmg)
                         monster.setStunned(1)
-                        monster.setHealth(monster.getHealth() - _fb_dmg)
+                        monster.setHealth(monster.getHealth() - _apply_defense(monster, _fb_dmg))
                         if _is_crit and self.crit_sound:
                             self.crit_sound.play()
                         else:
@@ -3439,7 +3436,7 @@ class mainGame:
                             _beam_hit_dmg = int(_beam_hit_dmg * 1.5)
                         monster.setDamageReceived(_beam_hit_dmg)
                         monster.setStunned(3)
-                        monster.setHealth(monster.getHealth() - _beam_hit_dmg)
+                        monster.setHealth(monster.getHealth() - _apply_defense(monster, _beam_hit_dmg))
                 
                 # Check destroyable blocks too
                 for db in self.destroyable_blocks:
@@ -3548,18 +3545,38 @@ class mainGame:
                     if _sh._orb_cd <= 0 and abs(_sh.getXPosition() - bear.getXPosition()) < 500:
                         _sh._orb_cd = random.randint(200, 280)
                         _sx, _sy = _sh.getXPosition() + 60, _sh.getYPosition() + 60
-                        _num_orbs = random.randint(4, 7)
+                        _pattern = random.choice(['radial', 'spiral', 'cross', 'aimed'])
+                        _num_orbs = random.randint(6, 10)
+                        _base_dmg = max(6, int(bear.getMaxHp() * 0.08))
+                        _dx_t = bear.getXPosition() + 50 - _sx
+                        _dy_t = bear.getYPosition() + 50 - _sy
+                        _aim_angle = math.atan2(_dy_t, _dx_t)
                         for _oi in range(_num_orbs):
-                            _angle = (2 * math.pi * _oi / _num_orbs)
-                            _spd = random.uniform(2.5, 4.5)
+                            if _pattern == 'radial':
+                                _angle = (2 * math.pi * _oi / _num_orbs)
+                                _spd = random.uniform(2.5, 4.5)
+                            elif _pattern == 'spiral':
+                                _angle = (2 * math.pi * _oi / _num_orbs) + _oi * 0.3
+                                _spd = 2.0 + _oi * 0.4
+                            elif _pattern == 'cross':
+                                _arm = _oi % 4
+                                _idx = _oi // 4
+                                _angle = _arm * (math.pi / 2) + _aim_angle
+                                _spd = 2.5 + _idx * 1.5
+                            else:
+                                _spread = (_oi - _num_orbs / 2.0) * 0.15
+                                _angle = _aim_angle + _spread
+                                _spd = random.uniform(3.0, 5.0)
                             _orb_vx = math.cos(_angle) * _spd
                             _orb_vy = math.sin(_angle) * _spd
+                            _orb_cols = [(50, 200, 50), (80, 255, 80), (30, 180, 120), (100, 255, 50)]
                             self.shaman_orbs.append({
                                 'x': _sx, 'y': _sy, 'vx': _orb_vx, 'vy': _orb_vy,
-                                'life': 120, 'phase': _oi * (2 * math.pi / _num_orbs),
-                                'orbit_r': random.uniform(20, 40),
+                                'life': 140, 'phase': _oi * (2 * math.pi / _num_orbs),
+                                'orbit_r': random.uniform(15, 50),
                                 'center_x': _sx, 'center_y': _sy,
-                                'dmg': max(6, int(bear.getMaxHp() * 0.08))
+                                'dmg': _base_dmg,
+                                'color': random.choice(_orb_cols)
                             })
 
             _orbs_remove = []
@@ -3577,13 +3594,16 @@ class mainGame:
                 _orb['x'] = _orb['center_x'] + math.cos(_orb['phase'] + pygame.time.get_ticks() * 0.005) * _orb_wave * 0.5
                 _orb['y'] = _orb['center_y'] + math.sin(_orb['phase'] + pygame.time.get_ticks() * 0.005) * _orb_wave * 0.5
                 _orb_alpha = min(255, max(60, _orb['life'] * 4))
+                _oc = _orb.get('color', (50, 200, 50))
+                _oc_bright = (min(255, _oc[0]+100), min(255, _oc[1]+55), min(255, _oc[2]+100))
+                _oc_core = (min(255, _oc[0]+170), min(255, _oc[1]+55), min(255, _oc[2]+170))
                 _orb_s = pygame.Surface((24, 24), pygame.SRCALPHA)
-                pygame.draw.circle(_orb_s, (50, 200, 50, _orb_alpha), (12, 12), 12)
-                pygame.draw.circle(_orb_s, (150, 255, 150, min(255, _orb_alpha + 40)), (12, 12), 7)
-                pygame.draw.circle(_orb_s, (220, 255, 220, min(255, _orb_alpha + 80)), (12, 12), 3)
+                pygame.draw.circle(_orb_s, (_oc[0], _oc[1], _oc[2], _orb_alpha), (12, 12), 12)
+                pygame.draw.circle(_orb_s, (_oc_bright[0], _oc_bright[1], _oc_bright[2], min(255, _orb_alpha + 40)), (12, 12), 7)
+                pygame.draw.circle(_orb_s, (_oc_core[0], _oc_core[1], _oc_core[2], min(255, _orb_alpha + 80)), (12, 12), 3)
                 self.screen.blit(_orb_s, (int(_orb['x']) - 12, int(_orb['y']) - 12))
                 _orb_trail = pygame.Surface((6, 6), pygame.SRCALPHA)
-                _orb_trail.fill((100, 255, 100, max(30, _orb_alpha // 3)))
+                _orb_trail.fill((_oc[0], min(255, _oc[1]+55), _oc[2], max(30, _orb_alpha // 3)))
                 self.screen.blit(_orb_trail, (int(_orb['x'] - _orb['vx'] * 2) - 3, int(_orb['y'] - _orb['vy'] * 2) - 3))
                 if _orb['life'] <= 0 or _orb['x'] < -50 or _orb['x'] > 960 or _orb['y'] > 450:
                     _orbs_remove.append(_orb)
@@ -3702,7 +3722,8 @@ class mainGame:
                 if self._bomb_spawn_timer >= _bomb_interval:
                     self._bomb_spawn_timer = 0
                     import random as _br
-                    _bx = _br.randint(50, 800)
+                    _bear_bx = bear.getXPosition() + 50
+                    _bx = max(30, min(870, _bear_bx + _br.randint(50, 250) * _br.choice([-1, 1])))
                     _is_big = _br.random() < 0.20
                     _timer_secs = _br.choice([1, 2, 3])
                     self.bombs.append({
@@ -4082,6 +4103,17 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
             bear.displayBearCoins()
+            if (not self._critical_hp_popup_shown
+                    and bear.getHp() < bear.getMaxHp() * 0.30
+                    and bear.getHp() > 0 and bear.getEndText()):
+                self._critical_hp_popup_shown = True
+                bear.setArrayText([
+                    'CRITICAL HEALTH!', '',
+                    'Some enemies drop hearts',
+                    'when your health is low.',
+                    'Defeat them to recover HP!',
+                    '', 'Press "s" to continue'])
+                bear.setEndText(False)
             if getattr(self, '_hard_mode_selected', False):
                 _hm_font = _FONT_HUD_VAL or pygame.font.SysFont(None, 20, bold=True)
                 _hm_surf = _hm_font.render('HARD MODE', True, (255, 80, 80))
@@ -4415,6 +4447,19 @@ class mainGame:
                     _hint_a_surf.blit(_hint_surf, (8, 3))
                     _hint_a_surf.set_alpha(_hint_alpha)
                     self.screen.blit(_hint_a_surf, ((900 - _hint_a_surf.get_width()) // 2, 682))
+
+            _gfi = getattr(self, '_game_fade_in', 0)
+            if _gfi > 0:
+                self._game_fade_in -= 1
+                _fi_alpha = int(255 * (self._game_fade_in / 60.0))
+                _fi_surf = pygame.Surface((900, 700), pygame.SRCALPHA)
+                _fi_surf.fill((0, 0, 0, _fi_alpha))
+                self.screen.blit(_fi_surf, (0, 0))
+                _music_vol = 0.35 * (1.0 - self._game_fade_in / 60.0)
+                try:
+                    pygame.mixer.music.set_volume(_music_vol)
+                except Exception:
+                    pass
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -5532,6 +5577,7 @@ class Mummy():
         self.changeDirection = random.randint(200, randomMax)
         self.storeDirection = 1
         self.health = int(random.randint(7, 16) * 1.20)
+        self._defense = random.randint(1, 10) / 100.0
         self._bear_x = 400
         self._bear_y = 300
         self._chase_range = random.randint(250, 450)
@@ -5908,6 +5954,7 @@ class Witch():
         self.rand = random.choice([1, 1, 2])
         self.health = int(random.randint(24, 42) * 1.20)
         self.max_health = self.health
+        self._defense = random.randint(1, 10) / 100.0
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.changeDirectionX = random.randint(400, 700)
@@ -6240,6 +6287,7 @@ class GreenBlob():
         self.x = x
         self.y = y
         self.health = int(26 * 1.20)
+        self._defense = random.randint(1, 10) / 100.0
         self.destructionAnimation = 0
         self.stunned = 0
         self.screen = screen
@@ -7360,6 +7408,7 @@ class ShadowShaman():
         self.rand = random.choice([1, 1, 2])
         self.health = int(random.randint(40, 60) * 1.20)
         self.max_health = self.health
+        self._defense = random.randint(1, 10) / 100.0
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (60, 60))
         self.changeDirectionX = random.randint(200, 400)
@@ -7679,6 +7728,7 @@ class MiniFrankenBear():
         self.screen = screen
         self.health = int(45 * 1.20)
         self.max_health = self.health
+        self._defense = random.randint(1, 10) / 100.0
         self.direction = -1 if random.random() > 0.5 else 1
         self.walk_speed = random.choice([2, 3, 3, 4])
         self.walk_timer = 0
@@ -7855,6 +7905,7 @@ class FrankenBear():
         self.stunned = False
         self.health = int(1000 * 1.20)
         self.max_health = self.health
+        self._defense = random.randint(1, 10) / 100.0
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
         self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
@@ -7984,7 +8035,7 @@ class FrankenBear():
             self.screen.blit(self.boss1, (_bx, _by))
             self._draw_boss_details()
             if self.health < self.max_health:
-                render_enemy_health_bar(self.screen, _bx + 40, _by - 20, self.health, self.max_health, w=160, h=14)
+                render_enemy_health_bar(self.screen, _bx + 40, _by + 280, self.health, self.max_health, w=160, h=14)
             return
 
         self.blinkTimer += 1
@@ -8040,7 +8091,7 @@ class FrankenBear():
                 self.stunned = 0
 
         if self.health < self.max_health:
-            render_enemy_health_bar(self.screen, int(self.x) + 40, int(self.y) - 20, self.health, self.max_health, w=160, h=14)
+            render_enemy_health_bar(self.screen, int(self.x) + 40, int(self.y) + 280, self.health, self.max_health, w=160, h=14)
 
     def setStartDestructionAnimation(self, v):
         self.startDestructionAnimation = v
@@ -8080,6 +8131,7 @@ class Snake:
         self.y = self.FLOOR_Y - self.height
         self.health = int(15 * 1.80)
         self.max_health = self.health
+        self._defense = random.randint(1, 10) / 100.0
         self.speed = random.choice([1, 1, 2, 2])
         self.stunned = 0
         self.damageReceived = 0
@@ -8658,6 +8710,7 @@ class MonkeyMummy:
         self._land_timer = 0
         self.health = int(20 * 1.15)
         self.max_health = self.health
+        self._defense = random.randint(1, 10) / 100.0
         self.damageAttack = 11
         self.walk_speed = random.choice([2, 3, 3, 4])
         self.rand = random.randint(25, 55)
@@ -8895,6 +8948,7 @@ class Lion:
         self._roar_cooldown = 0
         self.health = int(25 * 1.20)
         self.max_health = self.health
+        self._defense = random.randint(1, 10) / 100.0
         self.speed = random.choice([4, 5, 5, 6])
         self.direction = -1 if random.random() > 0.5 else 1
         self.stunned = 0
