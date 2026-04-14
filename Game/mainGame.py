@@ -567,19 +567,29 @@ class mainGame:
             self.witch_cast_sound = _make_snd(_smp)
             self.witch_cast_sound.set_volume(0.25)
 
-            _n = int(_RATE * 0.45)
+            _n = int(_RATE * 0.7)
             _smp = []
             for _i in range(_n):
                 _t = _i / _RATE
-                _f = 800 - 600 * (_t / 0.45)
-                _s = (_math.sin(2*_math.pi*_f*_t) * 0.3
-                      + _math.sin(2*_math.pi*_f*1.5*_t) * 0.15
-                      + _math.sin(2*_math.pi*_f*0.5*_t) * 0.1)
-                _env = min(_i/(_RATE*0.02), 1.0) * max(0.0, 1.0 - _t/0.45) ** 0.8
-                _crackle = _rnd.gauss(0, 0.08) * (1.0 - _t/0.45)
-                _smp.append(max(-1.0, min(1.0, (_s + _crackle) * _env * 0.6)))
+                _dur = 0.7
+                _f_base = 900 - 500 * (_t / _dur)
+                _cackle = _math.sin(2 * _math.pi * 12.0 * _t) * 80
+                _waver = _math.sin(2 * _math.pi * 5.5 * _t) * 40
+                _f = _f_base + _cackle + _waver
+                _shriek = _math.sin(2*_math.pi*_f*_t) * 0.35
+                _harm2 = _math.sin(2*_math.pi*_f*2.01*_t) * 0.18
+                _harm3 = _math.sin(2*_math.pi*_f*3.03*_t) * 0.10
+                _sub = _math.sin(2*_math.pi*_f*0.49*_t) * 0.12
+                _hiss = _rnd.gauss(0, 0.12) * max(0.0, 1.0 - _t/_dur) ** 0.5
+                _crackle_burst = 0.0
+                if _rnd.random() < 0.08:
+                    _crackle_burst = _rnd.gauss(0, 0.25)
+                _echo = _math.sin(2*_math.pi*(_f*0.75)*_t + _math.sin(2*_math.pi*3.0*_t)*2.0) * 0.08
+                _env = min(_i/(_RATE*0.015), 1.0) * max(0.0, 1.0 - _t/_dur) ** 0.6
+                _s = (_shriek + _harm2 + _harm3 + _sub + _hiss + _crackle_burst + _echo) * _env
+                _smp.append(max(-1.0, min(1.0, _s * 0.75)))
             self.witch_beam_sound = _make_snd(_smp)
-            self.witch_beam_sound.set_volume(0.30)
+            self.witch_beam_sound.set_volume(0.55)
 
             _n = int(_RATE * 0.12)
             _smp = []
