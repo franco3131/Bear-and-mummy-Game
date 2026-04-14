@@ -593,7 +593,14 @@ class mainGame:
             self.fireball_bounce_sound = _make_snd(_smp)
             self.fireball_bounce_sound.set_volume(0.18)
 
-            pygame.mixer.set_num_channels(19)
+            pygame.mixer.set_num_channels(20)
+
+            try:
+                self._ambient_sound = pygame.mixer.Sound("Game/Sounds/spooky_peaceful.wav")
+                self._ambient_channel = pygame.mixer.Channel(18)
+            except Exception:
+                self._ambient_sound = None
+                self._ambient_channel = None
 
             _LOOP_LEN = 4.0
             _LN = int(_RATE * _LOOP_LEN)
@@ -878,6 +885,9 @@ class mainGame:
         self._water_playing = False
         self._silver_applied = False
         self._bigMummyDefeated = False
+        self._ambient_channel = None
+        self._ambient_sound = None
+        self._ambient_playing = False
         self._hard_mode_selected = False
         self._hms_pre_boss_applied = False
         self._hms_post_boss_applied = False
@@ -1003,6 +1013,7 @@ class mainGame:
         self.isDoor1Open = False
         self.doorPopupTriggered = False
         self._bigMummyDefeated = False
+        self._stop_ambient_loop()
         self._boss_door_passed = False
         self.showBoss = True
         self.createdBoss = False
@@ -3197,6 +3208,7 @@ class mainGame:
                         self.coins.append(Coin(monster.getXPosition() + 10 + _ci * 28,
                                                monster.getYPosition() + 80, self.screen))
                     self._bigMummyDefeated = True
+                    self._start_ambient_loop()
                     self._switch_music("normal")
 
             # ---- Mini FrankenBear laser generation and drawing ----------------
@@ -4329,6 +4341,7 @@ class mainGame:
                 self._current_music = None
 
                 self._bigMummyDefeated = False
+                self._stop_ambient_loop()
                 self._boss_door_passed = False
                 self._post_boss_platform_popup_shown = False
                 self._fireball_tutorial_shown = True
@@ -5160,6 +5173,17 @@ class mainGame:
                 layer['active'] = False
                 layer['current_vol'] = 0.0
 
+    def _start_ambient_loop(self):
+        if self._ambient_sound and self._ambient_channel and not self._ambient_playing:
+            self._ambient_playing = True
+            self._ambient_channel.play(self._ambient_sound, loops=-1)
+            self._ambient_channel.set_volume(0.0)
+
+    def _stop_ambient_loop(self):
+        if self._ambient_channel and self._ambient_playing:
+            self._ambient_channel.fadeout(1000)
+            self._ambient_playing = False
+
     def _switch_music(self, track):
         if getattr(self, '_current_music', None) == track:
             return
@@ -5188,6 +5212,13 @@ class mainGame:
             "boss_final": 0.80,
             "jungle": 0.50,
         }
+        if self._ambient_playing and self._ambient_channel:
+            if track == "normal" or track == "post_boss_normal":
+                self._ambient_channel.set_volume(0.0)
+            elif track == "boss_final":
+                self._ambient_channel.set_volume(0.08)
+            else:
+                self._ambient_channel.set_volume(0.15)
         try:
             pygame.mixer.music.load(_files[track])
             _vol = _volumes.get(track, 0.50)
