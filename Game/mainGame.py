@@ -791,6 +791,10 @@ class mainGame:
         self.monkey_mummies = []
         self.bombs = []
         self._bomb_spawn_timer = 0
+        self.heart_drops = []
+        self.shaman_orbs = []
+        self._shaman_orb_timer = 0
+        self.witch_beams = []
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -960,6 +964,8 @@ class mainGame:
         self.beamProjectiles = []; self.waterfalls = []
         self.spikes = []; self.door = []; self.keys = []
         self.frankenbear = []; self.bombs = []; self._bomb_spawn_timer = 0
+        self.heart_drops = []; self.shaman_orbs = []; self._shaman_orb_timer = 0
+        self.witch_beams = []
 
         for i, (threshold, flag_idx) in enumerate(self._ZONE_THRESHOLDS):
             if threshold >= zone_start:
@@ -2184,6 +2190,12 @@ class mainGame:
                                     _bp["x"] -= STEP
                                 for _b in self.bombs:
                                     _b["x"] -= STEP
+                                for _orb in self.shaman_orbs:
+                                    _orb["x"] -= STEP; _orb["center_x"] -= STEP
+                                for _wb in self.witch_beams:
+                                    _wb["x1"] -= STEP; _wb["x2"] -= STEP
+                                for _hd in self.heart_drops:
+                                    _hd["x"] -= STEP
                                 for block in self.blocks:
                                     if not block.getIsLeftBoundary():
                                         block.setblockXPosition(block.getBlockXPosition() - STEP)
@@ -2228,6 +2240,12 @@ class mainGame:
                                     _bp["x"] -= STEP
                                 for _b in self.bombs:
                                     _b["x"] -= STEP
+                                for _orb in self.shaman_orbs:
+                                    _orb["x"] -= STEP; _orb["center_x"] -= STEP
+                                for _wb in self.witch_beams:
+                                    _wb["x1"] -= STEP; _wb["x2"] -= STEP
+                                for _hd in self.heart_drops:
+                                    _hd["x"] -= STEP
                                 for block in self.blocks:
                                     if not block.getIsLeftBoundary():
                                         block.setblockXPosition(block.getBlockXPosition() - STEP)
@@ -2322,6 +2340,12 @@ class mainGame:
                                 _bp["x"] += STEP
                             for _b in self.bombs:
                                 _b["x"] += STEP
+                            for _orb in self.shaman_orbs:
+                                _orb["x"] += STEP; _orb["center_x"] += STEP
+                            for _wb in self.witch_beams:
+                                _wb["x1"] += STEP; _wb["x2"] += STEP
+                            for _hd in self.heart_drops:
+                                _hd["x"] += STEP
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
@@ -2356,6 +2380,12 @@ class mainGame:
                                 _bp["x"] += STEP
                             for _b in self.bombs:
                                 _b["x"] += STEP
+                            for _orb in self.shaman_orbs:
+                                _orb["x"] += STEP; _orb["center_x"] += STEP
+                            for _wb in self.witch_beams:
+                                _wb["x1"] += STEP; _wb["x2"] += STEP
+                            for _hd in self.heart_drops:
+                                _hd["x"] += STEP
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
                                 if not block.getIsRightBoundary():
@@ -2570,6 +2600,12 @@ class mainGame:
                                 _bp["x"] -= STEP
                             for _b in self.bombs:
                                 _b["x"] -= STEP
+                            for _orb in self.shaman_orbs:
+                                _orb["x"] -= STEP; _orb["center_x"] -= STEP
+                            for _wb in self.witch_beams:
+                                _wb["x1"] -= STEP; _wb["x2"] -= STEP
+                            for _hd in self.heart_drops:
+                                _hd["x"] -= STEP
                             for block in self.blocks:
                                 if not block.getIsLeftBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -2678,6 +2714,12 @@ class mainGame:
                                 _bp["x"] -= STEP
                             for _b in self.bombs:
                                 _b["x"] -= STEP
+                            for _orb in self.shaman_orbs:
+                                _orb["x"] -= STEP; _orb["center_x"] -= STEP
+                            for _wb in self.witch_beams:
+                                _wb["x1"] -= STEP; _wb["x2"] -= STEP
+                            for _hd in self.heart_drops:
+                                _hd["x"] -= STEP
                             for block in self.blocks:
                                 block.setblockXPosition(block.getBlockXPosition() - STEP)
                             backgroundScrollX = bear.getXPosition()
@@ -2718,6 +2760,12 @@ class mainGame:
                                 _bp["x"] += STEP
                             for _b in self.bombs:
                                 _b["x"] += STEP
+                            for _orb in self.shaman_orbs:
+                                _orb["x"] += STEP; _orb["center_x"] += STEP
+                            for _wb in self.witch_beams:
+                                _wb["x1"] += STEP; _wb["x2"] += STEP
+                            for _hd in self.heart_drops:
+                                _hd["x"] += STEP
                             for block in self.blocks:
                                 if not block.getIsRightBoundary():
                                     block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
@@ -2816,6 +2864,12 @@ class mainGame:
                                 _bp["x"] += STEP
                             for _b in self.bombs:
                                 _b["x"] += STEP
+                            for _orb in self.shaman_orbs:
+                                _orb["x"] += STEP; _orb["center_x"] += STEP
+                            for _wb in self.witch_beams:
+                                _wb["x1"] += STEP; _wb["x2"] += STEP
+                            for _hd in self.heart_drops:
+                                _hd["x"] += STEP
                             for block in self.blocks:
                                 block.setblockXPosition(block.getBlockXPosition() + STEP)
                             backgroundScrollX = bear.getXPosition() - STEP
@@ -3059,9 +3113,14 @@ class mainGame:
                         to_remove.append(monster)
 
             for monster in to_remove:
+                if bear.getHp() < bear.getMaxHp() * 0.30 and random.random() < 0.30:
+                    self.heart_drops.append({
+                        'x': float(monster.getXPosition() + 40),
+                        'y': float(monster.getYPosition()),
+                        'vy': -2.0, 'landed': False, 'life': 420
+                    })
                 if monster in self.mummys:
                     self.mummys.remove(monster)
-                    # Drop 1-3 coins (randomised)
                     for _ci in range(random.randint(1, 3)):
                         self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
                                                monster.getYPosition() + 30, self.screen))
@@ -3281,6 +3340,16 @@ class mainGame:
                     witch.setThrowsFireBalls(True)
                     if self.witch_cast_sound:
                         self.witch_cast_sound.play()
+                    if random.random() < 0.15:
+                        _wb_x1 = witch.getXPosition() + 50
+                        _wb_y1 = witch.getYPosition() + 50
+                        _wb_dir = 1 if bear.getXPosition() > witch.getXPosition() else -1
+                        _wb_x2 = _wb_x1 + _wb_dir * random.randint(200, 400)
+                        _wb_y2 = 400.0
+                        self.witch_beams.append({
+                            'x1': _wb_x1, 'y1': _wb_y1, 'x2': _wb_x2, 'y2': _wb_y2,
+                            'life': 50, 'progress': 0.0, 'hit': False
+                        })
                     for _ in range(1):
                         _fb = FireBall(witch.getXPosition(), witch.getYPosition(),
                                        random.randint(-7, 7), random.randint(1, 12),
@@ -3469,17 +3538,178 @@ class mainGame:
                 if _vb in self.venom_balls:
                     self.venom_balls.remove(_vb)
 
+            if not _popup_active and self.shadowShamans:
+                for _sh in self.shadowShamans:
+                    if _sh.getHealth() <= 0:
+                        continue
+                    if not hasattr(_sh, '_orb_cd'):
+                        _sh._orb_cd = random.randint(120, 240)
+                    _sh._orb_cd -= 1
+                    if _sh._orb_cd <= 0 and abs(_sh.getXPosition() - bear.getXPosition()) < 500:
+                        _sh._orb_cd = random.randint(200, 280)
+                        _sx, _sy = _sh.getXPosition() + 60, _sh.getYPosition() + 60
+                        _num_orbs = random.randint(4, 7)
+                        for _oi in range(_num_orbs):
+                            _angle = (2 * math.pi * _oi / _num_orbs)
+                            _spd = random.uniform(2.5, 4.5)
+                            _orb_vx = math.cos(_angle) * _spd
+                            _orb_vy = math.sin(_angle) * _spd
+                            self.shaman_orbs.append({
+                                'x': _sx, 'y': _sy, 'vx': _orb_vx, 'vy': _orb_vy,
+                                'life': 120, 'phase': _oi * (2 * math.pi / _num_orbs),
+                                'orbit_r': random.uniform(20, 40),
+                                'center_x': _sx, 'center_y': _sy,
+                                'dmg': max(6, int(bear.getMaxHp() * 0.08))
+                            })
+
+            _orbs_remove = []
+            _bear_rect_orb = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
+            for _orb in self.shaman_orbs:
+                if _popup_active:
+                    pygame.draw.circle(self.screen, (100, 255, 100), (int(_orb['x']), int(_orb['y'])), 10)
+                    pygame.draw.circle(self.screen, (200, 255, 200), (int(_orb['x']), int(_orb['y'])), 5)
+                    continue
+                _orb['life'] -= 1
+                _orb['center_x'] += _orb['vx']
+                _orb['center_y'] += _orb['vy']
+                _orb['vy'] += 0.02
+                _orb_wave = math.sin(pygame.time.get_ticks() * 0.01 + _orb['phase']) * _orb['orbit_r']
+                _orb['x'] = _orb['center_x'] + math.cos(_orb['phase'] + pygame.time.get_ticks() * 0.005) * _orb_wave * 0.5
+                _orb['y'] = _orb['center_y'] + math.sin(_orb['phase'] + pygame.time.get_ticks() * 0.005) * _orb_wave * 0.5
+                _orb_alpha = min(255, max(60, _orb['life'] * 4))
+                _orb_s = pygame.Surface((24, 24), pygame.SRCALPHA)
+                pygame.draw.circle(_orb_s, (50, 200, 50, _orb_alpha), (12, 12), 12)
+                pygame.draw.circle(_orb_s, (150, 255, 150, min(255, _orb_alpha + 40)), (12, 12), 7)
+                pygame.draw.circle(_orb_s, (220, 255, 220, min(255, _orb_alpha + 80)), (12, 12), 3)
+                self.screen.blit(_orb_s, (int(_orb['x']) - 12, int(_orb['y']) - 12))
+                _orb_trail = pygame.Surface((6, 6), pygame.SRCALPHA)
+                _orb_trail.fill((100, 255, 100, max(30, _orb_alpha // 3)))
+                self.screen.blit(_orb_trail, (int(_orb['x'] - _orb['vx'] * 2) - 3, int(_orb['y'] - _orb['vy'] * 2) - 3))
+                if _orb['life'] <= 0 or _orb['x'] < -50 or _orb['x'] > 960 or _orb['y'] > 450:
+                    _orbs_remove.append(_orb)
+                elif pygame.Rect(int(_orb['x']) - 10, int(_orb['y']) - 10, 20, 20).colliderect(_bear_rect_orb):
+                    if hurtTimer > 60:
+                        bear.applyDamage(_orb['dmg'])
+                        bear.displayDamageOnBear(_orb['dmg'], "shaman")
+                        hurtTimer = 0
+                        if getattr(self, 'bear_hurt_sound', None):
+                            self.bear_hurt_sound.play()
+                    _orbs_remove.append(_orb)
+            for _orb in _orbs_remove:
+                if _orb in self.shaman_orbs:
+                    self.shaman_orbs.remove(_orb)
+
+            _beams_remove = []
+            for _wb in self.witch_beams:
+                if _popup_active:
+                    pygame.draw.line(self.screen, (200, 50, 255),
+                                     (int(_wb['x1']), int(_wb['y1'])),
+                                     (int(_wb['x2']), int(_wb['y2'])), 4)
+                    continue
+                _wb['life'] -= 1
+                _wb['progress'] = min(1.0, _wb['progress'] + 0.05)
+                _cur_x2 = _wb['x1'] + (_wb['x2'] - _wb['x1']) * _wb['progress']
+                _cur_y2 = _wb['y1'] + (_wb['y2'] - _wb['y1']) * _wb['progress']
+                _beam_alpha = min(255, max(40, _wb['life'] * 6))
+                _beam_thick = 6 if _wb['life'] > 20 else 4
+                _beam_s = pygame.Surface((900, 700), pygame.SRCALPHA)
+                pygame.draw.line(_beam_s, (200, 50, 255, _beam_alpha),
+                                 (int(_wb['x1']), int(_wb['y1'])),
+                                 (int(_cur_x2), int(_cur_y2)), _beam_thick)
+                pygame.draw.line(_beam_s, (255, 150, 255, min(255, _beam_alpha + 40)),
+                                 (int(_wb['x1']), int(_wb['y1'])),
+                                 (int(_cur_x2), int(_cur_y2)), max(1, _beam_thick // 2))
+                _spark_x = int(_cur_x2)
+                _spark_y = int(_cur_y2)
+                if _wb['progress'] >= 1.0 and _wb['life'] > 10:
+                    for _ in range(3):
+                        _sp_s = pygame.Surface((6, 6), pygame.SRCALPHA)
+                        pygame.draw.circle(_sp_s, (255, 200, 255, _beam_alpha), (3, 3), 3)
+                        _beam_s.blit(_sp_s, (_spark_x + random.randint(-8, 8) - 3, _spark_y + random.randint(-8, 8) - 3))
+                self.screen.blit(_beam_s, (0, 0))
+                if _wb['progress'] >= 0.3:
+                    _bx1, _by1 = int(_wb['x1']), int(_wb['y1'])
+                    _bx2, _by2 = int(_cur_x2), int(_cur_y2)
+                    _bear_cx_b = bear.getXPosition() + 50
+                    _bear_cy_b = bear.getYPosition() + 50
+                    _ldx = _bx2 - _bx1
+                    _ldy = _by2 - _by1
+                    _llen = math.sqrt(_ldx*_ldx + _ldy*_ldy)
+                    if _llen > 0:
+                        _t = max(0, min(1, ((_bear_cx_b - _bx1)*_ldx + (_bear_cy_b - _by1)*_ldy) / (_llen*_llen)))
+                        _closest_x = _bx1 + _t * _ldx
+                        _closest_y = _by1 + _t * _ldy
+                        _pdist = math.sqrt((_bear_cx_b - _closest_x)**2 + (_bear_cy_b - _closest_y)**2)
+                        if _pdist < 40 and hurtTimer > 60 and not _wb.get('hit', False):
+                            _wb['hit'] = True
+                            _beam_dmg = max(5, int(bear.getMaxHp() * 0.10))
+                            bear.applyDamage(_beam_dmg)
+                            bear.displayDamageOnBear(_beam_dmg, "beam")
+                            hurtTimer = 0
+                            if getattr(self, 'bear_hurt_sound', None):
+                                self.bear_hurt_sound.play()
+                if _wb['life'] <= 0:
+                    _beams_remove.append(_wb)
+            for _wb in _beams_remove:
+                if _wb in self.witch_beams:
+                    self.witch_beams.remove(_wb)
+
+            _hd_remove = []
+            for _hd in self.heart_drops:
+                if _popup_active:
+                    _hx, _hy = int(_hd['x']), int(_hd['y'])
+                    pygame.draw.polygon(self.screen, (255, 50, 80), [
+                        (_hx, _hy + 4), (_hx - 8, _hy - 4), (_hx - 5, _hy - 10),
+                        (_hx, _hy - 6), (_hx + 5, _hy - 10), (_hx + 8, _hy - 4)])
+                    continue
+                if not _hd['landed']:
+                    _hd['vy'] += 0.2
+                    _hd['y'] += _hd['vy']
+                    if _hd['y'] >= 385:
+                        _hd['y'] = 385.0
+                        _hd['landed'] = True
+                        _hd['vy'] = 0.0
+                _hd['life'] -= 1
+                _hx, _hy = int(_hd['x']), int(_hd['y'])
+                _hd_pulse = abs(math.sin(pygame.time.get_ticks() * 0.006)) * 3
+                _hr = int(12 + _hd_pulse)
+                _heart_s = pygame.Surface((_hr*2+4, _hr*2+4), pygame.SRCALPHA)
+                _hcx, _hcy = _hr+2, _hr+2
+                pygame.draw.circle(_heart_s, (255, 50, 80, 220), (_hcx - _hr//3, _hcy - _hr//4), _hr//2 + 1)
+                pygame.draw.circle(_heart_s, (255, 50, 80, 220), (_hcx + _hr//3, _hcy - _hr//4), _hr//2 + 1)
+                pygame.draw.polygon(_heart_s, (255, 50, 80, 220), [
+                    (_hcx - _hr, _hcy - 1), (_hcx, _hcy + _hr), (_hcx + _hr, _hcy - 1)])
+                _plus_txt = _FONT_HUD.render('+10', True, (255, 255, 255))
+                _heart_s.blit(_plus_txt, (_hcx - _plus_txt.get_width()//2, _hcy - _plus_txt.get_height()//2))
+                self.screen.blit(_heart_s, (_hx - _hcx, _hy - _hcy))
+                if _hd['life'] <= 0:
+                    _hd_remove.append(_hd)
+                elif _hd['landed']:
+                    _hd_rect = pygame.Rect(_hx - 15, _hy - 15, 30, 30)
+                    if _hd_rect.colliderect(pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)):
+                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + 10))
+                        bear.setCoins(bear.getCoins() + 1)
+                        if getattr(self, 'coin_sound', None):
+                            self.coin_sound.play()
+                        _hd_remove.append(_hd)
+            for _hd in _hd_remove:
+                if _hd in self.heart_drops:
+                    self.heart_drops.remove(_hd)
+
             if not _popup_active and totalDistance < 30000 and totalDistance > 500:
                 self._bomb_spawn_timer += 1
-                _bomb_interval = max(120, 300 - totalDistance // 200)
+                _bomb_interval = 1800
                 if self._bomb_spawn_timer >= _bomb_interval:
                     self._bomb_spawn_timer = 0
                     import random as _br
                     _bx = _br.randint(50, 800)
+                    _is_big = _br.random() < 0.20
+                    _timer_secs = _br.choice([1, 2, 3])
                     self.bombs.append({
                         'x': float(_bx), 'y': -40.0, 'vy': 3.0,
-                        'landed': False, 'timer': 180, 'exploding': False,
-                        'explode_anim': 0
+                        'landed': False, 'timer': _timer_secs * 60,
+                        'exploding': False, 'explode_anim': 0,
+                        'big': _is_big
                     })
 
             _bombs_remove = []
@@ -3510,14 +3740,26 @@ class mainGame:
                         pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - 18), 4)
                     continue
 
+                _b_big = _bomb.get('big', False)
+                _b_radius = 28 if _b_big else 18
+                _b_inner = 22 if _b_big else 14
+                _b_fuse_r = 7 if _b_big else 5
+                _b_explode_radius = 160 if _b_big else 120
+
                 if _bomb['exploding']:
                     _bomb['explode_anim'] += 1
                     _ea = _bomb['explode_anim']
-                    _er = min(80, _ea * 4)
+                    _max_er = 120 if _b_big else 80
+                    _er = min(_max_er, _ea * (6 if _b_big else 4))
                     _alpha = max(0, 255 - _ea * 8)
                     _es = pygame.Surface((_er*2, _er*2), pygame.SRCALPHA)
-                    pygame.draw.circle(_es, (255, 120, 0, _alpha), (_er, _er), _er)
-                    pygame.draw.circle(_es, (255, 220, 50, min(255, _alpha+30)), (_er, _er), max(1, _er//2))
+                    if _b_big:
+                        pygame.draw.circle(_es, (180, 0, 200, _alpha), (_er, _er), _er)
+                        pygame.draw.circle(_es, (255, 80, 255, min(255, _alpha+30)), (_er, _er), max(1, _er//2))
+                        pygame.draw.circle(_es, (255, 220, 255, min(255, _alpha+50)), (_er, _er), max(1, _er//3))
+                    else:
+                        pygame.draw.circle(_es, (255, 120, 0, _alpha), (_er, _er), _er)
+                        pygame.draw.circle(_es, (255, 220, 50, min(255, _alpha+30)), (_er, _er), max(1, _er//2))
                     self.screen.blit(_es, (int(_bomb['x']) - _er, int(_bomb['y']) - _er))
                     if _ea >= 30:
                         _bombs_remove.append(_bomb)
@@ -3527,12 +3769,20 @@ class mainGame:
                     _by_i = int(_bomb['y'])
                     _pulse = abs(math.sin(pygame.time.get_ticks() * 0.008)) * 0.3
                     _secs = max(0, (_bomb['timer'] + 59) // 60)
-                    _flash = (255, 60, 60) if _bomb['timer'] < 60 and _bomb['timer'] % 10 < 5 else (40, 40, 40)
-                    pygame.draw.circle(self.screen, _flash, (_bx_i, _by_i), int(18 + _pulse * 4))
-                    pygame.draw.circle(self.screen, (80, 80, 80), (_bx_i, _by_i), 14)
-                    pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - 22), 5)
+                    if _b_big:
+                        _flash = (180, 0, 200) if _bomb['timer'] < 60 and _bomb['timer'] % 10 < 5 else (60, 0, 80)
+                    else:
+                        _flash = (255, 60, 60) if _bomb['timer'] < 60 and _bomb['timer'] % 10 < 5 else (40, 40, 40)
+                    pygame.draw.circle(self.screen, _flash, (_bx_i, _by_i), int(_b_radius + _pulse * 4))
+                    pygame.draw.circle(self.screen, (80, 80, 80) if not _b_big else (120, 60, 140), (_bx_i, _by_i), _b_inner)
+                    if _b_big:
+                        _skull_col = (255, 200, 255)
+                        pygame.draw.circle(self.screen, _skull_col, (_bx_i - 4, _by_i - 4), 3)
+                        pygame.draw.circle(self.screen, _skull_col, (_bx_i + 4, _by_i - 4), 3)
+                        pygame.draw.line(self.screen, _skull_col, (_bx_i - 3, _by_i + 4), (_bx_i + 3, _by_i + 4), 2)
+                    pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - _b_radius - 4), _b_fuse_r)
                     _fuse_glow = int(abs(math.sin(pygame.time.get_ticks() * 0.015)) * 80)
-                    pygame.draw.circle(self.screen, (255, 200 + min(55, _fuse_glow), 50), (_bx_i, _by_i - 24), 3)
+                    pygame.draw.circle(self.screen, (255, 200 + min(55, _fuse_glow), 50), (_bx_i, _by_i - _b_radius - 6), max(2, _b_fuse_r - 2))
                     _ct = _FONT_HUD.render(str(_secs), True, (255, 255, 255))
                     _ct_outline = _FONT_HUD.render(str(_secs), True, (0, 0, 0))
                     for _ox, _oy in [(-1,0),(1,0),(0,-1),(0,1)]:
@@ -3547,8 +3797,9 @@ class mainGame:
                         _dx_b = _bear_cx - _bomb['x']
                         _dy_b = _bear_cy - _bomb['y']
                         _dist_b = math.sqrt(_dx_b*_dx_b + _dy_b*_dy_b)
-                        if _dist_b < 120 and hurtTimer > 60:
-                            _bomb_dmg = max(8, int(bear.getMaxHp() * 0.15))
+                        if _dist_b < _b_explode_radius and hurtTimer > 60:
+                            _bomb_pct = 0.40 if _b_big else 0.30
+                            _bomb_dmg = max(8, int(bear.getMaxHp() * _bomb_pct))
                             bear.applyDamage(_bomb_dmg)
                             bear.displayDamageOnBear(_bomb_dmg, "bomb")
                             hurtTimer = 0
@@ -3563,14 +3814,22 @@ class mainGame:
                         _bomb['vy'] = 0.0
                     _bx_i = int(_bomb['x'])
                     _by_i = int(_bomb['y'])
-                    pygame.draw.circle(self.screen, (40, 40, 40), (_bx_i, _by_i), 16)
-                    pygame.draw.circle(self.screen, (80, 80, 80), (_bx_i, _by_i), 12)
-                    pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - 18), 4)
+                    _fall_r = 24 if _b_big else 16
+                    _fall_inner = 18 if _b_big else 12
+                    _fall_fuse = 6 if _b_big else 4
+                    _fall_col = (60, 0, 80) if _b_big else (40, 40, 40)
+                    _fall_inner_col = (120, 60, 140) if _b_big else (80, 80, 80)
+                    pygame.draw.circle(self.screen, _fall_col, (_bx_i, _by_i), _fall_r)
+                    pygame.draw.circle(self.screen, _fall_inner_col, (_bx_i, _by_i), _fall_inner)
+                    pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - _fall_r - 2), _fall_fuse)
                     _trail_alpha = max(0, 180 - int(_bomb['vy'] * 15))
                     if _trail_alpha > 30:
-                        _ts = pygame.Surface((8, 16), pygame.SRCALPHA)
-                        _ts.fill((255, 160, 50, _trail_alpha))
-                        self.screen.blit(_ts, (_bx_i - 4, _by_i - 30))
+                        _tw = 12 if _b_big else 8
+                        _th = 24 if _b_big else 16
+                        _ts = pygame.Surface((_tw, _th), pygame.SRCALPHA)
+                        _trail_col = (200, 80, 255, _trail_alpha) if _b_big else (255, 160, 50, _trail_alpha)
+                        _ts.fill(_trail_col)
+                        self.screen.blit(_ts, (_bx_i - _tw//2, _by_i - _fall_r - _th))
 
             for _bomb in _bombs_remove:
                 if _bomb in self.bombs:
@@ -3647,6 +3906,9 @@ class mainGame:
                 self.greenBlobs = []
                 self.fires = []
                 self.bombs = []
+                self.shaman_orbs = []
+                self.witch_beams = []
+                self.heart_drops = []
                 self.activeMonsters[1] = True
 
             if totalDistance > 60000:
@@ -5821,9 +6083,9 @@ class Witch():
 
             if self._state == 'approach':
                 _move_x = 1 if _dx > 0 else -1
-                _spd = self.rand + 1
+                _spd = self.rand + 2
                 if _dist < self._preferred_dist + 30:
-                    self._state = 'strafe'
+                    self._state = random.choice(['strafe', 'dive', 'orbit'])
                     self._state_timer = 0
                     self._dodge_dir = random.choice([-1, 1])
             elif self._state == 'strafe':
@@ -5833,28 +6095,53 @@ class Witch():
                     _move_x = 1 if _dx > 0 else -1
                 else:
                     _move_x = self._dodge_dir
-                _spd = self.rand
-                if self._state_timer > random.randint(80, 160):
+                _spd = self.rand + 1
+                if self._state_timer > random.randint(40, 90):
                     self._dodge_dir *= -1
                     self._state_timer = 0
+                    if random.random() < 0.3:
+                        self._state = random.choice(['approach', 'dive', 'orbit'])
                 if _dist > self._preferred_dist + 120:
                     self._state = 'approach'
                     self._state_timer = 0
+            elif self._state == 'dive':
+                _move_x = 1 if _dx > 0 else -1
+                _spd = self.rand + 3
+                if self._state_timer > 30 or _dist < 40:
+                    self._state = 'retreat'
+                    self._state_timer = 0
+            elif self._state == 'retreat':
+                _move_x = -1 if _dx > 0 else 1
+                _spd = self.rand + 2
+                if self._state_timer > 40:
+                    self._state = 'strafe'
+                    self._state_timer = 0
+                    self._dodge_dir = random.choice([-1, 1])
+            elif self._state == 'orbit':
+                _move_x = self._dodge_dir
+                _spd = self.rand + 2
+                if self._state_timer > 120:
+                    self._state = 'approach'
+                    self._state_timer = 0
+                elif self._state_timer % 50 == 49:
+                    self._dodge_dir *= -1
             elif self._state == 'idle':
-                _move_x = 1 if self._strafe_timer % 200 < 100 else -1
-                _spd = self.rand
+                _move_x = self._dodge_dir
+                _spd = self.rand + 1
+                if self._strafe_timer % 60 == 0:
+                    self._dodge_dir *= -1
             else:
                 _move_x = 0
                 _spd = self.rand
 
             if self.y > 60 and _dy_b < -40:
-                _move_y = -self.rand
+                _move_y = -(self.rand + 1)
             elif self.y < 300 and _dy_b > 40:
-                _move_y = self.rand
+                _move_y = self.rand + 1
             elif abs(_dy_b) < 30:
-                _move_y = self._dodge_dir * self.rand if self._strafe_timer % 70 < 35 else 0
+                _move_y = self._dodge_dir * (self.rand + 1) if self._strafe_timer % 40 < 20 else 0
             else:
-                _move_y = 0
+                _move_y = self._dodge_dir if self._state == 'orbit' else 0
 
             self.x += _move_x * _spd + self._sep_offset
             self._sep_offset *= 0.9
