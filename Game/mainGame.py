@@ -593,7 +593,7 @@ class mainGame:
             self.fireball_bounce_sound = _make_snd(_smp)
             self.fireball_bounce_sound.set_volume(0.18)
 
-            pygame.mixer.set_num_channels(20)
+            pygame.mixer.set_num_channels(21)
 
             try:
                 self._ambient_sound = pygame.mixer.Sound("Game/Sounds/spooky_peaceful.wav")
@@ -678,6 +678,24 @@ class mainGame:
                 _smp.append(max(-1.0, min(1.0, _s * _fade * _bow * 0.55)))
             self._layer_violin = _make_snd(_smp)
 
+            _smp = []
+            _melody_freqs = [130.8, 146.8, 164.8, 174.6, 196.0, 220.0, 246.9, 261.6]
+            for _i in range(_LN):
+                _t = _i / _RATE
+                _beat_pos = _math.fmod(_t, 0.5)
+                _sub = _math.fmod(_t, 0.25)
+                _note_idx = int(_t * 2) % len(_melody_freqs)
+                _f = _melody_freqs[_note_idx]
+                _kick = _math.exp(-_beat_pos * 20) * _math.sin(2 * _math.pi * _f * _t) * 0.5
+                _ghost = _math.exp(-max(0, _sub - 0.12) * 25) * _math.sin(2 * _math.pi * (_f * 1.5) * _t) * 0.25
+                _rim = _math.exp(-max(0, _sub - 0.06) * 35) * _rnd.gauss(0, 0.15) * (1 if _sub > 0.06 else 0)
+                _s = _kick + _ghost + _rim
+                _fade = min(1.0, _i / (_RATE * 0.3)) * min(1.0, (_LN - _i) / (_RATE * 0.3))
+                _smp.append(max(-1.0, min(1.0, _s * _fade)))
+            self._layer_melody_drums = _make_snd(_smp)
+
+            pygame.mixer.set_num_channels(21)
+
             self._tension_layers = [
                 {'sound': self._layer_heartbeat, 'channel': pygame.mixer.Channel(12),
                  'threshold': 500,  'max_vol': 0.18, 'current_vol': 0.0, 'active': False},
@@ -691,6 +709,8 @@ class mainGame:
                  'threshold': 36000, 'max_vol': 0.15, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_bells,     'channel': pygame.mixer.Channel(16),
                  'threshold': 30000, 'max_vol': 0.12, 'current_vol': 0.0, 'active': False},
+                {'sound': self._layer_melody_drums, 'channel': pygame.mixer.Channel(19),
+                 'threshold': 36000, 'max_vol': 0.18, 'current_vol': 0.0, 'active': False},
             ]
             self._tension_layers_ready = True
 
@@ -1480,6 +1500,76 @@ class mainGame:
             clock.tick(60)
 
         self._hard_mode_selected = (selected == 1)
+
+        _sel_text = "NORMAL" if selected == 0 else "HARD"
+        _sel_color = (100, 220, 140) if selected == 0 else (255, 80, 80)
+        _effect_font = pygame.font.SysFont(None, 72, bold=True)
+        _effect_len = 50
+        _particles = []
+        for _pi in range(30):
+            _angle = random.uniform(0, 2 * math.pi)
+            _spd = random.uniform(2.0, 6.0)
+            _particles.append({
+                'x': 450.0, 'y': 400.0,
+                'vx': math.cos(_angle) * _spd,
+                'vy': math.sin(_angle) * _spd,
+                'life': random.randint(25, 50),
+                'size': random.randint(3, 8),
+                'color': (min(255, _sel_color[0] + random.randint(-30, 60)),
+                          min(255, _sel_color[1] + random.randint(-30, 60)),
+                          min(255, _sel_color[2] + random.randint(-30, 60)))
+            })
+
+        for _ef in range(_effect_len):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return None
+            self.screen.fill((10, 8, 20))
+
+            _progress = _ef / float(_effect_len)
+            _scale = 0.3 + _progress * 0.7 if _ef < 15 else 1.0
+            _font_size = max(20, int(72 * _scale))
+            _dyn_font = pygame.font.SysFont(None, _font_size, bold=True)
+            _flash = max(0, 1.0 - _ef / 10.0)
+            _r = min(255, int(_sel_color[0] + 155 * _flash))
+            _g = min(255, int(_sel_color[1] + 155 * _flash))
+            _b = min(255, int(_sel_color[2] + 155 * _flash))
+            _txt_s = _dyn_font.render(_sel_text, True, (_r, _g, _b))
+            _txt_x = 450 - _txt_s.get_width() // 2
+            _txt_y = 340 - _txt_s.get_height() // 2
+
+            if _ef < 8:
+                _glow_size = int(120 + 40 * (1.0 - _ef / 8.0))
+                _glow_s = pygame.Surface((_glow_size * 2, _glow_size * 2), pygame.SRCALPHA)
+                _glow_alpha = int(180 * (1.0 - _ef / 8.0))
+                pygame.draw.circle(_glow_s, (_sel_color[0], _sel_color[1], _sel_color[2], _glow_alpha),
+                                   (_glow_size, _glow_size), _glow_size)
+                self.screen.blit(_glow_s, (450 - _glow_size, 340 - _glow_size))
+
+            for _p in _particles:
+                if _p['life'] > 0:
+                    _p['x'] += _p['vx']
+                    _p['y'] += _p['vy']
+                    _p['vy'] += 0.1
+                    _p['life'] -= 1
+                    _pa = min(255, _p['life'] * 8)
+                    _ps = pygame.Surface((_p['size'] * 2, _p['size'] * 2), pygame.SRCALPHA)
+                    pygame.draw.circle(_ps, (_p['color'][0], _p['color'][1], _p['color'][2], _pa),
+                                       (_p['size'], _p['size']), _p['size'])
+                    self.screen.blit(_ps, (int(_p['x']) - _p['size'], int(_p['y']) - _p['size']))
+
+            self.screen.blit(_txt_s, (_txt_x, _txt_y))
+
+            if _ef > 5:
+                _sub_font = pygame.font.SysFont(None, 24)
+                _sub_alpha = min(255, (_ef - 5) * 12)
+                _sub_s = _sub_font.render("Get ready...", True, (180, 170, 200))
+                _sub_s.set_alpha(_sub_alpha)
+                self.screen.blit(_sub_s, (450 - _sub_s.get_width() // 2, 390))
+
+            pygame.display.update()
+            clock.tick(60)
 
         _last_frame = self.screen.copy()
         _transition_len = 90
@@ -3121,7 +3211,7 @@ class mainGame:
 
             for monster in to_remove:
                 _hp_ratio = bear.getHp() / max(1, bear.getMaxHp())
-                _heart_chance = 0.75 if _hp_ratio < 0.15 else (0.50 if _hp_ratio < 0.30 else 0.0)
+                _heart_chance = 0.75 if _hp_ratio < 0.15 else (0.50 if _hp_ratio < 0.30 else (0.30 if _hp_ratio < 0.50 else 0.0))
                 if _heart_chance > 0 and random.random() < _heart_chance:
                     self.heart_drops.append({
                         'x': float(monster.getXPosition() + 40),
@@ -3716,7 +3806,7 @@ class mainGame:
                 pygame.draw.circle(_heart_s, (255, 50, 80, 220), (_hcx + _hr//3, _hcy - _hr//4), _hr//2 + 1)
                 pygame.draw.polygon(_heart_s, (255, 50, 80, 220), [
                     (_hcx - _hr, _hcy - 1), (_hcx, _hcy + _hr), (_hcx + _hr, _hcy - 1)])
-                _plus_txt = _FONT_HUD.render('+10', True, (255, 255, 255))
+                _plus_txt = _FONT_HUD.render('+25', True, (255, 255, 255))
                 _heart_s.blit(_plus_txt, (_hcx - _plus_txt.get_width()//2, _hcy - _plus_txt.get_height()//2))
                 self.screen.blit(_heart_s, (_hx - _hcx, _hy - _hcy))
                 if _hd['life'] <= 0:
@@ -3724,7 +3814,7 @@ class mainGame:
                 elif _hd['landed']:
                     _hd_rect = pygame.Rect(_hx - 15, _hy - 15, 30, 30)
                     if _hd_rect.colliderect(pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)):
-                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + 10))
+                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + 25))
                         bear.setCoins(bear.getCoins() + 1)
                         if getattr(self, 'coin_sound', None):
                             self.coin_sound.play()
@@ -3733,14 +3823,14 @@ class mainGame:
                 if _hd in self.heart_drops:
                     self.heart_drops.remove(_hd)
 
-            if not _popup_active and totalDistance < 30000 and totalDistance > 500:
+            if not _popup_active and totalDistance < 56000 and totalDistance > 500:
                 self._bomb_spawn_timer += 1
-                _bomb_interval = 1800
+                _bomb_interval = 900
                 if self._bomb_spawn_timer >= _bomb_interval:
                     self._bomb_spawn_timer = 0
                     import random as _br
                     _bear_bx = bear.getXPosition() + 50
-                    _bx = max(30, min(870, _bear_bx + _br.randint(50, 250) * _br.choice([-1, 1])))
+                    _bx = max(30, min(870, _bear_bx + _br.randint(200, 500)))
                     _is_big = _br.random() < 0.20
                     _timer_secs = _br.choice([1, 2, 3])
                     self.bombs.append({
@@ -4121,14 +4211,15 @@ class mainGame:
             bear.displayBearExp()
             bear.displayBearCoins()
             if (not self._critical_hp_popup_shown
-                    and bear.getHp() < bear.getMaxHp() * 0.30
+                    and bear.getHp() < bear.getMaxHp() * 0.50
                     and bear.getHp() > 0 and bear.getEndText()):
                 self._critical_hp_popup_shown = True
                 bear.setArrayText([
-                    'CRITICAL HEALTH!', '',
-                    'Some enemies drop hearts',
-                    'when your health is low.',
-                    'Defeat them to recover HP!',
+                    'WARNING: HP GETTING LOW!', '',
+                    'Between 30-50% HP, enemies',
+                    'have a 30% chance to drop hearts.',
+                    'Below 30% the chance is even higher!',
+                    'Each heart restores 25 HP.',
                     '', 'Press "s" to continue'])
                 bear.setEndText(False)
             if getattr(self, '_hard_mode_selected', False):
@@ -4351,6 +4442,10 @@ class mainGame:
                 self._post_boss_platform_popup_shown = False
                 self._fireball_tutorial_shown = True
                 self._clear_poison(bear)
+                self._checkpoint_saved = False
+                self._checkpoint_used = False
+                self._checkpoint_data = None
+                self._critical_hp_popup_shown = False
 
                 if transition_mode == 'jungle':
                     self._jungle_unlocked = True
@@ -8165,7 +8260,7 @@ class Snake:
         self.width = 220
         self.height = 100
         self.y = self.FLOOR_Y - self.height
-        self.health = int(15 * 1.80)
+        self.health = int(15 * 1.80 * 2)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.speed = random.choice([1, 1, 2, 2])

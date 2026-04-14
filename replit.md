@@ -187,3 +187,9 @@ python main.py
 - **Ambient background music** — after defeating the big mummy boss, spooky_peaceful.wav continues playing on a dedicated mixer channel (ch18) underneath all subsequent music tracks at low volume (0.15); muted when the main track IS spooky_peaceful to avoid doubling; quieter (0.08) during boss_final; stops on NG+ restart and checkpoint reload
 - **Seamless background scrolling** — removed 5px and 15px gaps between background tile pairs that caused visible black vertical bars at tile seams
 - **Checkpoint text fix** — returning to checkpoint no longer re-shows the big mummy tutorial messages; triggerText flags are set based on restart distance so already-seen popups don't replay
+- **Melody drums at 60%** — new tension layer at distance 36000 (ch19) with pitched kick drums following an ascending C-major scale pattern, ghost notes, and rim clicks
+- **NG+ checkpoint cycle** — checkpoint state resets on NG+ transition so a new checkpoint saves at 50% each playthrough; dying in NG+ respawns at checkpoint properly
+- **Mode selection text effect** — selecting NORMAL or HARD triggers a flashy animation: text scales up with a bright glow burst, color-matched particles explode outward, then fades to black
+- **Snake HP doubled** — snake base health increased from 27 to 54
+- **Bombs every 15 seconds** — bomb interval halved from 1800 to 900 frames; bombs now drop 200-500px ahead of the player (always forward) so the bear walks into them; active through distance 56000 (covers NG+ too)
+- **Heart drop changes** — HP popup triggers at 50% instead of 30%; between 30-50% HP enemies have 30% drop chance; below 30% is 50%; below 15% is 75%; each heart restores 25 HP (was 10)
