@@ -185,3 +185,5 @@ python main.py
 - **ShadowShaman 4 attack patterns** — radial burst, spiral, cross, and aimed fan; 6-10 orbs per volley with varied colors (green, lime, teal, chartreuse); per-shaman cooldown so multiple shamans fire independently
 - **Bombs drop near player** — bombs now land within 50-250px of the bear's position instead of randomly across the screen
 - **Ambient background music** — after defeating the big mummy boss, spooky_peaceful.wav continues playing on a dedicated mixer channel (ch18) underneath all subsequent music tracks at low volume (0.15); muted when the main track IS spooky_peaceful to avoid doubling; quieter (0.08) during boss_final; stops on NG+ restart and checkpoint reload
+- **Seamless background scrolling** — removed 5px and 15px gaps between background tile pairs that caused visible black vertical bars at tile seams
+- **Checkpoint text fix** — returning to checkpoint no longer re-shows the big mummy tutorial messages; triggerText flags are set based on restart distance so already-seen popups don't replay

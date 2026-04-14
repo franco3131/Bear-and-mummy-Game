@@ -1020,9 +1020,14 @@ class mainGame:
         self.bossTimerAnimation = 0
         self.leftBoundary = 180
         self.rightBoundary = 300
-        self.triggerText1 = False
-        self.triggerText2 = False
-        self.triggerText3 = False
+        if restart_dist > 5000:
+            self.triggerText1 = True
+            self.triggerText2 = True
+            self.triggerText3 = True
+        else:
+            self.triggerText1 = (restart_dist > 2300)
+            self.triggerText2 = False
+            self.triggerText3 = False
         self.lightning_anim = 0
         self.lightning_cooldown = 0
         self.lightning2_targets = []
@@ -5557,11 +5562,11 @@ class Background():
             _bg_draw2 = self._blue_cached2
 
         self.surface.blit(_bg_draw1, (self.bgX1, self.bgY1))
-        self.surface.blit(_bg_draw2, (self.bgX2 + 5, self.bgY2))
+        self.surface.blit(_bg_draw2, (self.bgX2, self.bgY2))
         _is_jungle = getattr(self, '_jungle_mode', False)
         _cur_floor = self.dirt_floor if _is_jungle else self.floor
         self.surface.blit(_cur_floor, (self.bgX1, self.bgY1 + 400))
-        self.surface.blit(_cur_floor, (self.bgX2 + 5, self.bgY2 + 400))
+        self.surface.blit(_cur_floor, (self.bgX2, self.bgY2 + 400))
         self.surface.blit(self.water, (self.bgX1, self.bgY1 + 600))
         self.surface.blit(self.water, (self.bgX2, self.bgY2 + 600))
         if not _is_jungle:
@@ -5579,9 +5584,9 @@ class Background():
             self.bgX1 -= self.moving_speed
             self.bgX2 -= self.moving_speed
             if self.bgX1 <= -self.rectBGimg.width:
-                self.bgX1 = self.rectBGimg.width + 15
+                self.bgX1 = self.rectBGimg.width
             if self.bgX2 <= -self.rectBGimg.width:
-                self.bgX2 = self.rectBGimg.width + 15
+                self.bgX2 = self.rectBGimg.width
         elif characterPosition <= 180:
             self.totalX -= STEP
             self.bgX1 += self.moving_speed
