@@ -4035,7 +4035,7 @@ class mainGame:
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
-            self._z1_mummy.setXPosition(1200)  # Start further right; walks toward player
+            self._z1_mummy.setXPosition(750)  # Start just off right edge; walks toward player
             self.mummys.append(self._z1_mummy)
 
             self.door1 = self._z1_door
