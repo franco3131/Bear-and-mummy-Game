@@ -849,6 +849,8 @@ class mainGame:
         self.monkey_mummies = []
         self.bombs = []
         self._bomb_spawn_timer = 0
+        self._bomb_wave_30 = False
+        self._bomb_wave_60 = False
         self.heart_drops = []
         self.shaman_orbs = []
         self._shaman_orb_timer = 0
@@ -1026,6 +1028,7 @@ class mainGame:
         self.beamProjectiles = []; self.waterfalls = []
         self.spikes = []; self.door = []; self.keys = []
         self.frankenbear = []; self.bombs = []; self._bomb_spawn_timer = 0
+        self._bomb_wave_30 = False; self._bomb_wave_60 = False
         self.heart_drops = []; self.shaman_orbs = []; self._shaman_orb_timer = 0
         self.witch_beams = []
 
@@ -3232,8 +3235,8 @@ class mainGame:
 
             for monster in to_remove:
                 _hp_ratio = bear.getHp() / max(1, bear.getMaxHp())
-                _heart_chance = 0.75 if _hp_ratio < 0.15 else (0.50 if _hp_ratio < 0.30 else (0.30 if _hp_ratio < 0.50 else 0.0))
-                if _heart_chance > 0 and random.random() < _heart_chance:
+                _heart_chance = 0.75 if _hp_ratio < 0.15 else (0.50 if _hp_ratio < 0.30 else (0.30 if _hp_ratio < 0.50 else 0.10))
+                if random.random() < _heart_chance:
                     self.heart_drops.append({
                         'x': float(monster.getXPosition() + 40),
                         'y': float(monster.getYPosition()),
@@ -3282,8 +3285,8 @@ class mainGame:
                                                monster.getYPosition() + 30, self.screen))
                 elif monster in self.snakes:
                     self.snakes.remove(monster)
-                    for _ci in range(random.randint(1, 3)):
-                        self.coins.append(Coin(monster.getXPosition() + 20 + _ci * 18,
+                    for _ci in range(6):
+                        self.coins.append(Coin(monster.getXPosition() + 10 + _ci * 16,
                                                monster.getYPosition() + 30, self.screen))
                 elif monster in self.monkey_mummies:
                     self.monkey_mummies.remove(monster)
@@ -3844,6 +3847,31 @@ class mainGame:
             for _hd in _hd_remove:
                 if _hd in self.heart_drops:
                     self.heart_drops.remove(_hd)
+
+            if not getattr(self, '_bomb_wave_30', False) and backgroundScrollX >= 18000:
+                self._bomb_wave_30 = True
+                import random as _br30
+                _bear_cx30 = bear.getXPosition() + 50
+                for _bwi in range(4):
+                    _bwx = max(30, min(870, _bear_cx30 + _br30.randint(100, 600) * (_br30.choice([-1, 1]))))
+                    self.bombs.append({
+                        'x': float(_bwx), 'y': -40.0 - _bwi * 30, 'vy': 3.0,
+                        'landed': False, 'timer': _br30.choice([2, 3]) * 60,
+                        'exploding': False, 'explode_anim': 0,
+                        'big': _bwi == 0
+                    })
+            if not getattr(self, '_bomb_wave_60', False) and backgroundScrollX >= 36000:
+                self._bomb_wave_60 = True
+                import random as _br60
+                _bear_cx60 = bear.getXPosition() + 50
+                for _bwi in range(5):
+                    _bwx = max(30, min(870, _bear_cx60 + _br60.randint(100, 600) * (_br60.choice([-1, 1]))))
+                    self.bombs.append({
+                        'x': float(_bwx), 'y': -40.0 - _bwi * 25, 'vy': 3.5,
+                        'landed': False, 'timer': _br60.choice([1, 2, 3]) * 60,
+                        'exploding': False, 'explode_anim': 0,
+                        'big': _bwi < 2
+                    })
 
             if not _popup_active and totalDistance < 56000 and totalDistance > 500:
                 self._bomb_spawn_timer += 1
@@ -4408,6 +4436,10 @@ class mainGame:
                 self.snakes = []; self.monkey_mummies = []; self.lions = []; self.coins = []
                 self.venom_balls = []
                 self.destroyable_blocks = []; self.beamProjectiles = []
+                self.bombs = []; self._bomb_spawn_timer = 0
+                self._bomb_wave_30 = False; self._bomb_wave_60 = False
+                self.heart_drops = []; self.shaman_orbs = []; self._shaman_orb_timer = 0
+                self.witch_beams = []
 
                 self.showBoss = True
                 self.triggerText1 = False; self.triggerText2 = False
@@ -4496,11 +4528,12 @@ class mainGame:
                     self._jungle_unlocked = False
                     background._ng_blue = True
                     _ng_hp_mult = (1.0 + 10.0 * self.newGamePlusLevel) * 0.7
+                    _ng_hp_early = _ng_hp_mult * 0.8
                     _ng_dmg_mult = 1.0 + 3.0 * self.newGamePlusLevel
                     _ng_exp_mult = 1.0 + 1.0 * self.newGamePlusLevel
                     _ng_spd_mult = 1.0 + 0.2 * self.newGamePlusLevel
                     self._z1_mummy = Mummy(1000, 20, 260, 360, self.mummy1, self.mummy2, self.screen)
-                    self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_mult)
+                    self._z1_mummy.health = int(self._z1_mummy.health * _ng_hp_early)
                     self._z1_mummy.damageAttack = int(self._z1_mummy.damageAttack * _ng_dmg_mult)
                     self._z1_mummy.exp = int(self._z1_mummy.exp * _ng_exp_mult)
                     self._z1_mummy.rand = max(1, round(self._z1_mummy.rand * _ng_spd_mult))
@@ -4518,7 +4551,7 @@ class mainGame:
                     self.blocks.extend([_b1, _b2, _b3, _b5, _b6, _b7, _b8])
                     for _mx in [700, 1000, 1300, 1600]:
                         _m = Mummy(_mx, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
-                        _m.health = int(_m.health * _ng_hp_mult)
+                        _m.health = int(_m.health * _ng_hp_early)
                         _m.damageAttack = int(_m.damageAttack * _ng_dmg_mult)
                         _m.rand = max(1, round(_m.rand * _ng_spd_mult))
                         self.mummys.append(_m)
@@ -4795,6 +4828,8 @@ class mainGame:
             self.greenBlobs.append(GreenBlob(1310, 300, 100, 100, self.screen, self.blob_jump_sound))
             self.greenBlobs.append(GreenBlob(1720, 300, 100, 100, self.screen, self.blob_jump_sound))
 
+            self.miniFrankenBears.append(MiniFrankenBear(2050, 180, self.screen))
+
             # ── Two witches: one low-and-close, one high-and-far ─────────────
             witch1 = Witch(1800,  80, self.witch, self.witch2, self.screen, self.fireball_sound)
             witch2 = Witch(2200, 140, self.witch, self.witch2, self.screen, self.fireball_sound)
@@ -4817,6 +4852,9 @@ class mainGame:
             greenBlob3 = GreenBlob(1750, 300, 100, 100, self.screen, self.blob_jump_sound)
             greenBlob4 = GreenBlob(2100, 300, 100, 100, self.screen, self.blob_jump_sound)
             self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3, greenBlob4])
+
+            self.miniFrankenBears.append(MiniFrankenBear(2400, 160, self.screen))
+            self.miniFrankenBears.append(MiniFrankenBear(2800, 200, self.screen))
 
             x = 1950
             for _ in range(6):
@@ -4849,6 +4887,7 @@ class mainGame:
             for x in [1030, 1500, 1900]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
+            self.miniFrankenBears.append(MiniFrankenBear(2300, 140, self.screen))
             self.triggerFire = True
 
         # ── Zone 3.5 @ 22 000 – waterfall passage ─────────────────────────────
@@ -5133,11 +5172,13 @@ class mainGame:
             _ng_dmg_m = 1.0 + 3.0 * self.newGamePlusLevel
             _ng_exp_m = 1.0 + 1.0 * self.newGamePlusLevel
             _ng_spd_m = 1.0 + 0.2 * self.newGamePlusLevel
+            _ng_early = backgroundScrollX < 18000
             for _m in (self.mummys + self.witches + self.greenBlobs +
                        self.shadowShamans + self.miniFrankenBears + self.lions):
                 if not getattr(_m, '_ng_boosted', False):
                     _m._ng_boosted = True
-                    _m.health = int(_m.health * _ng_hp_m)
+                    _hp_mult = _ng_hp_m * 0.8 if _ng_early else _ng_hp_m
+                    _m.health = int(_m.health * _hp_mult)
                     _m.damageAttack = int(_m.damageAttack * _ng_dmg_m)
                     _m.exp = int(_m.exp * _ng_exp_m)
                     if hasattr(_m, 'walk_speed'):

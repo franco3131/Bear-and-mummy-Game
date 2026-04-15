@@ -192,4 +192,9 @@ python main.py
 - **Mode selection text effect** — selecting NORMAL or HARD triggers a flashy animation: text scales up with a bright glow burst, color-matched particles explode outward, then fades to black
 - **Snake HP doubled** — snake base health increased from 27 to 54
 - **Bombs every 15 seconds** — bomb interval halved from 1800 to 900 frames; bombs now drop 200-500px ahead of the player (always forward) so the bear walks into them; active through distance 56000 (covers NG+ too)
-- **Heart drop changes** — HP popup triggers at 50% instead of 30%; between 30-50% HP enemies have 30% drop chance; below 30% is 50%; below 15% is 75%; each heart restores 25 HP (was 10)
+- **Heart drop changes** — HP popup triggers at 50% instead of 30%; between 30-50% HP enemies have 30% drop chance; below 30% is 50%; below 15% is 75%; each heart restores 25 HP (was 10); baseline 10% drop chance from any enemy kill even at full HP
+- **Snakes drop 6 coins** — snakes now drop 6 coins on defeat instead of 1-3
+- **MiniFrankenBears in empty zones** — MiniFrankenBears now spawn in Zone 1.5 (Crumbling Ruins), Zone 2 (green blobs), and Zone 3 (witch encounter) to fill empty areas
+- **NG+ early-game HP reduction** — in the first 30% of NG+ (backgroundScrollX < 18000), enemy HP is reduced by 20% to ease re-entry
+- **Bomb waves at 30% and 60%** — 4 bombs drop at 30% progress (18000) and 5 bombs at 60% (36000) as one-time wave events; flags reset on NG+/checkpoint
+- **Zone transition invincibility** — entering a new zone grants ~1.5 seconds of invincibility via hurtTimer reset to prevent cheap hits from spawning enemies
