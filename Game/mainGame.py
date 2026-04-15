@@ -712,7 +712,7 @@ class mainGame:
                 {'sound': self._layer_strings,   'channel': pygame.mixer.Channel(13),
                  'threshold': 2000, 'max_vol': 0.14, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_drums,     'channel': pygame.mixer.Channel(14),
-                 'threshold': 4000, 'max_vol': 0.16, 'current_vol': 0.0, 'active': False},
+                 'threshold': 4000, 'max_vol': 0.32, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_choir,     'channel': pygame.mixer.Channel(15),
                  'threshold': 8000, 'max_vol': 0.13, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_violin,    'channel': pygame.mixer.Channel(17),
@@ -2312,13 +2312,21 @@ class mainGame:
                     elif jumpTimer > 12:
                         totalDistance += STEP
                         _jump_moved = True
+                        _plat_block = None
+                        for block in self.blocks:
+                            if block.getOnPlatform():
+                                _plat_block = block
+                                break
                         if bear.getXPosition() < self.rightBoundary:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
-                                if block.getIsLeftBoundary():
-                                    totalDistance -= STEP
-                                    _jump_moved = False
-                            if _jump_moved and _tall_wall_ahead(bear.getXPosition()):
+                            if _plat_block:
+                                _plat_block.setIsLeftBoundary(False)
+                                _plat_block.setIsRightBoundary(False)
+                            if any(b.getIsLeftBoundary() for b in self.blocks):
+                                totalDistance -= STEP
+                                _jump_moved = False
+                            if _jump_moved and _tall_wall_ahead(bear.getXPosition(), _plat_block):
                                 totalDistance -= STEP
                                 _jump_moved = False
                             backgroundScrollX = bear.getXPosition() - STEP
@@ -2328,8 +2336,11 @@ class mainGame:
                         else:
                             for block in self.blocks:
                                 block.isBoundaryPresent(bear.getXPosition(), bear.getYPosition())
+                            if _plat_block:
+                                _plat_block.setIsLeftBoundary(False)
+                                _plat_block.setIsRightBoundary(False)
                             if (any(b.getIsLeftBoundary() for b in self.blocks)
-                                    or _tall_wall_ahead(bear.getXPosition())):
+                                    or _tall_wall_ahead(bear.getXPosition(), _plat_block)):
                                 totalDistance -= STEP
                                 _jump_moved = False
                             else:
@@ -3808,16 +3819,17 @@ class mainGame:
                         _hd['vy'] = 0.0
                 _hd['life'] -= 1
                 _hx, _hy = int(_hd['x']), int(_hd['y'])
-                _hd_pulse = abs(math.sin(pygame.time.get_ticks() * 0.006)) * 3
-                _hr = int(12 + _hd_pulse)
-                _heart_s = pygame.Surface((_hr*2+4, _hr*2+4), pygame.SRCALPHA)
-                _hcx, _hcy = _hr+2, _hr+2
-                pygame.draw.circle(_heart_s, (255, 50, 80, 220), (_hcx - _hr//3, _hcy - _hr//4), _hr//2 + 1)
-                pygame.draw.circle(_heart_s, (255, 50, 80, 220), (_hcx + _hr//3, _hcy - _hr//4), _hr//2 + 1)
+                _hd_pulse = abs(math.sin(pygame.time.get_ticks() * 0.006)) * 4
+                _hr = int(22 + _hd_pulse)
+                _heart_s = pygame.Surface((_hr*2+6, _hr*2+6), pygame.SRCALPHA)
+                _hcx, _hcy = _hr+3, _hr+3
+                pygame.draw.circle(_heart_s, (255, 50, 80, 220), (_hcx - _hr//3, _hcy - _hr//4), _hr//2 + 2)
+                pygame.draw.circle(_heart_s, (255, 50, 80, 220), (_hcx + _hr//3, _hcy - _hr//4), _hr//2 + 2)
                 pygame.draw.polygon(_heart_s, (255, 50, 80, 220), [
                     (_hcx - _hr, _hcy - 1), (_hcx, _hcy + _hr), (_hcx + _hr, _hcy - 1)])
-                _plus_txt = _FONT_HUD.render('+25', True, (255, 255, 255))
-                _heart_s.blit(_plus_txt, (_hcx - _plus_txt.get_width()//2, _hcy - _plus_txt.get_height()//2))
+                _plus_font = pygame.font.SysFont(None, 28, bold=True)
+                _plus_txt = _plus_font.render('+25', True, (255, 255, 255))
+                _heart_s.blit(_plus_txt, (_hcx - _plus_txt.get_width()//2, _hcy - _plus_txt.get_height()//2 - 2))
                 self.screen.blit(_heart_s, (_hx - _hcx, _hy - _hcy))
                 if _hd['life'] <= 0:
                     _hd_remove.append(_hd)
@@ -4073,7 +4085,7 @@ class mainGame:
                         if not _popup_active and (frankenbear.getThrowFireBallLeft() or frankenbear.getThrowFireBallRight()):
                             frankenbear.setThrowFireBallLeft(False)
                             frankenbear.setThrowFireBallRight(False)
-                            volley = 6 if frankenbear.getHealth() <= 10 else 4
+                            volley = 2
                             import math as _m
                             _fx = frankenbear.getXPosition() + 200
                             _fy = frankenbear.getYPosition() + 100
@@ -4083,8 +4095,8 @@ class mainGame:
                             _dy = _by - _fy
                             _dist = max(1, _m.sqrt(_dx*_dx + _dy*_dy))
                             for _ in range(volley):
-                                _speed = random.uniform(6, 11)
-                                _spread = random.uniform(-0.25, 0.25)
+                                _speed = random.uniform(3, 5)
+                                _spread = random.uniform(-0.15, 0.15)
                                 _vx = _speed * (_dx / _dist) + _spread * _speed
                                 _vy_raw = _speed * (_dy / _dist)
                                 _vy_raw = max(1, abs(_vy_raw)) * (1 if _dy > 0 else -1)
@@ -4220,6 +4232,22 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
             bear.displayBearCoins()
+            _luf = getattr(bear, '_level_up_float', 0)
+            if _luf > 0:
+                bear._level_up_float -= 1
+                _luf_t = _luf / 120.0
+                _luf_y = int(200 - (120 - _luf) * 0.8)
+                _luf_alpha = min(255, int(_luf * 4))
+                _luf_scale = min(1.0, (120 - _luf) / 10.0) if _luf > 110 else 1.0
+                _luf_size = max(20, int(48 * _luf_scale))
+                _luf_font = pygame.font.SysFont(None, _luf_size, bold=True)
+                _luf_glow_c = (255, 255, 100, min(180, int(_luf * 3)))
+                _luf_gs = pygame.Surface((300, 60), pygame.SRCALPHA)
+                pygame.draw.ellipse(_luf_gs, _luf_glow_c, (0, 0, 300, 60))
+                self.screen.blit(_luf_gs, (300, _luf_y - 15))
+                _luf_txt = _luf_font.render(getattr(bear, '_level_up_text', 'LEVEL UP!'), True, (255, 255, 80))
+                _luf_txt.set_alpha(_luf_alpha)
+                self.screen.blit(_luf_txt, (450 - _luf_txt.get_width() // 2, _luf_y))
             if (not self._critical_hp_popup_shown
                     and bear.getHp() < bear.getMaxHp() * 0.50
                     and bear.getHp() > 0 and bear.getEndText()):
@@ -4624,6 +4652,7 @@ class mainGame:
         # ── Zone 1 @ 5 000 – big mummy flanked by monster blocks ─────────────
         if backgroundScrollX > 5000 and not self.activeMonsters[1]:
             self.activeMonsters[1] = True
+            hurtTimer = -30
             if getattr(self, 'enemy_spawn_sound', None): self.enemy_spawn_sound.play()
             self._switch_music("boss_mummy")
             self.mummys = []; self.witches = []; self.blocks = []
@@ -4711,6 +4740,7 @@ class mainGame:
         # ── Zone 1.2 @ 8 000 – "Enchanted Tomb" mystical gauntlet ──────────────
         elif not self._monkey_level_active and backgroundScrollX > 8000 and not self.activeMonsters[14]:
             self.activeMonsters[14] = True
+            hurtTimer = -30
             self._switch_music("enchanted_tomb")
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.snakes = []
@@ -4734,6 +4764,7 @@ class mainGame:
         # ── Zone 1.5 @ 11 000 – "Crumbling Ruins" gauntlet ───────────────────
         elif not self._monkey_level_active and backgroundScrollX > 11000 and not self.activeMonsters[10]:
             self.activeMonsters[10] = True
+            hurtTimer = -30
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
@@ -4773,6 +4804,7 @@ class mainGame:
         # ── Zone 2 @ 14 500 – green blobs on a rock platform ──────────────────
         elif not self._monkey_level_active and backgroundScrollX > 14500 and not self.activeMonsters[3]:
             self.activeMonsters[3] = True
+            hurtTimer = -30
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []
 
@@ -4795,6 +4827,7 @@ class mainGame:
         # ── Zone 3 @ 18 500 – first witch encounter (3 witches) ──────────────
         elif not self._monkey_level_active and backgroundScrollX > 18500 and not self.activeMonsters[2]:
             self.activeMonsters[2] = True
+            hurtTimer = -30
             if getattr(self, 'enemy_spawn_sound', None): self.enemy_spawn_sound.play()
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
@@ -4821,6 +4854,7 @@ class mainGame:
         # ── Zone 3.5 @ 22 000 – waterfall passage ─────────────────────────────
         elif not self._monkey_level_active and backgroundScrollX > 22000 and not self.activeMonsters[13]:
             self.activeMonsters[13] = True
+            hurtTimer = -30
             self.mummys = []; self.witches = []; self.blocks = []
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
             self.miniFrankenBears = []; self.lasers = []; self.waterfalls = []
@@ -4842,6 +4876,7 @@ class mainGame:
                 self.water_sound.stop()
                 self._water_playing = False
             self.activeMonsters[4] = True
+            hurtTimer = -30
             if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
             self._hardMode = True
             if hasattr(self, '_bg_ref') and self._bg_ref:
@@ -7285,7 +7320,6 @@ class Bear:
         if self.maxExp <= self.exp:
             if hasattr(self, 'level_up_sound') and self.level_up_sound:
                 self.level_up_sound.play()
-            self.setEndText(False)
             self.level += 1
             self.maxExp += 20
             self.exp = 0
@@ -7297,20 +7331,28 @@ class Bear:
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
             self.fireballDamage = int(self.fireballDamage * 1.20) + 1
-            self.textArray = []
-            self.showBearArray = []
-            self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
-            self.showBearArray.append(False)
-            self.textArray.append([
-                'Max HP is now: ' + str(self.maxHp),
-                'Attack is now: ' + str(self.damageAttack),
-                'Press "s" to continue'
-            ])
-            self.showBearArray.append(False)
-            if self.level % 2 == 0:
-                self.textArray.append(['Firing is faster now!', '', 'Press "s" to continue'])
+            if self.level <= 2:
+                self.setEndText(False)
+                self.textArray = []
+                self.showBearArray = []
+                self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
                 self.showBearArray.append(False)
+                self.textArray.append([
+                    'Max HP is now: ' + str(self.maxHp),
+                    'Attack is now: ' + str(self.damageAttack),
+                    'Press "s" to continue'
+                ])
+                self.showBearArray.append(False)
+                if self.level % 2 == 0:
+                    self.textArray.append(['Firing is faster now!', '', 'Press "s" to continue'])
+                    self.showBearArray.append(False)
+            else:
+                self._level_up_float = 120
+                self._level_up_text = 'LEVEL UP! Lv.' + str(self.level)
             if self.level == 14:
+                self.setEndText(False)
+                self.textArray = []
+                self.showBearArray = []
                 self.textArray.append(['SILVER MODE ACTIVATED!', 'Speed increased by 50%!', 'Press "s" to continue'])
                 self.showBearArray.append(False)
                 self.textArray.append(['Firing rate MASSIVELY increased!', 'Rapid fire unlocked!', 'Press "s" to continue'])
