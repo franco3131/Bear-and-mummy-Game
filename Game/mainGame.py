@@ -860,6 +860,10 @@ class mainGame:
         self._paused_snapshot = None
         self._muted = False
         self._saved_music_vol = 1.0
+        self._combo = 0
+        self._combo_timer = 0
+        self._combo_max_session = 0
+        self._intro_banner = None
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -3290,6 +3294,10 @@ class mainGame:
                         to_remove.append(monster)
 
             for monster in to_remove:
+                self._combo += 1
+                self._combo_timer = 150
+                if self._combo > self._combo_max_session:
+                    self._combo_max_session = self._combo
                 _hp_ratio = bear.getHp() / max(1, bear.getMaxHp())
                 _heart_chance = 0.75 if _hp_ratio < 0.15 else (0.50 if _hp_ratio < 0.30 else (0.30 if _hp_ratio < 0.50 else 0.10))
                 if random.random() < _heart_chance:
@@ -3485,6 +3493,17 @@ class mainGame:
             for coin in self.coins:
                 coin.setBlocks(self.blocks)
                 coin.update()
+                if getattr(coin, 'landed', False):
+                    _ccx = coin.getXPosition() + 15
+                    _ccy = coin.getYPosition() + 15
+                    _bcx = bear.getXPosition() + 50
+                    _bcy = bear.getYPosition() + 50
+                    _cdx = _bcx - _ccx
+                    _cdy = _bcy - _ccy
+                    _cdist = (_cdx * _cdx + _cdy * _cdy) ** 0.5
+                    if _cdist < 140 and _cdist > 1:
+                        _cpull = 0.5 + (140 - _cdist) * 0.06
+                        coin.setXPosition(coin.getXPosition() + (_cdx / _cdist) * _cpull)
                 coin.draw()
                 if coin.is_grabbed(bear.getXPosition(), bear.getYPosition()):
                     coins_to_remove.append(coin)
@@ -4144,6 +4163,7 @@ class mainGame:
                 self.activeMonsters[9] = True
                 if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
                 self._switch_music("boss_final")
+                self._intro_banner = {'text': 'FRANKENBEAR', 'sub': 'final challenge', 'frames': 240, 'max': 240, 'color': (255, 130, 200)}
                 self.mummys = []
                 self.witches = []
                 self.blocks = []
@@ -4339,6 +4359,66 @@ class mainGame:
                 _vig_alpha = int(70 + 90 * _vig_pulse * (1.0 - _hp_ratio_v / 0.25))
                 self._vig_base.set_alpha(max(0, min(255, _vig_alpha)))
                 self.screen.blit(self._vig_base, (0, 0))
+            if self._combo_timer > 0:
+                self._combo_timer -= 1
+                if self._combo_timer == 0:
+                    self._combo = 0
+            if self._combo >= 2 and self._combo_timer > 0:
+                _ct_frac = self._combo_timer / 150.0
+                _ct_alpha = int(255 * min(1.0, _ct_frac * 2.5))
+                _ct_size = 36 + min(20, self._combo * 2)
+                _ct_pulse = 1.0 + 0.08 * abs(math.sin(pygame.time.get_ticks() * 0.012))
+                _ct_size = int(_ct_size * _ct_pulse)
+                _ct_font = pygame.font.SysFont(None, _ct_size, bold=True)
+                _ct_palette = [(255, 200, 100), (255, 150, 80), (255, 100, 100), (255, 80, 200), (180, 80, 255)]
+                _ct_color = _ct_palette[min(len(_ct_palette) - 1, (self._combo - 2) // 3)]
+                _ct_text = 'x' + str(self._combo) + ' COMBO!'
+                _ct_surf = _ct_font.render(_ct_text, True, _ct_color)
+                _ct_shadow = _ct_font.render(_ct_text, True, (0, 0, 0))
+                _ct_x = 880 - _ct_surf.get_width()
+                _ct_y = 90
+                _ct_shadow.set_alpha(_ct_alpha)
+                _ct_surf.set_alpha(_ct_alpha)
+                self.screen.blit(_ct_shadow, (_ct_x + 3, _ct_y + 3))
+                self.screen.blit(_ct_surf, (_ct_x, _ct_y))
+                _bar_w = 160
+                _bar_h = 6
+                _bar_x = 880 - _bar_w
+                _bar_y = _ct_y + _ct_surf.get_height() + 4
+                _bar_bg = pygame.Surface((_bar_w, _bar_h), pygame.SRCALPHA)
+                _bar_bg.fill((0, 0, 0, int(_ct_alpha * 0.6)))
+                self.screen.blit(_bar_bg, (_bar_x, _bar_y))
+                _bar_fill = pygame.Surface((int(_bar_w * _ct_frac), _bar_h), pygame.SRCALPHA)
+                _bar_fill.fill((*_ct_color, _ct_alpha))
+                self.screen.blit(_bar_fill, (_bar_x, _bar_y))
+            if self._intro_banner is not None:
+                _ib = self._intro_banner
+                _ib['frames'] -= 1
+                _age = _ib['max'] - _ib['frames']
+                if _ib['frames'] <= 0:
+                    self._intro_banner = None
+                else:
+                    if _age < 18:
+                        _slide = -900 + int((_age / 18.0) * 900)
+                    elif _ib['frames'] < 18:
+                        _slide = int(((18 - _ib['frames']) / 18.0) * 900)
+                    else:
+                        _slide = 0
+                    _bn_y = 240
+                    _bn_h = 110
+                    _bn_bg = pygame.Surface((900, _bn_h), pygame.SRCALPHA)
+                    pygame.draw.rect(_bn_bg, (10, 5, 25, 200), (0, 0, 900, _bn_h))
+                    pygame.draw.line(_bn_bg, (*_ib['color'], 240), (0, 0), (900, 0), 3)
+                    pygame.draw.line(_bn_bg, (*_ib['color'], 240), (0, _bn_h - 1), (900, _bn_h - 1), 3)
+                    self.screen.blit(_bn_bg, (_slide, _bn_y))
+                    _bn_font = pygame.font.SysFont(None, 64, bold=True)
+                    _bn_sub_font = pygame.font.SysFont(None, 26, bold=True)
+                    _bn_t = _bn_font.render(_ib['text'], True, _ib['color'])
+                    _bn_s = _bn_sub_font.render(_ib.get('sub', ''), True, (220, 220, 240))
+                    _bn_t_shadow = _bn_font.render(_ib['text'], True, (0, 0, 0))
+                    self.screen.blit(_bn_t_shadow, (450 - _bn_t.get_width() // 2 + 3 + _slide, _bn_y + 18 + 3))
+                    self.screen.blit(_bn_t, (450 - _bn_t.get_width() // 2 + _slide, _bn_y + 18))
+                    self.screen.blit(_bn_s, (450 - _bn_s.get_width() // 2 + _slide, _bn_y + 78))
             self._render_toasts()
             _luf = getattr(bear, '_level_up_float', 0)
             if _luf > 0:
@@ -4806,6 +4886,7 @@ class mainGame:
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
+            self._intro_banner = {'text': 'BIG MUMMY', 'sub': 'guardian of the tomb', 'frames': 200, 'max': 200, 'color': (255, 220, 140)}
             self._z1_mummy.setXPosition(750)  # Start just off right edge; walks toward player
             if bear.getLevel() <= 1 and not getattr(self._z1_mummy, '_lvl1_reduced', False):
                 self._z1_mummy._lvl1_reduced = True
