@@ -1706,7 +1706,7 @@ class mainGame:
             self._intro_shown = True
             self._push_toast('Welcome, brave bear!', duration=300, color=(255, 220, 140))
             self._push_toast('Z:Attack  X:Fireball  ENTER:Shop', duration=360, color=(180, 240, 255))
-            self._push_toast('A+Down:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
+            self._push_toast('UP+X:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -2051,6 +2051,7 @@ class mainGame:
                 # ---- X: throw fireball at full health --------------------
                 playerFireCooldown = max(0, playerFireCooldown - 1)
                 if (keys[pygame.K_x]
+                        and not keys[pygame.K_UP]
                         and playerFireCooldown == 0):
                     _base_cd = 30
                     if getattr(bear, 'has_aimer', False):
@@ -2111,8 +2112,8 @@ class mainGame:
                 if beamCharge >= 100.0 and not beamReadyPopupShown and not self._beam_ever_shown:
                     beamReadyPopupShown = True
                     self._beam_ever_shown = True
-                    self._push_toast('BEAM READY! Press A+Down to fire', duration=300, color=(200, 255, 220))
-                _beam_combo = (keys[pygame.K_a] and keys[pygame.K_DOWN])
+                    self._push_toast('BEAM READY! Press UP+X to fire', duration=300, color=(200, 255, 220))
+                _beam_combo = (keys[pygame.K_UP] and keys[pygame.K_x])
                 if (keys[pygame.K_c] or _beam_combo) and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
                     beamCooldown = 60
