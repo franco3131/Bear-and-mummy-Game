@@ -4693,6 +4693,12 @@ class mainGame:
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
             self._z1_mummy.setXPosition(750)  # Start just off right edge; walks toward player
+            if bear.getLevel() <= 1 and not getattr(self._z1_mummy, '_lvl1_reduced', False):
+                self._z1_mummy._lvl1_reduced = True
+                self._z1_mummy.health = int(self._z1_mummy.health * 0.7)
+            if not getattr(self._z1_mummy, '_exp_boosted', False):
+                self._z1_mummy._exp_boosted = True
+                self._z1_mummy.exp = int(self._z1_mummy.exp * 1.5)
             self.mummys.append(self._z1_mummy)
 
             self.door1 = self._z1_door
