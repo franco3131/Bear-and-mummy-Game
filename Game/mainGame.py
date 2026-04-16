@@ -856,6 +856,10 @@ class mainGame:
         self._shaman_orb_timer = 0
         self.witch_beams = []
         self._toasts = []
+        self._paused = False
+        self._paused_snapshot = None
+        self._muted = False
+        self._saved_music_vol = 1.0
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -1707,6 +1711,7 @@ class mainGame:
             self._push_toast('Welcome, brave bear!', duration=300, color=(255, 220, 140))
             self._push_toast('Z:Attack  X:Fireball  ENTER:Shop', duration=360, color=(180, 240, 255))
             self._push_toast('UP+X:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
+            self._push_toast('P:Pause  M:Mute', duration=360, color=(220, 200, 255))
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -1722,11 +1727,62 @@ class mainGame:
         # ===================================================================
         while continueLoop:
             # --- Handle window close event ---------------------------------
+            if self._paused:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        return
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_p:
+                            self._paused = False
+                            if not self._muted:
+                                pygame.mixer.unpause()
+                        elif event.key == pygame.K_m:
+                            self._muted = not self._muted
+                            if self._muted:
+                                pygame.mixer.pause()
+                            else:
+                                pygame.mixer.unpause()
+                if self._paused_snapshot is not None:
+                    self.screen.blit(self._paused_snapshot, (0, 0))
+                _pov = pygame.Surface((900, 700), pygame.SRCALPHA)
+                _pov.fill((0, 0, 0, 170))
+                self.screen.blit(_pov, (0, 0))
+                _pf_big = pygame.font.SysFont(None, 110, bold=True)
+                _pf_sub = pygame.font.SysFont(None, 30, bold=True)
+                _pulse = abs(math.sin(pygame.time.get_ticks() * 0.003))
+                _pcol = (255, int(220 + 35 * _pulse), int(140 + 80 * _pulse))
+                _ptxt = _pf_big.render('PAUSED', True, _pcol)
+                _shadow = _pf_big.render('PAUSED', True, (0, 0, 0))
+                self.screen.blit(_shadow, (450 - _ptxt.get_width() // 2 + 4, 244))
+                self.screen.blit(_ptxt, (450 - _ptxt.get_width() // 2, 240))
+                _stxt = _pf_sub.render('Press P to resume    M to ' + ('unmute' if self._muted else 'mute'), True, (220, 220, 240))
+                self.screen.blit(_stxt, (450 - _stxt.get_width() // 2, 380))
+                pygame.display.flip()
+                self.clock.tick(60)
+                continue
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return
                 if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_p and not shop_open:
+                        self._paused = True
+                        try:
+                            self._paused_snapshot = self.screen.copy()
+                        except Exception:
+                            self._paused_snapshot = None
+                        pygame.mixer.pause()
+                        continue
+                    elif event.key == pygame.K_m:
+                        self._muted = not self._muted
+                        if self._muted:
+                            pygame.mixer.pause()
+                            self._push_toast('Sound muted (M to unmute)', duration=180, color=(220, 220, 240))
+                        else:
+                            pygame.mixer.unpause()
+                            self._push_toast('Sound on', duration=120, color=(200, 255, 200))
+                        continue
                     if event.key == pygame.K_RETURN:
                         shop_open = not shop_open
                         if shop_open:
@@ -3820,6 +3876,16 @@ class mainGame:
                         _hd['y'] = 385.0
                         _hd['landed'] = True
                         _hd['vy'] = 0.0
+                else:
+                    _bcx = bear.getXPosition() + 50
+                    _bcy = bear.getYPosition() + 50
+                    _dx = _bcx - _hd['x']
+                    _dy = _bcy - _hd['y']
+                    _dist = (_dx * _dx + _dy * _dy) ** 0.5
+                    if _dist < 160 and _dist > 1:
+                        _pull = 0.6 + (160 - _dist) * 0.05
+                        _hd['x'] += (_dx / _dist) * _pull
+                        _hd['y'] += (_dy / _dist) * _pull
                 _hd['life'] -= 1
                 _hx, _hy = int(_hd['x']), int(_hd['y'])
                 _hd_pulse = abs(math.sin(pygame.time.get_ticks() * 0.006)) * 4
@@ -4260,6 +4326,19 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
             bear.displayBearCoins()
+            _hp_ratio_v = bear.getHp() / max(1, bear.getMaxHp())
+            if _hp_ratio_v < 0.25 and bear.getHp() > 0:
+                if not hasattr(self, '_vig_base'):
+                    self._vig_base = pygame.Surface((900, 700), pygame.SRCALPHA)
+                    _band = 110
+                    for _i in range(_band):
+                        _a = int(255 * (1.0 - _i / _band))
+                        pygame.draw.rect(self._vig_base, (200, 30, 40, _a),
+                                         (_i, _i, 900 - 2 * _i, 700 - 2 * _i), 1)
+                _vig_pulse = abs(math.sin(pygame.time.get_ticks() * 0.008))
+                _vig_alpha = int(70 + 90 * _vig_pulse * (1.0 - _hp_ratio_v / 0.25))
+                self._vig_base.set_alpha(max(0, min(255, _vig_alpha)))
+                self.screen.blit(self._vig_base, (0, 0))
             self._render_toasts()
             _luf = getattr(bear, '_level_up_float', 0)
             if _luf > 0:
