@@ -5186,6 +5186,27 @@ class mainGame:
                     if hasattr(_m, 'rand'):
                         _m.rand = max(1, round(_m.rand * _ng_spd_m))
 
+        _low_hp_slow = bear.getHp() > 0 and bear.getHp() < bear.getMaxHp() * 0.30
+        for _m in (self.mummys + self.witches + self.greenBlobs +
+                   self.shadowShamans + self.miniFrankenBears + self.lions +
+                   self.monkey_mummies + self.snakes):
+            _was_active = getattr(_m, '_lowhp_active', False)
+            if hasattr(_m, 'rand'):
+                if not hasattr(_m, '_lowhp_orig_rand'):
+                    _m._lowhp_orig_rand = _m.rand
+                if _low_hp_slow:
+                    _m.rand = max(1, int(round(_m._lowhp_orig_rand * 0.8)))
+                else:
+                    _m.rand = _m._lowhp_orig_rand
+            if hasattr(_m, 'walk_speed'):
+                if not hasattr(_m, '_lowhp_orig_walk'):
+                    _m._lowhp_orig_walk = _m.walk_speed
+                if _low_hp_slow:
+                    _m.walk_speed = max(1, int(round(_m._lowhp_orig_walk * 0.8)))
+                else:
+                    _m.walk_speed = _m._lowhp_orig_walk
+            _m._lowhp_active = _low_hp_slow
+
         if getattr(self, '_hardMode75', False):
             for _m in (self.mummys + self.witches + self.greenBlobs +
                        self.shadowShamans + self.miniFrankenBears + self.lions):
