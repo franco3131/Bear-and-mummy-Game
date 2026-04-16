@@ -855,6 +855,7 @@ class mainGame:
         self.shaman_orbs = []
         self._shaman_orb_timer = 0
         self.witch_beams = []
+        self._toasts = []
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -1700,14 +1701,12 @@ class mainGame:
         beamReadyPopupShown = False
         _q_key_prev = False
 
-        # Show intro popup once at game start
+        # Show intro toasts (non-blocking) once at game start
         if not self._intro_shown:
             self._intro_shown = True
-            bear.setArrayText(['Welcome to the Bear Adventure!', '',
-                               'Z:Attack  X:Fireball  ENTER:Shop',
-                               'C:Beam  Q:Lightning (once bought)',
-                               'Press "s" to continue'])
-            bear.setEndText(False)
+            self._push_toast('Welcome, brave bear!', duration=300, color=(255, 220, 140))
+            self._push_toast('Z:Attack  X:Fireball  ENTER:Shop', duration=360, color=(180, 240, 255))
+            self._push_toast('A+Down:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -2112,9 +2111,9 @@ class mainGame:
                 if beamCharge >= 100.0 and not beamReadyPopupShown and not self._beam_ever_shown:
                     beamReadyPopupShown = True
                     self._beam_ever_shown = True
-                    bear.setArrayText(['BEAM READY!', 'Press C to fire the beam!', 'Press "s" to continue'])
-                    bear.setEndText(False)
-                if keys[pygame.K_c] and beamCharge >= 100.0 and beamCooldown == 0:
+                    self._push_toast('BEAM READY! Press A+Down to fire', duration=300, color=(200, 255, 220))
+                _beam_combo = (keys[pygame.K_a] and keys[pygame.K_DOWN])
+                if (keys[pygame.K_c] or _beam_combo) and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
                     beamCooldown = 60
                     beamReadyPopupShown = False
@@ -4260,22 +4259,64 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
             bear.displayBearCoins()
+            self._render_toasts()
             _luf = getattr(bear, '_level_up_float', 0)
             if _luf > 0:
                 bear._level_up_float -= 1
-                _luf_t = _luf / 120.0
-                _luf_y = int(200 - (120 - _luf) * 0.8)
-                _luf_alpha = min(255, int(_luf * 4))
-                _luf_scale = min(1.0, (120 - _luf) / 10.0) if _luf > 110 else 1.0
-                _luf_size = max(20, int(48 * _luf_scale))
-                _luf_font = pygame.font.SysFont(None, _luf_size, bold=True)
-                _luf_glow_c = (255, 255, 100, min(180, int(_luf * 3)))
-                _luf_gs = pygame.Surface((300, 60), pygame.SRCALPHA)
-                pygame.draw.ellipse(_luf_gs, _luf_glow_c, (0, 0, 300, 60))
-                self.screen.blit(_luf_gs, (300, _luf_y - 15))
-                _luf_txt = _luf_font.render(getattr(bear, '_level_up_text', 'LEVEL UP!'), True, (255, 255, 80))
-                _luf_txt.set_alpha(_luf_alpha)
-                self.screen.blit(_luf_txt, (450 - _luf_txt.get_width() // 2, _luf_y))
+                _luf_max = getattr(bear, '_level_up_float_max', 150)
+                _luf_age = _luf_max - _luf
+                _bounce = math.sin(_luf_age * 0.18) * 6 if _luf_age < 30 else 0
+                _luf_y = int(180 - min(60, _luf_age * 0.4)) + int(_bounce)
+                if _luf_age < 12:
+                    _luf_scale = 0.4 + (_luf_age / 12.0) * 0.7
+                elif _luf_age < 18:
+                    _luf_scale = 1.1 - ((_luf_age - 12) / 6.0) * 0.1
+                else:
+                    _luf_scale = 1.0
+                if _luf < 30:
+                    _luf_alpha = int(255 * (_luf / 30.0))
+                else:
+                    _luf_alpha = 255
+                _luf_text = getattr(bear, '_level_up_text', 'LEVEL UP!')
+                _base_size = int(56 * _luf_scale)
+                _font = pygame.font.SysFont(None, _base_size, bold=True)
+                _palette = [(255, 130, 200), (255, 180, 100), (255, 245, 140),
+                            (160, 255, 180), (140, 220, 255), (200, 170, 255)]
+                _spacing = max(2, int(_base_size * 0.05))
+                _renders = []
+                _total_w = 0
+                for _ci, _ch in enumerate(_luf_text):
+                    _wob = math.sin(_luf_age * 0.22 + _ci * 0.6) * 4
+                    _color = _palette[_ci % len(_palette)]
+                    _ch_surf = _font.render(_ch, True, _color)
+                    _renders.append((_ch_surf, _wob))
+                    _total_w += _ch_surf.get_width() + _spacing
+                _total_w -= _spacing
+                _start_x = 450 - _total_w // 2
+                _cx = _start_x
+                for _ch_surf, _wob in _renders:
+                    _outline_color = (255, 255, 255)
+                    _outline = pygame.font.SysFont(None, _base_size, bold=True).render(
+                        '', True, _outline_color)
+                    for _ox, _oy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
+                        _shadow = _ch_surf.copy()
+                        _shadow.fill((40, 30, 60), special_flags=pygame.BLEND_RGBA_MULT)
+                        _shadow.set_alpha(_luf_alpha)
+                        self.screen.blit(_shadow, (_cx + _ox, _luf_y + int(_wob) + _oy))
+                    _ch_surf.set_alpha(_luf_alpha)
+                    self.screen.blit(_ch_surf, (_cx, _luf_y + int(_wob)))
+                    _cx += _ch_surf.get_width() + _spacing
+                if _luf_age < 25 and _luf_age % 2 == 0:
+                    for _si in range(6):
+                        _sa = (_luf_age * 0.3) + _si * 1.05
+                        _sr = 30 + _luf_age * 4
+                        _sx = int(450 + math.cos(_sa) * _sr)
+                        _sy = int(_luf_y + 20 + math.sin(_sa) * _sr * 0.6)
+                        _sparkle = pygame.Surface((10, 10), pygame.SRCALPHA)
+                        _sc = _palette[_si % len(_palette)]
+                        pygame.draw.circle(_sparkle, (*_sc, _luf_alpha), (5, 5), 4)
+                        pygame.draw.circle(_sparkle, (255, 255, 255, _luf_alpha), (5, 5), 2)
+                        self.screen.blit(_sparkle, (_sx - 5, _sy - 5))
             if (not self._critical_hp_popup_shown
                     and bear.getHp() < bear.getMaxHp() * 0.50
                     and bear.getHp() > 0 and bear.getEndText()):
@@ -4656,14 +4697,7 @@ class mainGame:
         # ── Fireball tutorial popup @ 400 ──────────────────────────────────────
         if backgroundScrollX > 400 and not self._fireball_tutorial_shown:
             self._fireball_tutorial_shown = True
-            bear = None
-            for obj in [getattr(self, '_bear_ref', None)]:
-                if obj is not None:
-                    bear = obj
-            if bear is not None:
-                bear.setArrayText(['Press "x" to shoot fireballs!', '',
-                                   'Press "s" to continue'])
-                bear.setEndText(False)
+            self._push_toast('Press X to shoot fireballs!', duration=240, color=(255, 200, 140))
 
         # ── Zone 1 pre-load @ 2 500 – quietly position Zone 1 objects ────────
         # Objects are given offset positions so they scroll naturally into place
@@ -5391,6 +5425,49 @@ class mainGame:
             self._ambient_playing = True
             self._ambient_channel.play(self._ambient_sound, loops=-1)
             self._ambient_channel.set_volume(0.0)
+
+    def _push_toast(self, text, duration=240, color=(255, 255, 255)):
+        """Show a non-blocking message at the bottom of the screen.
+
+        Multiple toasts stack and slide up. Duration is in frames (60fps).
+        """
+        if not hasattr(self, '_toasts') or self._toasts is None:
+            self._toasts = []
+        self._toasts.append({'text': text, 'life': duration, 'max_life': duration, 'color': color})
+
+    def _render_toasts(self):
+        if not getattr(self, '_toasts', None):
+            return
+        _toast_font = pygame.font.SysFont(None, 26, bold=True)
+        _y_base = 670
+        _alive = []
+        for i, _t in enumerate(self._toasts):
+            _t['life'] -= 1
+            if _t['life'] <= 0:
+                continue
+            _alive.append(_t)
+        self._toasts = _alive[-3:]
+        for i, _t in enumerate(reversed(self._toasts)):
+            _frac = _t['life'] / max(1, _t['max_life'])
+            if _frac > 0.85:
+                _alpha = int(255 * (1.0 - _frac) / 0.15)
+            elif _frac < 0.20:
+                _alpha = int(255 * (_frac / 0.20))
+            else:
+                _alpha = 255
+            _alpha = max(0, min(255, _alpha))
+            _y = _y_base - i * 32
+            _txt = _toast_font.render(_t['text'], True, _t['color'])
+            _bg_w = _txt.get_width() + 30
+            _bg_h = _txt.get_height() + 10
+            _bg = pygame.Surface((_bg_w, _bg_h), pygame.SRCALPHA)
+            pygame.draw.rect(_bg, (0, 0, 0, int(_alpha * 0.55)), _bg.get_rect(), border_radius=12)
+            pygame.draw.rect(_bg, (255, 255, 255, int(_alpha * 0.3)), _bg.get_rect(), width=2, border_radius=12)
+            _bg_x = 450 - _bg_w // 2
+            _bg_y = _y - _bg_h // 2
+            self.screen.blit(_bg, (_bg_x, _bg_y))
+            _txt.set_alpha(_alpha)
+            self.screen.blit(_txt, (_bg_x + 15, _bg_y + 5))
 
     def _stop_ambient_loop(self):
         if self._ambient_channel and self._ambient_playing:
@@ -7399,24 +7476,9 @@ class Bear:
             self.attack += random.randint(2, 5)
             self.damageAttack += random.randint(2, 5)
             self.fireballDamage = int(self.fireballDamage * 1.20) + 1
-            if self.level <= 2:
-                self.setEndText(False)
-                self.textArray = []
-                self.showBearArray = []
-                self.textArray.append(['LEVEL UP!', '', 'Press "s" to continue'])
-                self.showBearArray.append(False)
-                self.textArray.append([
-                    'Max HP is now: ' + str(self.maxHp),
-                    'Attack is now: ' + str(self.damageAttack),
-                    'Press "s" to continue'
-                ])
-                self.showBearArray.append(False)
-                if self.level % 2 == 0:
-                    self.textArray.append(['Firing is faster now!', '', 'Press "s" to continue'])
-                    self.showBearArray.append(False)
-            else:
-                self._level_up_float = 120
-                self._level_up_text = 'LEVEL UP! Lv.' + str(self.level)
+            self._level_up_float = 150
+            self._level_up_float_max = 150
+            self._level_up_text = 'LEVEL UP! Lv.' + str(self.level)
             if self.level == 14:
                 self.setEndText(False)
                 self.textArray = []
