@@ -5387,6 +5387,9 @@ class mainGame:
                     if hasattr(_m, 'rand'):
                         _m.rand = max(1, round(_m.rand * _ng_spd_m))
 
+        bear = getattr(self, '_bear_ref', None)
+        if bear is None:
+            return
         _low_hp_slow = bear.getHp() > 0 and bear.getHp() < bear.getMaxHp() * 0.30
         for _m in (self.mummys + self.witches + self.greenBlobs +
                    self.shadowShamans + self.miniFrankenBears + self.lions +
