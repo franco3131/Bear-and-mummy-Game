@@ -2170,9 +2170,9 @@ class mainGame:
                     beamReadyPopupShown = True
                     self._beam_ever_shown = True
                     self._push_toast('\u26A1 BEAM READY! Press UP+X \u26A1', duration=240, color=(180, 255, 220))
-                    bear._level_up_float = 90
-                    bear._level_up_float_max = 90
-                    bear._level_up_text = 'UP + X !'
+                    bear._level_up_float = 210
+                    bear._level_up_float_max = 210
+                    bear._level_up_text = 'BEAM READY! PRESS UP + X'
                 _beam_combo = (keys[pygame.K_UP] and keys[pygame.K_x])
                 if (keys[pygame.K_c] or _beam_combo) and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
@@ -3290,6 +3290,11 @@ class mainGame:
                         _exp_gain = monster.getExp()
                         if self._hardMode:
                             _exp_gain = int(_exp_gain * 1.75)
+                        _combo_mult = 1.0 + min(2.0, max(0, self._combo) * 0.15)
+                        if _combo_mult > 1.0:
+                            _exp_gain = int(_exp_gain * _combo_mult)
+                            if self._combo >= 2:
+                                self._push_toast('+%d XP  (x%.1f combo bonus!)' % (_exp_gain, _combo_mult), duration=120, color=(255, 230, 140))
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         to_remove.append(monster)
 
@@ -4419,6 +4424,28 @@ class mainGame:
                     self.screen.blit(_bn_t_shadow, (450 - _bn_t.get_width() // 2 + 3 + _slide, _bn_y + 18 + 3))
                     self.screen.blit(_bn_t, (450 - _bn_t.get_width() // 2 + _slide, _bn_y + 18))
                     self.screen.blit(_bn_s, (450 - _bn_s.get_width() // 2 + _slide, _bn_y + 78))
+            if getattr(self, '_mummy_hint_active', False):
+                _big_mummy_alive = False
+                for _mu in self.mummys:
+                    try:
+                        if _mu.getName() == "bigMummy" and _mu.getHp() > 0:
+                            _big_mummy_alive = True
+                            break
+                    except Exception:
+                        pass
+                if not _big_mummy_alive:
+                    self._mummy_hint_active = False
+                    self._mummy_arrow_frames = 0
+                else:
+                    _hf = pygame.font.SysFont(None, 28, bold=True)
+                    _ht1 = _hf.render('Big mummy: hit the RED ring on its forehead!', True, (255, 230, 140))
+                    _ht1s = _hf.render('Big mummy: hit the RED ring on its forehead!', True, (0, 0, 0))
+                    _hbg = pygame.Surface((_ht1.get_width() + 24, 38), pygame.SRCALPHA)
+                    _hbg.fill((0, 0, 0, 170))
+                    _hx = 450 - _ht1.get_width() // 2
+                    self.screen.blit(_hbg, (_hx - 12, 555))
+                    self.screen.blit(_ht1s, (_hx + 1, 561))
+                    self.screen.blit(_ht1, (_hx, 560))
             if self._mummy_arrow_frames > 0:
                 self._mummy_arrow_frames -= 1
                 _big_mummy = None
@@ -4567,9 +4594,8 @@ class mainGame:
             # ---- Story / trigger text (triggers scaled to 8px steps) ----
             if totalDistance > 2300 and not self.triggerText1 and not getattr(self, '_monkey_level_active', False):
                 self.triggerText1 = True
-                self._push_toast('Big mummy ahead — aim for the red ring on its forehead!', duration=360, color=(255, 200, 200))
-                self._push_toast('It carries a key. Hit the forehead to drop it.', duration=360, color=(255, 220, 140))
-                self._mummy_arrow_frames = 720
+                self._mummy_hint_active = True
+                self._mummy_arrow_frames = 99999
 
             for spike in self.spikes:
                 spike.draw()
@@ -4579,37 +4605,20 @@ class mainGame:
                 door_x = door.getXPosition()
 
                 if not self.isDoor1Open:
-                    # Block the bear every frame while door is locked
-                    if door_x - 90 <= bear.getXPosition():
-                        bear.setXPosition(door_x - 91)
-                        totalDistance -= STEP
-                        # Show hint the first time the bear reaches the door
-                        if not self.triggerText3:
-                            self._push_toast('Hit the mummy\'s forehead to grab the key!', duration=300, color=(255, 200, 200))
-                            self.triggerText3 = True
-                            self._mummy_arrow_frames = max(getattr(self, '_mummy_arrow_frames', 0), 600)
+                    if door_x - 90 <= bear.getXPosition() and not self.triggerText3:
+                        self.triggerText3 = True
+                        bear._level_up_float = 180
+                        bear._level_up_float_max = 180
+                        bear._level_up_text = 'DOOR LOCKED!'
                 else:
-                    # Door is unlocked — detect when bear fully passes through
                     if self.isDoor1Open and bear.getXPosition() > door_x + 50:
                         self._boss_door_passed = True
-                    # Show text only once the bear reaches it
                     if (not self.triggerText2
                             and door_x - 150 <= bear.getXPosition()):
                         self.triggerText2 = True
-                        bear.setEndText(False)
-                        bear.textArray = [['The door is unlocked!',
-                                           'Keep moving forward!',
-                                           'Press "s" to continue']]
-                        bear.showBearArray = [False]
-                        bear.tupleIndex = 0
-                        bear.line = 0
-                        bear.indexArray = 0
-                        bear.totalText1 = ""
-                        bear.totalText2 = ""
-                        bear.totalText3 = ""
-                        bear.text1 = ""
-                        bear.text2 = ""
-                        bear.text3 = ""
+                        bear._level_up_float = 180
+                        bear._level_up_float_max = 180
+                        bear._level_up_text = 'DOOR OPENED!'
 
             if not bear.getEndText():
                 bear.displayTextBox()
