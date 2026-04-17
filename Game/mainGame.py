@@ -864,6 +864,7 @@ class mainGame:
         self._combo_timer = 0
         self._combo_max_session = 0
         self._intro_banner = None
+        self._mummy_arrow_frames = 0
 
         self.fireBall = pygame.image.load("Game/Images/fire3.png")
         self.fireBossBall = pygame.image.load("Game/Images/fire4.png")
@@ -1848,10 +1849,8 @@ class mainGame:
                                         shop_last_weapon_bought = 'lightning'
                                         shop_open = False
                                         if self.shop_close_sound: self.shop_close_sound.play()
-                                        bear.setArrayText(['\u26A1 Lightning bought! \u26A1',
-                                            'Press UP + A to strike!',
-                                            'Press "s" to continue'])
-                                        bear.setEndText(False)
+                                        self._push_toast('\u26A1 Lightning bought! Press UP+A to strike', duration=300, color=(255, 245, 140))
+                                        self._push_toast('It stuns enemies and chains damage', duration=300, color=(220, 220, 255))
                                         self.lightning_charge = max(self.lightning_charge, 1.0)
                                         if not bear.getLeftDirection():
                                             _demo_lx = bear.getXPosition() + 140
@@ -1866,10 +1865,8 @@ class mainGame:
                                         shop_last_weapon_bought = 'lightning2'
                                         shop_open = False
                                         if self.shop_close_sound: self.shop_close_sound.play()
-                                        bear.setArrayText(['\u26A1 Lightning 2 bought! \u26A1',
-                                            'Press UP + A for 3 bolts!',
-                                            'Press "s" to continue'])
-                                        bear.setEndText(False)
+                                        self._push_toast('\u26A1 Lightning 2 bought! UP+A fires 3 bolts \u26A1', duration=300, color=(255, 245, 140))
+                                        self._push_toast('Triple chain damage upgrade unlocked', duration=300, color=(220, 220, 255))
                                         self.lightning_charge = max(self.lightning_charge, 1.0)
                                         if not bear.getLeftDirection():
                                             _demo_lx = bear.getXPosition() + 140
@@ -2169,10 +2166,13 @@ class mainGame:
                 # ---- C: beam super attack ---------------------------------
                 beamCooldown = max(0, beamCooldown - 1)
                 beamCharge = min(100.0, beamCharge + 0.10)
-                if beamCharge >= 100.0 and not beamReadyPopupShown and not self._beam_ever_shown:
+                if beamCharge >= 100.0 and not beamReadyPopupShown:
                     beamReadyPopupShown = True
                     self._beam_ever_shown = True
-                    self._push_toast('BEAM READY! Press UP+X to fire', duration=300, color=(200, 255, 220))
+                    self._push_toast('\u26A1 BEAM READY! Press UP+X \u26A1', duration=240, color=(180, 255, 220))
+                    bear._level_up_float = 90
+                    bear._level_up_float_max = 90
+                    bear._level_up_text = 'UP + X !'
                 _beam_combo = (keys[pygame.K_UP] and keys[pygame.K_x])
                 if (keys[pygame.K_c] or _beam_combo) and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
@@ -4419,6 +4419,38 @@ class mainGame:
                     self.screen.blit(_bn_t_shadow, (450 - _bn_t.get_width() // 2 + 3 + _slide, _bn_y + 18 + 3))
                     self.screen.blit(_bn_t, (450 - _bn_t.get_width() // 2 + _slide, _bn_y + 18))
                     self.screen.blit(_bn_s, (450 - _bn_s.get_width() // 2 + _slide, _bn_y + 78))
+            if self._mummy_arrow_frames > 0:
+                self._mummy_arrow_frames -= 1
+                _big_mummy = None
+                for _mu in self.mummys:
+                    try:
+                        if _mu.getName() == "bigMummy" and _mu.getHp() > 0:
+                            _big_mummy = _mu
+                            break
+                    except Exception:
+                        pass
+                if _big_mummy is not None:
+                    _amx = _big_mummy.getXPosition() + 130
+                    _amy = _big_mummy.getYPosition()
+                    if 0 < _amx < 900:
+                        _bob = int(math.sin(pygame.time.get_ticks() * 0.008) * 8)
+                        _ay = max(40, _amy - 70 + _bob)
+                        _arrow_color = (255, 80, 80)
+                        pygame.draw.polygon(self.screen, _arrow_color, [
+                            (_amx, _ay + 30), (_amx - 18, _ay), (_amx - 8, _ay),
+                            (_amx - 8, _ay - 22), (_amx + 8, _ay - 22),
+                            (_amx + 8, _ay), (_amx + 18, _ay)])
+                        pygame.draw.polygon(self.screen, (255, 255, 255), [
+                            (_amx, _ay + 30), (_amx - 18, _ay), (_amx - 8, _ay),
+                            (_amx - 8, _ay - 22), (_amx + 8, _ay - 22),
+                            (_amx + 8, _ay), (_amx + 18, _ay)], 2)
+                        _af = pygame.font.SysFont(None, 22, bold=True)
+                        _at = _af.render('FOREHEAD!', True, (255, 240, 240))
+                        _at_shadow = _af.render('FOREHEAD!', True, (0, 0, 0))
+                        self.screen.blit(_at_shadow, (_amx - _at.get_width() // 2 + 1, _ay - 48 + 1))
+                        self.screen.blit(_at, (_amx - _at.get_width() // 2, _ay - 48))
+                else:
+                    self._mummy_arrow_frames = 0
             self._render_toasts()
             _luf = getattr(bear, '_level_up_float', 0)
             if _luf > 0:
@@ -4534,13 +4566,10 @@ class mainGame:
 
             # ---- Story / trigger text (triggers scaled to 8px steps) ----
             if totalDistance > 2300 and not self.triggerText1 and not getattr(self, '_monkey_level_active', False):
-                bear.setEndText(False)
                 self.triggerText1 = True
-                bear.setArrayText(['The big mummy ahead has',
-                                   'a red ring on its forehead.',
-                                   'Press "s" to continue'])
-                bear.setArrayText(['Attack it there!', 'It\'s carrying a key.',
-                                   'Press "s" to continue'])
+                self._push_toast('Big mummy ahead — aim for the red ring on its forehead!', duration=360, color=(255, 200, 200))
+                self._push_toast('It carries a key. Hit the forehead to drop it.', duration=360, color=(255, 220, 140))
+                self._mummy_arrow_frames = 720
 
             for spike in self.spikes:
                 spike.draw()
@@ -4556,13 +4585,9 @@ class mainGame:
                         totalDistance -= STEP
                         # Show hint the first time the bear reaches the door
                         if not self.triggerText3:
-                            bear.setArrayText(['Attack the mummy\'s forehead!', '',
-                                               'Press "s" to continue'])
-                            bear.setArrayText(['Hit it to grab the key',
-                                               'for the locked door.',
-                                               'Press "s" to continue'])
+                            self._push_toast('Hit the mummy\'s forehead to grab the key!', duration=300, color=(255, 200, 200))
                             self.triggerText3 = True
-                            bear.setEndText(False)
+                            self._mummy_arrow_frames = max(getattr(self, '_mummy_arrow_frames', 0), 600)
                 else:
                     # Door is unlocked — detect when bear fully passes through
                     if self.isDoor1Open and bear.getXPosition() > door_x + 50:
