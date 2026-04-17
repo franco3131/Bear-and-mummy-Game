@@ -4888,7 +4888,8 @@ class mainGame:
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
             self._intro_banner = {'text': 'BIG MUMMY', 'sub': 'guardian of the tomb', 'frames': 200, 'max': 200, 'color': (255, 220, 140)}
             self._z1_mummy.setXPosition(750)  # Start just off right edge; walks toward player
-            if bear.getLevel() <= 1 and not getattr(self._z1_mummy, '_lvl1_reduced', False):
+            _bear_ref_zm = getattr(self, '_bear_ref', None)
+            if _bear_ref_zm is not None and _bear_ref_zm.getLevel() <= 1 and not getattr(self._z1_mummy, '_lvl1_reduced', False):
                 self._z1_mummy._lvl1_reduced = True
                 self._z1_mummy.health = int(self._z1_mummy.health * 0.7)
             if not getattr(self._z1_mummy, '_exp_boosted', False):
