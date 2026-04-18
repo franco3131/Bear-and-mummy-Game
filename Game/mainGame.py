@@ -959,6 +959,8 @@ class mainGame:
         self._last_coin_milestone = 0
         self._first_coin_popup_shown = False
         self._shop_afford_hinted = False
+        self._shop_free_voucher_used = False
+        self._shop_low_hp_hinted = False
         self._critical_hp_popup_shown = False
         self._beam_ever_shown = False
         self._post_boss_platform_popup_shown = False
@@ -1864,8 +1866,14 @@ class mainGame:
                             if shop_selection < len(shop_items):
                                 item_type, cost = shop_items[shop_selection]
                                 msg = _buy_msgs.get(item_type, 'Purchased!')
-                                if bear.getCoins() >= cost:
-                                    bear.setCoins(bear.getCoins() - cost)
+                                _is_free_voucher = (not self._shop_free_voucher_used)
+                                _effective_cost = 0 if _is_free_voucher else cost
+                                if bear.getCoins() >= _effective_cost:
+                                    bear.setCoins(bear.getCoins() - _effective_cost)
+                                    if _is_free_voucher:
+                                        self._shop_free_voucher_used = True
+                                        self._push_toast('FREE GIFT used! Welcome to the Bear Shop!',
+                                                         duration=300, color=(255, 220, 120))
                                     if item_type == 'health':
                                         heal = int(bear.getMaxHp() * 0.20)
                                         bear.setHp(min(bear.getMaxHp(), bear.getHp() + heal))
@@ -2006,11 +2014,41 @@ class mainGame:
                         shop_items.append((_ci[0], _ci[1], _ci[2], _ci[3], _cat_name, _cat_color))
                 shop_selection = min(shop_selection, max(len(shop_items) - 1, 0))
 
+                _recommended_idx = -1
+                if shop_items:
+                    _hp_low = bear.getHp() < bear.getMaxHp() * 0.50
+                    if _hp_low:
+                        for _i, _it in enumerate(shop_items):
+                            if _it[0] == 'health':
+                                _recommended_idx = _i
+                                break
+                    if _recommended_idx < 0:
+                        _affordable_non_health = [(_i, _it) for _i, _it in enumerate(shop_items)
+                                                  if _it[0] != 'health' and bear.getCoins() >= _it[1]]
+                        if _affordable_non_health:
+                            _recommended_idx = max(_affordable_non_health, key=lambda p: p[1][1])[0]
+                        else:
+                            _unowned_perm = [(_i, _it) for _i, _it in enumerate(shop_items) if _it[0] != 'health']
+                            if _unowned_perm:
+                                _recommended_idx = min(_unowned_perm, key=lambda p: p[1][1])[0]
+
                 _left_x = panel.x + 20
                 _item_w = panel.width - 40
                 _row_h = 48
                 _cat_h = 24
                 _cur_y = panel.y + 38
+
+                if not self._shop_free_voucher_used and shop_items:
+                    _gift_rect = pygame.Rect(_left_x, _cur_y, _item_w, 30)
+                    _gift_pulse = abs(math.sin(pygame.time.get_ticks() * 0.005))
+                    _gift_bg = (180 + int(_gift_pulse * 40), 80 + int(_gift_pulse * 40), 30)
+                    pygame.draw.rect(self.screen, _gift_bg, _gift_rect, border_radius=8)
+                    pygame.draw.rect(self.screen, (255, 235, 120), _gift_rect, 2, border_radius=8)
+                    _gift_text = 'FIRST PURCHASE IS FREE! Pick anything below.'
+                    _gs = _FONT_HUD_LABEL.render(_gift_text, True, (255, 250, 200))
+                    self.screen.blit(_gs, (_gift_rect.x + (_item_w - _gs.get_width()) // 2, _gift_rect.y + 4))
+                    _cur_y += 36
+
                 _drawn_cats = set()
                 _icon_map = {
                     'health': ('*', (255, 80, 80)),
@@ -2086,15 +2124,30 @@ class mainGame:
                     _desc_col = (190, 175, 230) if _sel else (140, 130, 170)
                     render_hud_text_outlined(self.screen, _FONT_HUD_VAL, subtitle, _name_x, _cur_y + 27, _desc_col)
 
-                    _cost_str = f'{cost}'
-                    _cost_surf = _FONT_HUD_LABEL.render(_cost_str, True, (255, 230, 80) if _sel else (200, 180, 60))
-                    _cost_x = _left_x + _item_w - _cost_surf.get_width() - 30
-                    self.screen.blit(_cost_surf, (_cost_x, _cur_y + 8))
-                    _coin_r = 8
-                    _coin_cx = _cost_x + _cost_surf.get_width() + 14
-                    _coin_cy = _cur_y + 16
-                    pygame.draw.circle(self.screen, (255, 215, 0), (_coin_cx, _coin_cy), _coin_r)
-                    pygame.draw.circle(self.screen, (255, 245, 130), (_coin_cx, _coin_cy), 4)
+                    if not self._shop_free_voucher_used:
+                        _free_pulse = abs(math.sin(pygame.time.get_ticks() * 0.008))
+                        _free_col = (255, 230 + int(_free_pulse * 25), 120)
+                        _cost_str = 'FREE'
+                        _cost_surf = _FONT_HUD_LABEL.render(_cost_str, True, _free_col)
+                        _cost_x = _left_x + _item_w - _cost_surf.get_width() - 30
+                        self.screen.blit(_cost_surf, (_cost_x, _cur_y + 8))
+                    else:
+                        _cost_str = f'{cost}'
+                        _cost_surf = _FONT_HUD_LABEL.render(_cost_str, True, (255, 230, 80) if _sel else (200, 180, 60))
+                        _cost_x = _left_x + _item_w - _cost_surf.get_width() - 30
+                        self.screen.blit(_cost_surf, (_cost_x, _cur_y + 8))
+                        _coin_r = 8
+                        _coin_cx = _cost_x + _cost_surf.get_width() + 14
+                        _coin_cy = _cur_y + 16
+                        pygame.draw.circle(self.screen, (255, 215, 0), (_coin_cx, _coin_cy), _coin_r)
+                        pygame.draw.circle(self.screen, (255, 245, 130), (_coin_cx, _coin_cy), 4)
+
+                    if idx == _recommended_idx:
+                        _rec_pulse = abs(math.sin(pygame.time.get_ticks() * 0.006))
+                        _rec_col = (255, 200 + int(_rec_pulse * 55), 80)
+                        _rec_surf = _FONT_HUD_VAL.render('* PICK ME *', True, _rec_col)
+                        _rec_x = _left_x + _item_w - _rec_surf.get_width() - 8
+                        self.screen.blit(_rec_surf, (_rec_x, _cur_y + 30))
 
                     _cur_y += _row_h + 4
 
@@ -4664,6 +4717,18 @@ class mainGame:
                         pygame.draw.circle(_sparkle, (*_sc, _luf_alpha), (5, 5), 4)
                         pygame.draw.circle(_sparkle, (255, 255, 255, _luf_alpha), (5, 5), 2)
                         self.screen.blit(_sparkle, (_sx - 5, _sy - 5))
+            if (bear.getHp() > 0 and bear.getEndText()
+                    and bear.getHp() < bear.getMaxHp() * 0.30
+                    and bear.getCoins() >= 30
+                    and not self._shop_low_hp_hinted):
+                self._shop_low_hp_hinted = True
+                self._push_toast('LOW HP! Press ENTER to heal in the Shop',
+                                 duration=300, color=(255, 180, 180))
+                if getattr(self, 'shop_open_sound', None):
+                    try: self.shop_open_sound.play()
+                    except Exception: pass
+            if bear.getHp() > bear.getMaxHp() * 0.60:
+                self._shop_low_hp_hinted = False
             if (not self._critical_hp_popup_shown
                     and bear.getHp() < bear.getMaxHp() * 0.50
                     and bear.getHp() > 0 and bear.getEndText()):
