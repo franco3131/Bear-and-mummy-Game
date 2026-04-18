@@ -6027,7 +6027,7 @@ class Background():
         self.bgimage_alt = self.bg_alt_pairs[0]
         self._sway_timer  = 0
         self._sway_frame  = 0
-        self._sway_period = 10
+        self._sway_period = 24
 
         try:
             _jungle = pygame.image.load('Game/Images/jungle_bg.png')
@@ -6130,7 +6130,7 @@ class Background():
                     self._sway_timer = 0
                     self._sway_frame = 1 - self._sway_frame
                 self.bgimage = self.bg_pairs[bg_idx][self._sway_frame]
-                self.bgimage_alt = self.bg_alt_pairs[bg_idx]
+                self.bgimage_alt = self.bg_pairs[bg_idx][1 - self._sway_frame]
 
         if getattr(self, '_ng_blue', False):
             self.surface.fill((15, 25, 60))
