@@ -943,6 +943,12 @@ class mainGame:
         self._easter_egg_42 = False
         self._easter_egg_13 = False
         self._easter_egg_5555 = False
+        self._konami_unlocked = False
+        self._konami_seq = []
+        self._combo_master_unlocked = False
+        self._lucky_100_unlocked = False
+        self._no_hit_run = True
+        self._untouchable_unlocked = False
         self._jungle_unlocked = False
         self._monkey_level_active = False
         self._jungle_zone2_active = False
@@ -1771,6 +1777,29 @@ class mainGame:
                     pygame.quit()
                     return
                 if event.type == pygame.KEYDOWN:
+                    _kk = event.key
+                    _ksym = None
+                    if _kk == pygame.K_UP: _ksym = 'U'
+                    elif _kk == pygame.K_DOWN: _ksym = 'D'
+                    elif _kk == pygame.K_LEFT: _ksym = 'L'
+                    elif _kk == pygame.K_RIGHT: _ksym = 'R'
+                    elif _kk == pygame.K_b: _ksym = 'B'
+                    elif _kk == pygame.K_a: _ksym = 'A'
+                    if _ksym is not None:
+                        self._konami_seq.append(_ksym)
+                        if len(self._konami_seq) > 10:
+                            self._konami_seq = self._konami_seq[-10:]
+                        if (not self._konami_unlocked
+                                and ''.join(self._konami_seq[-10:]) == 'UUDDLRLRBA'):
+                            self._konami_unlocked = True
+                            bear.setMaxHp(bear.getMaxHp() + 25)
+                            bear.setHp(bear.getMaxHp())
+                            bear.setCoins(bear.getCoins() + 30)
+                            self._push_toast('\u2605 KONAMI! +25 MAX HP, full heal, +30 coins! \u2605', duration=300, color=(255, 215, 0))
+                            self._push_toast('Bear Form: Awakened.', duration=240, color=(255, 180, 220))
+                            if getattr(self, 'level_up_sound', None):
+                                try: self.level_up_sound.play()
+                                except Exception: pass
                     if event.key == pygame.K_p and not shop_open:
                         self._paused = True
                         try:
@@ -3303,6 +3332,15 @@ class mainGame:
                 self._combo_timer = 150
                 if self._combo > self._combo_max_session:
                     self._combo_max_session = self._combo
+                if self._combo >= 30 and not self._combo_master_unlocked:
+                    self._combo_master_unlocked = True
+                    bear.setMaxHp(bear.getMaxHp() + 15)
+                    bear.setHp(bear.getMaxHp())
+                    self._push_toast('\U0001F525 COMBO MASTER! 30-kill streak! \U0001F525', duration=300, color=(255, 100, 200))
+                    self._push_toast('+15 Max HP permanently. Full heal!', duration=240, color=(255, 230, 140))
+                    if getattr(self, 'level_up_sound', None):
+                        try: self.level_up_sound.play()
+                        except Exception: pass
                 _hp_ratio = bear.getHp() / max(1, bear.getMaxHp())
                 _heart_chance = 0.85 if _hp_ratio < 0.15 else (0.60 if _hp_ratio < 0.30 else (0.40 if _hp_ratio < 0.50 else 0.18))
                 if random.random() < _heart_chance:
@@ -3515,6 +3553,15 @@ class mainGame:
                     bear.setCoins(bear.getCoins() + 1)
                     if getattr(self, 'coin_sound', None):
                         self.coin_sound.play()
+                    if bear.getCoins() >= 100 and not self._lucky_100_unlocked:
+                        self._lucky_100_unlocked = True
+                        bear.setCoins(bear.getCoins() + 50)
+                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + 30))
+                        self._push_toast('\U0001F4B0 LUCKY 100! Bonus +50 coins & +30 HP! \U0001F4B0', duration=300, color=(255, 215, 0))
+                        self._push_toast('Treasure hunter achievement unlocked.', duration=240, color=(220, 255, 220))
+                        if getattr(self, 'level_up_sound', None):
+                            try: self.level_up_sound.play()
+                            except Exception: pass
                     if not self._first_coin_popup_shown:
                         self._first_coin_popup_shown = True
                         bear.setArrayText(['You got a coin!',
