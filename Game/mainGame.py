@@ -1194,7 +1194,7 @@ class mainGame:
                 self.screen.blit(hair_part, (bx + hair_sway, by))
 
     def _draw_grace_indicator(self, bear, hurtTimer):
-        if hurtTimer > 60 or hurtTimer < 0:
+        if hurtTimer > 75 or hurtTimer < 0:
             return
         bx = bear.getXPosition()
         by = bear.getYPosition()
@@ -1368,7 +1368,7 @@ class mainGame:
                     er = pygame.Rect(enemy.getXPosition(), enemy.getYPosition(),
                                      enemy.width, enemy.height)
                     br = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
-                    if er.colliderect(br) and hurtTimer > 60:
+                    if er.colliderect(br) and hurtTimer > 75:
                         _dmg = enemy.getDamageAttack()
                         bear.setHp(bear.getHp() - _dmg)
                         hurtTimer = 0
@@ -2459,7 +2459,7 @@ class mainGame:
                             continue
                         if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
-                                            monster.getName()) and hurtTimer > 60):
+                                            monster.getName()) and hurtTimer > 75):
                             hurtTimer = 0
                             if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
@@ -2599,7 +2599,7 @@ class mainGame:
                                 continue
                             if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
-                                                monster.getName()) and hurtTimer > 60):
+                                                monster.getName()) and hurtTimer > 75):
                                 hurtTimer = 0
                                 if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
@@ -2838,7 +2838,7 @@ class mainGame:
                                 continue
                             if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
-                                                monster.getName()) and hurtTimer > 60):
+                                                monster.getName()) and hurtTimer > 75):
                                 hurtTimer = 0
                                 if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
@@ -2993,7 +2993,7 @@ class mainGame:
                                 continue
                             if (bear.is_bear_hurt("RIGHT", bear.getXPosition(), bear.getYPosition(),
                                                 monster.getXPosition(), monster.getYPosition(),
-                                                monster.getName()) and hurtTimer > 60):
+                                                monster.getName()) and hurtTimer > 75):
                                 if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                                 bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                                 bear.applyDamage(monster.getDamageAttack())
@@ -3117,7 +3117,7 @@ class mainGame:
                             continue
                         if (bear.is_bear_hurt("LEFT", bear.getXPosition(), bear.getYPosition(),
                                             monster.getXPosition(), monster.getYPosition(),
-                                            monster.getName()) and hurtTimer > 60):
+                                            monster.getName()) and hurtTimer > 75):
                             if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                             bear.displayDamageOnBear(monster.getDamageAttack(), monster.getName())
                             bear.applyDamage(monster.getDamageAttack())
@@ -3304,7 +3304,7 @@ class mainGame:
                 if self._combo > self._combo_max_session:
                     self._combo_max_session = self._combo
                 _hp_ratio = bear.getHp() / max(1, bear.getMaxHp())
-                _heart_chance = 0.75 if _hp_ratio < 0.15 else (0.50 if _hp_ratio < 0.30 else (0.30 if _hp_ratio < 0.50 else 0.10))
+                _heart_chance = 0.85 if _hp_ratio < 0.15 else (0.60 if _hp_ratio < 0.30 else (0.40 if _hp_ratio < 0.50 else 0.18))
                 if random.random() < _heart_chance:
                     self.heart_drops.append({
                         'x': float(monster.getXPosition() + 40),
@@ -3426,7 +3426,7 @@ class mainGame:
                     
                     if (bear_feet > laser_rect_top and bear_top < laser_rect_bot
                             and bear_right > laser.getStartX() and bear_left < laser.getEndX()
-                            and hurtTimer > 60):
+                            and hurtTimer > 75):
                         _laser_dmg = max(6, int(bear.getMaxHp() * 0.10))
                         if getattr(self, 'bear_hurt_sound', None): self.bear_hurt_sound.play()
                         bear.displayDamageOnBear(_laser_dmg, "laser")
@@ -3666,7 +3666,7 @@ class mainGame:
                 if lion.getHealth() > 0:
                     lion_rect = pygame.Rect(lion.getXPosition(), lion.getYPosition(), lion.width, lion.height)
                     bear_rect_l = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
-                    if lion_rect.colliderect(bear_rect_l) and hurtTimer > 60:
+                    if lion_rect.colliderect(bear_rect_l) and hurtTimer > 75:
                         _lion_dmg = lion.damageAttack
                         bear.displayDamageOnBear(_lion_dmg, "lion")
                         bear.setHp(bear.getHp() - _lion_dmg)
@@ -3735,7 +3735,7 @@ class mainGame:
                 if not _vb.update():
                     _vb_remove.append(_vb)
                 elif _vb.get_rect().colliderect(_bear_rect_vb):
-                    if hurtTimer > 60:
+                    if hurtTimer > 75:
                         bear.set_poison(30)
                         bear.setHp(bear.getHp() - 4)
                         hurtTimer = 0
@@ -3819,7 +3819,7 @@ class mainGame:
                 if _orb['life'] <= 0 or _orb['x'] < -50 or _orb['x'] > 960 or _orb['y'] > 450:
                     _orbs_remove.append(_orb)
                 elif pygame.Rect(int(_orb['x']) - 10, int(_orb['y']) - 10, 20, 20).colliderect(_bear_rect_orb):
-                    if hurtTimer > 60:
+                    if hurtTimer > 75:
                         bear.applyDamage(_orb['dmg'])
                         bear.displayDamageOnBear(_orb['dmg'], "shaman")
                         hurtTimer = 0
@@ -3871,7 +3871,7 @@ class mainGame:
                         _closest_x = _bx1 + _t * _ldx
                         _closest_y = _by1 + _t * _ldy
                         _pdist = math.sqrt((_bear_cx_b - _closest_x)**2 + (_bear_cy_b - _closest_y)**2)
-                        if _pdist < 40 and hurtTimer > 60 and not _wb.get('hit', False):
+                        if _pdist < 40 and hurtTimer > 75 and not _wb.get('hit', False):
                             _wb['hit'] = True
                             _beam_dmg = max(5, int(bear.getMaxHp() * 0.10))
                             bear.applyDamage(_beam_dmg)
@@ -4065,7 +4065,7 @@ class mainGame:
                         _dx_b = _bear_cx - _bomb['x']
                         _dy_b = _bear_cy - _bomb['y']
                         _dist_b = math.sqrt(_dx_b*_dx_b + _dy_b*_dy_b)
-                        if _dist_b < _b_explode_radius and hurtTimer > 60:
+                        if _dist_b < _b_explode_radius and hurtTimer > 75:
                             _bomb_pct = 0.40 if _b_big else 0.30
                             _bomb_dmg = max(8, int(bear.getMaxHp() * _bomb_pct))
                             bear.applyDamage(_bomb_dmg)
@@ -4141,6 +4141,14 @@ class mainGame:
                 hurtTimer += 1
             else:
                 hurtTimer = 0
+
+            if hurtTimer > 360 and bear.getHp() < bear.getMaxHp() and bear.getHp() > 0:
+                self._regen_tick = getattr(self, '_regen_tick', 0) + 1
+                if self._regen_tick >= 75:
+                    self._regen_tick = 0
+                    bear.setHp(min(bear.getMaxHp(), bear.getHp() + 1))
+            else:
+                self._regen_tick = 0
 
             _was_in_popup = getattr(self, '_was_in_popup', False)
             if not bear.getEndText():
@@ -7093,9 +7101,9 @@ class Bear:
         self._move_accel = 0.25
         self._move_friction = 0.35
         self._coyote_timer = 0
-        self._coyote_max = 6
+        self._coyote_max = 10
         self._jump_buffer = 0
-        self._jump_buffer_max = 8
+        self._jump_buffer_max = 12
         self._land_squash = 0
         self._was_on_ground = True
         self._move_dir = 0
