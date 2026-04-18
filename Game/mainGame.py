@@ -958,6 +958,7 @@ class mainGame:
         self._100_coin_milestone = False
         self._last_coin_milestone = 0
         self._first_coin_popup_shown = False
+        self._shop_afford_hinted = False
         self._critical_hp_popup_shown = False
         self._beam_ever_shown = False
         self._post_boss_platform_popup_shown = False
@@ -2040,19 +2041,35 @@ class mainGame:
                         _cur_y += _cat_h + 4
 
                     _sel = (shop_selection == idx)
+                    _afford = bear.getCoins() >= cost
                     _row_rect = pygame.Rect(_left_x, _cur_y, _item_w, _row_h)
                     if _sel:
                         _pulse = int(abs(math.sin(pygame.time.get_ticks() * 0.005)) * 20)
-                        _bg = (60 + _pulse, 38 + _pulse // 2, 110 + _pulse)
+                        if _afford:
+                            _bg = (40 + _pulse, 80 + _pulse // 2, 50 + _pulse)
+                            _border = (140, 255, 170)
+                        else:
+                            _bg = (60 + _pulse, 38 + _pulse // 2, 110 + _pulse)
+                            _border = (220, 180, 255)
                         pygame.draw.rect(self.screen, _bg, _row_rect, border_radius=10)
-                        pygame.draw.rect(self.screen, (220, 180, 255), _row_rect, 2, border_radius=10)
+                        pygame.draw.rect(self.screen, _border, _row_rect, 2, border_radius=10)
                         _arrow_x = _left_x + 6
                         _arrow_y = _cur_y + _row_h // 2
                         pygame.draw.polygon(self.screen, (255, 220, 100),
                                             [(_arrow_x, _arrow_y - 5), (_arrow_x + 8, _arrow_y), (_arrow_x, _arrow_y + 5)])
                     else:
-                        pygame.draw.rect(self.screen, (30, 20, 55), _row_rect, border_radius=10)
-                        pygame.draw.rect(self.screen, (70, 55, 100), _row_rect, 1, border_radius=10)
+                        if _afford:
+                            pygame.draw.rect(self.screen, (24, 44, 30), _row_rect, border_radius=10)
+                            pygame.draw.rect(self.screen, (90, 160, 110), _row_rect, 1, border_radius=10)
+                        else:
+                            pygame.draw.rect(self.screen, (30, 20, 55), _row_rect, border_radius=10)
+                            pygame.draw.rect(self.screen, (70, 55, 100), _row_rect, 1, border_radius=10)
+                    if _afford:
+                        _check_x = _left_x + _item_w - 16
+                        _check_y = _cur_y + _row_h - 12
+                        pygame.draw.circle(self.screen, (90, 220, 120), (_check_x, _check_y), 6)
+                        pygame.draw.lines(self.screen, (20, 40, 25), False,
+                                          [(_check_x - 3, _check_y), (_check_x - 1, _check_y + 2), (_check_x + 3, _check_y - 2)], 2)
 
                     _icon_char, _icon_col = _icon_map.get(item_id, ('?', (200, 200, 200)))
                     _icon_cx = _left_x + 30
@@ -3589,10 +3606,18 @@ class mainGame:
                     if not self._first_coin_popup_shown:
                         self._first_coin_popup_shown = True
                         bear.setArrayText(['You got a coin!',
-                                           'Press RETURN to open the Shop',
-                                           'and spend your coins!',
+                                           'Press ENTER any time to',
+                                           'open the BEAR SHOP and',
+                                           'spend coins on upgrades!',
                                            'Press "s" to continue'])
                         bear.setEndText(False)
+                    if (not self._shop_afford_hinted) and bear.getCoins() >= 30:
+                        self._shop_afford_hinted = True
+                        self._push_toast('You can afford an upgrade! Press ENTER for the Shop',
+                                         duration=300, color=(180, 255, 180))
+                        if getattr(self, 'shop_open_sound', None):
+                            try: self.shop_open_sound.play()
+                            except Exception: pass
             for coin in coins_to_remove:
                 if coin in self.coins:
                     self.coins.remove(coin)
@@ -7639,10 +7664,26 @@ class Bear:
     def displayBearCoins(self):
         CX, CY, CW, CH = 8, 92, 280, 52
         render_hud_panel(self.screen, CX, CY, CW, CH, (200, 180, 80))
+        _can_afford = self.coins >= 30
+        if _can_afford:
+            _pulse = abs(math.sin(pygame.time.get_ticks() * 0.005))
+            _glow_r = int(14 + _pulse * 4)
+            _glow_a = int(60 + _pulse * 80)
+            _glow = pygame.Surface((_glow_r * 2, _glow_r * 2), pygame.SRCALPHA)
+            pygame.draw.circle(_glow, (255, 240, 120, _glow_a), (_glow_r, _glow_r), _glow_r)
+            self.screen.blit(_glow, (CX + 24 - _glow_r, CY + 28 - _glow_r))
         pygame.draw.circle(self.screen, (255, 215, 0), (CX + 24, CY + 28), 12)
         pygame.draw.circle(self.screen, (255, 245, 130), (CX + 24, CY + 28), 6)
         render_hud_text_outlined(self.screen, _FONT_HUD, str(self.coins),
                            CX + 50, CY + 8, (255, 255, 160))
+        if _can_afford:
+            _hint_pulse = abs(math.sin(pygame.time.get_ticks() * 0.004))
+            _hint_col = (180 + int(_hint_pulse * 75), 255, 180 + int(_hint_pulse * 50))
+            render_hud_text_outlined(self.screen, _FONT_HUD_VAL,
+                                     '[ENTER] SHOP', CX + 140, CY + 6, _hint_col)
+        else:
+            render_hud_text_outlined(self.screen, _FONT_HUD_VAL,
+                                     '[ENTER] Shop', CX + 140, CY + 6, (170, 160, 130))
         extras = []
         if getattr(self, 'has_shield', False):
             extras.append('🛡')
