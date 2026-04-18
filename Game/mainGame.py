@@ -2194,7 +2194,7 @@ class mainGame:
 
                 # ---- C: beam super attack ---------------------------------
                 beamCooldown = max(0, beamCooldown - 1)
-                beamCharge = min(100.0, beamCharge + 0.10)
+                beamCharge = min(100.0, beamCharge + 0.10 * getattr(self, '_ng_beam_mult', 1.0))
                 if beamCharge >= 100.0 and not beamReadyPopupShown:
                     beamReadyPopupShown = True
                     self._beam_ever_shown = True
@@ -3332,6 +3332,11 @@ class mainGame:
                 self._combo_timer = 150
                 if self._combo > self._combo_max_session:
                     self._combo_max_session = self._combo
+                if getattr(monster, '_elite', False):
+                    bear.setCoins(bear.getCoins() + 5)
+                    self._push_toast('\u2728 ELITE KILL! +5 coins \u2728', duration=120, color=(255, 215, 0))
+                if random.random() < getattr(self, '_ng_lucky_drop_chance', 0.0):
+                    self.coins.append(Coin(int(monster.getXPosition() + 40), int(monster.getYPosition()), self.screen))
                 if self._combo >= 30 and not self._combo_master_unlocked:
                     self._combo_master_unlocked = True
                     bear.setMaxHp(bear.getMaxHp() + 15)
@@ -4479,6 +4484,17 @@ class mainGame:
                     self.screen.blit(_bn_t_shadow, (450 - _bn_t.get_width() // 2 + 3 + _slide, _bn_y + 18 + 3))
                     self.screen.blit(_bn_t, (450 - _bn_t.get_width() // 2 + _slide, _bn_y + 18))
                     self.screen.blit(_bn_s, (450 - _bn_s.get_width() // 2 + _slide, _bn_y + 78))
+            for _em in self.mummys:
+                try:
+                    if getattr(_em, '_elite', False) and _em.getHp() > 0:
+                        _ex = _em.getXPosition() + 50
+                        _ey = _em.getYPosition() + 60
+                        if -50 < _ex < 950:
+                            _epulse = 4 + int(math.sin(pygame.time.get_ticks() * 0.01) * 4)
+                            pygame.draw.circle(self.screen, (255, 215, 0), (_ex, _ey), 70 + _epulse, 3)
+                            pygame.draw.circle(self.screen, (255, 240, 150), (_ex, _ey), 60 + _epulse, 1)
+                except Exception:
+                    pass
             if getattr(self, '_mummy_hint_active', False):
                 _big_mummy_alive = False
                 for _mu in self.mummys:
@@ -4847,8 +4863,19 @@ class mainGame:
                         _m.health = int(_m.health * _ng_hp_early)
                         _m.damageAttack = int(_m.damageAttack * _ng_dmg_mult)
                         _m.rand = max(1, round(_m.rand * _ng_spd_mult))
+                        if random.random() < min(0.50, 0.15 * self.newGamePlusLevel):
+                            _m._elite = True
+                            _m.health = int(_m.health * 1.5)
+                            _m.exp = int(_m.exp * 2)
                         self.mummys.append(_m)
                     self._switch_music("normal")
+                    _ng_coin_bonus = 25 * self.newGamePlusLevel
+                    bear.setCoins(bear.getCoins() + _ng_coin_bonus)
+                    self._ng_beam_mult = min(2.0, 1.0 + 0.15 * self.newGamePlusLevel)
+                    self._ng_lucky_drop_chance = min(0.40, 0.05 * self.newGamePlusLevel)
+                    self._push_toast('\u2728 NEW GAME+ %d \u2728' % self.newGamePlusLevel, duration=300, color=(255, 215, 0))
+                    self._push_toast('+%d starting coins, +%d%% beam recharge' % (_ng_coin_bonus, int((self._ng_beam_mult - 1.0) * 100)), duration=300, color=(180, 255, 220))
+                    self._push_toast('Look for golden ELITE enemies — double XP!', duration=300, color=(255, 200, 100))
                 bear.setXPosition(150)
                 bear.setYPosition(300)
                 backgroundScrollX = 60
