@@ -3506,6 +3506,9 @@ class mainGame:
                     if getattr(self, 'boss_explosion_sound', None):
                         self.boss_explosion_sound.play()
                 elif monster.getStartDestructionAnimationStatus():
+                    if not getattr(self, '_boss_kill_no_hit_locked', False):
+                        self._boss_kill_no_hit_snapshot = not getattr(self, '_boss_hit_taken', False)
+                        self._boss_kill_no_hit_locked = True
                     _boss_death_dmg = monster.getDamageReceived() if monster.getDamageReceived() > 0 else bear.getDamageAttack()
                     monster.drawDestruction(_boss_death_dmg)
                     if monster.getDestructionAnimationCount() == 20 and getattr(self, 'boss_explosion_sound', None):
@@ -3517,6 +3520,17 @@ class mainGame:
                             _exp_gain = int(_exp_gain * 1.75)
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         boss_to_remove.append(monster)
+                        if (getattr(self, '_boss_kill_no_hit_snapshot', False)
+                                and not getattr(self, '_untouchable_unlocked', False)):
+                            self._untouchable_unlocked = True
+                            bear.setMaxHp(bear.getMaxHp() + 30)
+                            bear.setHp(bear.getMaxHp())
+                            bear.setDamageAttack(bear.getDamageAttack() + 5)
+                            self._push_toast('\U0001F396 UNTOUCHABLE! No-hit boss kill! \U0001F396', duration=360, color=(180, 240, 255))
+                            self._push_toast('+30 Max HP, +5 attack damage permanently!', duration=300, color=(255, 230, 140))
+                            if getattr(self, 'level_up_sound', None):
+                                try: self.level_up_sound.play()
+                                except Exception: pass
                         self.newGamePlusLevel += 1
                         bear.setArrayText([
                             'FINAL BOSS DEFEATED!', '',
@@ -4199,6 +4213,13 @@ class mainGame:
             else:
                 hurtTimer = 0
 
+            if self.frankenbear:
+                _prev_boss_hp = getattr(self, '_prev_bear_hp_boss', bear.getHp())
+                if bear.getHp() < _prev_boss_hp:
+                    self._boss_hit_taken = True
+                self._prev_bear_hp_boss = bear.getHp()
+            else:
+                self._prev_bear_hp_boss = bear.getHp()
             _regen_threshold = 540 if self._hardMode else 360
             _regen_rate = 150 if self._hardMode else 75
             if hurtTimer > _regen_threshold and bear.getHp() < bear.getMaxHp() and bear.getHp() > 0:
@@ -4263,6 +4284,10 @@ class mainGame:
                     if self.showBoss:
                         frankenbear = FrankenBear(1400, 40, self.screen)
                         self.frankenbear.append(frankenbear)
+                        self._boss_hit_taken = False
+                        self._boss_kill_no_hit_locked = False
+                        self._boss_kill_no_hit_snapshot = False
+                        self._prev_bear_hp_boss = bear.getHp()
                         self.showBoss = False
                         if self.boss_entrance_sound: self.boss_entrance_sound.play()
                     for frankenbear in self.frankenbear:
@@ -4271,7 +4296,7 @@ class mainGame:
                         if not _popup_active and (frankenbear.getThrowFireBallLeft() or frankenbear.getThrowFireBallRight()):
                             frankenbear.setThrowFireBallLeft(False)
                             frankenbear.setThrowFireBallRight(False)
-                            volley = 2
+                            volley = 2 if getattr(self, '_hardMode', False) else 1
                             import math as _m
                             _fx = frankenbear.getXPosition() + 200
                             _fy = frankenbear.getYPosition() + 100
@@ -4281,8 +4306,8 @@ class mainGame:
                             _dy = _by - _fy
                             _dist = max(1, _m.sqrt(_dx*_dx + _dy*_dy))
                             for _ in range(volley):
-                                _speed = random.uniform(3, 5)
-                                _spread = random.uniform(-0.15, 0.15)
+                                _speed = random.uniform(2.5, 3.8)
+                                _spread = random.uniform(-0.12, 0.12)
                                 _vx = _speed * (_dx / _dist) + _spread * _speed
                                 _vy_raw = _speed * (_dy / _dist)
                                 _vy_raw = max(1, abs(_vy_raw)) * (1 if _dy > 0 else -1)
@@ -4290,9 +4315,9 @@ class mainGame:
                                              _vx,
                                              _vy_raw,
                                              self.fireBossBall, self.screen)
-                                _bfb.damageAttack = max(4, int(bear.getMaxHp() * 0.05))
+                                _bfb.damageAttack = max(3, int(bear.getMaxHp() * 0.04))
                                 if getattr(self, '_hardMode', False):
-                                    _bfb.damageAttack = int(_bfb.damageAttack * 1.8)
+                                    _bfb.damageAttack = int(_bfb.damageAttack * 1.5)
                                 _bfb._bounce_sound = self.fireball_bounce_sound
                                 self.bossFires.append(_bfb)
 
@@ -4869,7 +4894,9 @@ class mainGame:
                         _m = Mummy(_mx, 300, 100, 100, self.mummy1, self.mummy2, self.screen)
                         _m.health = int(_m.health * _ng_hp_early)
                         _m.damageAttack = int(_m.damageAttack * _ng_dmg_mult)
+                        _m.exp = int(_m.exp * _ng_exp_mult)
                         _m.rand = max(1, round(_m.rand * _ng_spd_mult))
+                        _m._ng_boosted = True
                         if random.random() < min(0.50, 0.15 * self.newGamePlusLevel):
                             _m._elite = True
                             _m.health = int(_m.health * 1.5)
@@ -8525,13 +8552,13 @@ class FrankenBear():
         self.blinkTimer = 0
         self.attackTimer = 0
         self.randomBlink = random.randint(50, 150)
-        self.randomAttack = random.randint(60, 100)
+        self.randomAttack = random.randint(95, 145)
         self.bossDisplay = self.boss3
         self.blinked = False
         self.attacked = False
         self.throwFireBallLeft = False
         self.throwFireBallRight = False
-        self.damageAttack = 20
+        self.damageAttack = 12
         self.damageReceived = 0
         self.fire = pygame.image.load("Game/Images/fire2.png")
         self.fire = pygame.transform.scale(self.fire, (100, 100))
@@ -8671,9 +8698,9 @@ class FrankenBear():
                 self.blinkTimer = 0
             if self.attacked:
                 if self.health <= 3:
-                    self.randomAttack = random.randint(60, 100)
+                    self.randomAttack = random.randint(95, 145)
                 else:
-                    self.randomAttack = random.randint(90, 140)
+                    self.randomAttack = random.randint(95, 145)
                 self.attackTimer = 0
                 self.blinkTimer = 0
                 self.flipped = random.randint(1, 2)
