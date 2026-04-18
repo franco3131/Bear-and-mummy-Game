@@ -4605,11 +4605,14 @@ class mainGame:
                 door_x = door.getXPosition()
 
                 if not self.isDoor1Open:
-                    if door_x - 90 <= bear.getXPosition() and not self.triggerText3:
-                        self.triggerText3 = True
-                        bear._level_up_float = 180
-                        bear._level_up_float_max = 180
-                        bear._level_up_text = 'DOOR LOCKED!'
+                    if door_x - 90 <= bear.getXPosition():
+                        bear.setXPosition(door_x - 91)
+                        totalDistance -= STEP
+                        if not self.triggerText3:
+                            self.triggerText3 = True
+                            bear._level_up_float = 180
+                            bear._level_up_float_max = 180
+                            bear._level_up_text = 'DOOR LOCKED!'
                 else:
                     if self.isDoor1Open and bear.getXPosition() > door_x + 50:
                         self._boss_door_passed = True
