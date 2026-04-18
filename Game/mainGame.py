@@ -3319,7 +3319,9 @@ class mainGame:
                         _exp_gain = monster.getExp()
                         if self._hardMode:
                             _exp_gain = int(_exp_gain * 1.75)
-                        _combo_mult = 1.0 + min(2.0, max(0, self._combo) * 0.15)
+                        _combo_cap = 1.0 if self._hardMode else 2.0
+                        _combo_step = 0.10 if self._hardMode else 0.15
+                        _combo_mult = 1.0 + min(_combo_cap, max(0, self._combo) * _combo_step)
                         if _combo_mult > 1.0:
                             _exp_gain = int(_exp_gain * _combo_mult)
                             if self._combo >= 2:
@@ -3347,7 +3349,10 @@ class mainGame:
                         try: self.level_up_sound.play()
                         except Exception: pass
                 _hp_ratio = bear.getHp() / max(1, bear.getMaxHp())
-                _heart_chance = 0.85 if _hp_ratio < 0.15 else (0.60 if _hp_ratio < 0.30 else (0.40 if _hp_ratio < 0.50 else 0.18))
+                if self._hardMode:
+                    _heart_chance = 0.65 if _hp_ratio < 0.15 else (0.40 if _hp_ratio < 0.30 else (0.22 if _hp_ratio < 0.50 else 0.08))
+                else:
+                    _heart_chance = 0.85 if _hp_ratio < 0.15 else (0.60 if _hp_ratio < 0.30 else (0.40 if _hp_ratio < 0.50 else 0.18))
                 if random.random() < _heart_chance:
                     self.heart_drops.append({
                         'x': float(monster.getXPosition() + 40),
@@ -4194,9 +4199,11 @@ class mainGame:
             else:
                 hurtTimer = 0
 
-            if hurtTimer > 360 and bear.getHp() < bear.getMaxHp() and bear.getHp() > 0:
+            _regen_threshold = 540 if self._hardMode else 360
+            _regen_rate = 150 if self._hardMode else 75
+            if hurtTimer > _regen_threshold and bear.getHp() < bear.getMaxHp() and bear.getHp() > 0:
                 self._regen_tick = getattr(self, '_regen_tick', 0) + 1
-                if self._regen_tick >= 75:
+                if self._regen_tick >= _regen_rate:
                     self._regen_tick = 0
                     bear.setHp(min(bear.getMaxHp(), bear.getHp() + 1))
             else:
