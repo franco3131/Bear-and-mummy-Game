@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "gwlzxbL_M3_G41G-M7-9l"
@@ -18,3 +17,9 @@ id = "S1Te2ttS4PSzZBpEjxU6o"
 uri = "file://Game/Images/lion.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "9A9KBrivuvtGtctgqwmBm"
+uri = "file://Game/Sounds/spooky_peaceful.wav"
+type = "audio"
+title = "First song (spooky_peaceful.wav)"
