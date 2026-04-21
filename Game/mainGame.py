@@ -1168,6 +1168,7 @@ class mainGame:
         self._word_jump_unlocked = False
         self._rainbow_trail = []
         self._confetti_particles = []
+        self._xp_popups = []
         self._rainbow_tick = 0
         self._combo_master_unlocked = False
         self._lucky_100_unlocked = False
@@ -3795,13 +3796,15 @@ class mainGame:
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         try:
                             if self._combo >= 3 and _soft_mult > 1.15:
-                                self._push_toast('exp %d  (x%.2f combo)' % (_exp_gain, _soft_mult),
-                                                 duration=110, color=(255, 230, 140))
+                                _pop_color = (255, 230, 140)
                             elif _grind_bonus > 1.05:
-                                self._push_toast('exp %d  (x%.2f grind bonus)' % (_exp_gain, _grind_bonus),
-                                                 duration=110, color=(180, 255, 200))
+                                _pop_color = (180, 255, 200)
                             else:
-                                self._push_toast('exp %d' % _exp_gain, duration=80, color=(255, 245, 140))
+                                _pop_color = (255, 245, 140)
+                            _pop_x = int(monster.getXPosition() + 40)
+                            _pop_y = int(monster.getYPosition() - 10)
+                            self._xp_popups.append([float(_pop_x), float(_pop_y),
+                                                    'exp +%d' % _exp_gain, _pop_color, 70])
                         except Exception:
                             pass
                         to_remove.append(monster)
@@ -5648,6 +5651,32 @@ class mainGame:
                         self.screen.blit(_csurf, (int(_p[0]), int(_p[1])))
                         _cp_keep.append(_p)
                 self._confetti_particles = _cp_keep
+
+            if self._xp_popups:
+                try:
+                    _xp_font = pygame.font.SysFont('Arial', 22, bold=True)
+                except Exception:
+                    _xp_font = pygame.font.Font(None, 24)
+                _xp_keep = []
+                for _xp in self._xp_popups:
+                    _xp[1] -= 1.1
+                    _xp[4] -= 1
+                    if _xp[4] > 0:
+                        _alpha = max(0, min(255, int(255 * (_xp[4] / 70.0))))
+                        _txt_surf = _xp_font.render(_xp[2], True, _xp[3])
+                        _shadow = _xp_font.render(_xp[2], True, (0, 0, 0))
+                        _wrap = pygame.Surface(_txt_surf.get_size(), pygame.SRCALPHA)
+                        _wrap.blit(_txt_surf, (0, 0))
+                        _wrap.set_alpha(_alpha)
+                        _shadow_wrap = pygame.Surface(_shadow.get_size(), pygame.SRCALPHA)
+                        _shadow_wrap.blit(_shadow, (0, 0))
+                        _shadow_wrap.set_alpha(_alpha)
+                        _bx = int(_xp[0] - _txt_surf.get_width() // 2)
+                        _by = int(_xp[1])
+                        self.screen.blit(_shadow_wrap, (_bx + 2, _by + 2))
+                        self.screen.blit(_wrap, (_bx, _by))
+                        _xp_keep.append(_xp)
+                self._xp_popups = _xp_keep
 
             try:
                 _hp_now = bear.getHp()
