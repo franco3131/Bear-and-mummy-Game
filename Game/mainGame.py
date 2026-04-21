@@ -1306,6 +1306,9 @@ class mainGame:
         self.spikes = []; self.door = []; self.keys = []
         self.frankenbear = []; self.bombs = []; self._bomb_spawn_timer = 0
         self._bomb_wave_30 = False; self._bomb_wave_60 = False
+        self._bomb_gauntlet_started = False
+        self._bomb_gauntlet_active = False
+        self._bomb_gauntlet_timer = 0
         self.heart_drops = []; self.shaman_orbs = []; self._shaman_orb_timer = 0
         self.witch_beams = []
 
@@ -1405,6 +1408,8 @@ class mainGame:
     _idle_hair_timer = 0
 
     def _draw_idle_bear(self, bear):
+        if getattr(bear, 'slide_frames', 0) > 0:
+            return
         if bear.get_crouch():
             if not bear.getLeftDirection():
                 if bear.crouch_sprite:
@@ -3722,15 +3727,18 @@ class mainGame:
 
             # ---- Slide pose (Mega-Man-X style) ---------------------------------
             if bear.slide_frames > 0:
-                _slide_sprite = (self.crouchBearLeft if bear.slide_dir < 0
-                                 else self.crouchBear)
-                _slide_y_off = self.standingBear.get_height() - _slide_sprite.get_height()
-                self.screen.blit(_slide_sprite,
-                                 (bear.getXPosition(), bear.getYPosition() + _slide_y_off))
+                # Floor anchor: bottom of standing sprite = bear.y + 115
+                _attack_h = self.bearAttacking.get_height()  # 105
+                _slide_y = bear.getYPosition() + 115 - _attack_h + 18  # sit low/on the floor
+                _slide_x = bear.getXPosition() - (90 if bear.slide_dir < 0 else 0)
+                if bear.slide_dir < 0:
+                    self.screen.blit(self.bearAttackingLeft, (_slide_x, _slide_y))
+                else:
+                    self.screen.blit(self.bearAttacking, (_slide_x, _slide_y))
                 # dust puffs behind the slide
                 for _i in range(3):
                     _dx = bear.getXPosition() + (50 - bear.slide_dir * (20 + _i * 8))
-                    _dy = bear.getYPosition() + 105 + _i * 2
+                    _dy = bear.getYPosition() + 110 + _i * 2
                     pygame.draw.circle(self.screen, (220, 210, 190),
                                        (int(_dx), int(_dy)), 6 - _i)
             # ---- Attack animation (always runs, fixes 1-frame flicker gap) ------
@@ -4628,6 +4636,59 @@ class mainGame:
                                      (28, 0, 10, _wall_h))
                     self.screen.blit(_glow_s, (_wx, _wall_top))
 
+            # ── BOMB GAUNTLET ZONE (13 000 – 15 500) ─────────────────────
+            # Short, intense corridor: 1 bomb per second, dropping both ahead
+            # AND behind the player, with a few platforms to dodge between.
+            if (not getattr(self, '_bomb_gauntlet_started', False)
+                    and backgroundScrollX >= 13000):
+                self._bomb_gauntlet_started = True
+                self._bomb_gauntlet_active = True
+                self._bomb_gauntlet_timer = 0
+                self._bomb_gauntlet_alt = 0
+                # Add 4 dodge platforms in front of the player at varied heights
+                _gp_specs = [
+                    (300, 400, 110, 18),
+                    (560, 320, 110, 18),
+                    (820, 380, 110, 18),
+                    (1080, 290, 110, 18),
+                ]
+                self._gauntlet_blocks = []
+                for _gx, _gy, _gw, _gh in _gp_specs:
+                    _gb = Block(_gx, _gy, _gw, _gh, "greyRock", self.screen)
+                    self.blocks.append(_gb)
+                    self._gauntlet_blocks.append(_gb)
+                self._push_toast('\u2620 BOMB GAUNTLET! Dodge and slide! \u2620',
+                                 duration=240, color=(255, 100, 60))
+                if getattr(self, 'wave_warning_sound', None):
+                    try: self.wave_warning_sound.play()
+                    except Exception: pass
+
+            if (getattr(self, '_bomb_gauntlet_active', False)
+                    and backgroundScrollX >= 15500):
+                self._bomb_gauntlet_active = False
+                self._push_toast('Bomb gauntlet cleared!',
+                                 duration=180, color=(120, 255, 160))
+
+            if getattr(self, '_bomb_gauntlet_active', False) and not _popup_active:
+                self._bomb_gauntlet_timer += 1
+                if self._bomb_gauntlet_timer >= 60:  # 1 bomb / sec
+                    self._bomb_gauntlet_timer = 0
+                    import random as _bg_rand
+                    _bear_gx = bear.getXPosition() + 50
+                    # Alternate ahead / behind so bombs come from both sides
+                    self._bomb_gauntlet_alt = 1 - self._bomb_gauntlet_alt
+                    _side = 1 if self._bomb_gauntlet_alt == 0 else -1
+                    _g_off = _bg_rand.randint(120, 360)
+                    _gbx = max(40, min(860, _bear_gx + _side * _g_off))
+                    _g_big = _bg_rand.random() < 0.18
+                    _g_secs = _bg_rand.choice([1, 2, 2, 3])
+                    self.bombs.append({
+                        'x': float(_gbx), 'y': -40.0, 'vy': 3.2,
+                        'landed': False, 'timer': _g_secs * 60,
+                        'exploding': False, 'explode_anim': 0,
+                        'big': _g_big,
+                    })
+
             if not getattr(self, '_bomb_wave_30', False) and backgroundScrollX >= 18000:
                 self._bomb_wave_30 = True
                 import random as _br30
@@ -5483,6 +5544,9 @@ class mainGame:
                 self.destroyable_blocks = []; self.beamProjectiles = []
                 self.bombs = []; self._bomb_spawn_timer = 0
                 self._bomb_wave_30 = False; self._bomb_wave_60 = False
+                self._bomb_gauntlet_started = False
+                self._bomb_gauntlet_active = False
+                self._bomb_gauntlet_timer = 0
                 self.heart_drops = []; self.shaman_orbs = []; self._shaman_orb_timer = 0
                 self.witch_beams = []
 
