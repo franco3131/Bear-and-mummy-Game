@@ -4541,20 +4541,28 @@ class mainGame:
                 if _bp in self.boot_pickups:
                     self.boot_pickups.remove(_bp)
 
-            if totalDistance <= self._zone_min_distance - 300 and self._zone_min_distance > 0:
-                _wall_pulse = abs(math.sin(pygame.time.get_ticks() * 0.003))
-                _wall_w = 28
-                _wall_top = 60
-                _wall_bot = 720
-                _wall_h = _wall_bot - _wall_top
-                pygame.draw.rect(self.screen, (90, 70, 60), (0, _wall_top, _wall_w, _wall_h))
-                for _by in range(_wall_top, _wall_bot, 32):
-                    pygame.draw.rect(self.screen, (60, 45, 38), (2, _by, _wall_w - 4, 28), 1)
-                    pygame.draw.line(self.screen, (50, 38, 30), (0, _by), (_wall_w, _by), 1)
-                _glow_a = int(80 + _wall_pulse * 80)
-                _glow_s = pygame.Surface((44, _wall_h), pygame.SRCALPHA)
-                pygame.draw.rect(_glow_s, (180, 100, 200, _glow_a), (28, 0, 10, _wall_h))
-                self.screen.blit(_glow_s, (0, _wall_top))
+            if self._zone_min_distance > 0:
+                _wall_world_x = self._zone_min_distance - 300
+                _wall_screen_x = bear.getXPosition() - (totalDistance - _wall_world_x)
+                if -60 < _wall_screen_x < 960:
+                    _wall_pulse = abs(math.sin(pygame.time.get_ticks() * 0.003))
+                    _wall_w = 28
+                    _wall_top = 60
+                    _wall_bot = 720
+                    _wall_h = _wall_bot - _wall_top
+                    _wx = int(_wall_screen_x)
+                    pygame.draw.rect(self.screen, (90, 70, 60),
+                                     (_wx, _wall_top, _wall_w, _wall_h))
+                    for _by in range(_wall_top, _wall_bot, 32):
+                        pygame.draw.rect(self.screen, (60, 45, 38),
+                                         (_wx + 2, _by, _wall_w - 4, 28), 1)
+                        pygame.draw.line(self.screen, (50, 38, 30),
+                                         (_wx, _by), (_wx + _wall_w, _by), 1)
+                    _glow_a = int(80 + _wall_pulse * 80)
+                    _glow_s = pygame.Surface((44, _wall_h), pygame.SRCALPHA)
+                    pygame.draw.rect(_glow_s, (180, 100, 200, _glow_a),
+                                     (28, 0, 10, _wall_h))
+                    self.screen.blit(_glow_s, (_wx, _wall_top))
 
             if not getattr(self, '_bomb_wave_30', False) and backgroundScrollX >= 18000:
                 self._bomb_wave_30 = True
