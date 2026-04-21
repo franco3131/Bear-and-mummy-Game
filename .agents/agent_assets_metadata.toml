@@ -22,4 +22,10 @@ title = "generated_image"
 id = "9A9KBrivuvtGtctgqwmBm"
 uri = "file://Game/Sounds/spooky_peaceful.wav"
 type = "audio"
-title = "First song (slightly higher)"
+title = "First song (lower octave - now in game)"
+
+[[outputs]]
+id = "bdDIz78iiXIwiJidJYl-j"
+uri = "file://Game/Sounds/boss_spooky.wav"
+type = "audio"
+title = "Boss song (Mega Man X style)"
