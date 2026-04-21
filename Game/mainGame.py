@@ -4144,9 +4144,9 @@ class mainGame:
                         _ha for _ha in getattr(self, '_head_alerts', [])
                         if _ha.get('tag') != 'bigmummy']
                     self._head_alerts.append({
-                        'text': 'TO SLIDE PRESS SPACE',
-                        'life': 360,
-                        'max_life': 360,
+                        'text': 'TO SLIDE: PRESS SPACE  or  TAP RIGHT-RIGHT FAST',
+                        'life': 480,
+                        'max_life': 480,
                         'color': (120, 220, 255),
                         'tag': 'slide_hint'})
                     self._start_ambient_loop()
@@ -4759,18 +4759,8 @@ class mainGame:
                 self._bomb_gauntlet_active = True
                 self._bomb_gauntlet_timer = 0
                 self._bomb_gauntlet_alt = 0
-                # Wipe any lingering monsters so the zone is bombs-only
-                self.mummys = [m for m in self.mummys if m.getName() == "bigMummy"]
-                self.witches = []
-                self.greenBlobs = []
-                self.shadowShamans = []
-                self.miniFrankenBears = []
-                self.snakes = []
-                self.monkey_mummies = []
-                self.lions = []
-                # Suppress monster waves that would normally fire inside the zone
-                if len(self.activeMonsters) > 14:
-                    self.activeMonsters[14] = True
+                # NOTE: do NOT touch monster lists or activeMonsters here —
+                # that interfered with normal zone/loading flow. Bombs only.
                 # Add 4 dodge platforms in front of the player at varied heights
                 _gp_specs = [
                     (300, 420, 110, 18),
@@ -4797,34 +4787,25 @@ class mainGame:
                 self._push_toast('Bomb gauntlet cleared!',
                                  duration=180, color=(120, 255, 160))
 
-            # Keep purging monster spawns inside the gauntlet (in case any slip in)
-            if getattr(self, '_bomb_gauntlet_active', False):
-                self.witches = []
-                self.greenBlobs = []
-                self.shadowShamans = []
-                self.miniFrankenBears = []
-                self.snakes = []
-                self.monkey_mummies = []
-                self.lions = []
-                self.mummys = [m for m in self.mummys if m.getName() == "bigMummy"]
-
             if getattr(self, '_bomb_gauntlet_active', False) and not _popup_active:
                 self._bomb_gauntlet_timer += 1
-                if self._bomb_gauntlet_timer >= 60:  # 1 bomb / sec
+                # Faster cadence: 1 bomb every 0.4s (was 1.0s) — much harder to miss
+                if self._bomb_gauntlet_timer >= 24:
                     self._bomb_gauntlet_timer = 0
                     import random as _bg_rand
                     _bear_gx = bear.getXPosition() + 50
                     # Alternate ahead / behind so bombs come from both sides
                     self._bomb_gauntlet_alt = 1 - self._bomb_gauntlet_alt
                     _side = 1 if self._bomb_gauntlet_alt == 0 else -1
-                    _g_off = _bg_rand.randint(120, 360)
+                    # Tighter targeting: drop CLOSE to the player (within 30-130px)
+                    _g_off = _bg_rand.randint(30, 130)
                     _gbx = max(40, min(860, _bear_gx + _side * _g_off))
-                    _g_big = _bg_rand.random() < 0.18
-                    # ~30% of gauntlet bombs detonate INSTANTLY on landing
-                    _g_instant = _bg_rand.random() < 0.30
-                    _g_secs = 0 if _g_instant else _bg_rand.choice([1, 2, 2, 3])
+                    _g_big = _bg_rand.random() < 0.25
+                    # ~45% of gauntlet bombs detonate INSTANTLY on landing
+                    _g_instant = _bg_rand.random() < 0.45
+                    _g_secs = 0 if _g_instant else _bg_rand.choice([1, 1, 2])
                     self.bombs.append({
-                        'x': float(_gbx), 'y': -40.0, 'vy': 3.2,
+                        'x': float(_gbx), 'y': -40.0, 'vy': 4.5,
                         'landed': False, 'timer': _g_secs * 60,
                         'exploding': False, 'explode_anim': 0,
                         'big': _g_big, 'instant': _g_instant,
