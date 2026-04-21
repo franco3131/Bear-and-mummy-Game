@@ -455,6 +455,35 @@ class mainGame:
             self.slide_scrape_sound = _make_snd(_smp)
             self.slide_scrape_sound.set_volume(0.85)
 
+            # ── DANGER ALARM: classic two-tone "low HP" beep, loops ────
+            _n = int(_RATE * 0.55)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                # Two beeps inside 0.55s: 0.00-0.18s and 0.28-0.46s
+                _in_beep1 = 0.0 <= _t < 0.18
+                _in_beep2 = 0.28 <= _t < 0.46
+                _val = 0.0
+                if _in_beep1:
+                    _bt = _t - 0.0
+                    _env = min(1.0, _bt / 0.012) * max(0.0, 1.0 - _bt / 0.18) ** 0.6
+                    # Square-ish wave at 880 Hz with slight detune
+                    _sq = 1.0 if (_bt * 880) % 1.0 < 0.5 else -1.0
+                    _val = _sq * _env * 0.55
+                elif _in_beep2:
+                    _bt = _t - 0.28
+                    _env = min(1.0, _bt / 0.012) * max(0.0, 1.0 - _bt / 0.18) ** 0.6
+                    _sq = 1.0 if (_bt * 988) % 1.0 < 0.5 else -1.0
+                    _val = _sq * _env * 0.55
+                _smp.append(_val)
+            self.danger_alarm_sound = _make_snd(_smp)
+            self.danger_alarm_sound.set_volume(0.55)
+            try:
+                self.danger_alarm_channel = pygame.mixer.Channel(6)
+            except Exception:
+                self.danger_alarm_channel = None
+            self._danger_alarm_playing = False
+
             # ── MMX CHARGED SHOT: rising whir + release boom ────────────
             _n = int(_RATE * 0.55)
             _smp = []
@@ -719,15 +748,12 @@ class mainGame:
                 _t = _i / _RATE
                 _env = max(0.0, (1.0 - _t / 2.0) ** 0.5)
                 _initial_blast = max(0.0, 1.0 - _t * 6) * _rnd.gauss(0, 1) * 1.2
-                _boom = (_math.sin(2*_math.pi*28*_t) * 1.2
-                         + _math.sin(2*_math.pi*45*_t) * 0.9
-                         + _math.sin(2*_math.pi*18*_t + _math.sin(2*_math.pi*3*_t)*6) * 0.8
-                         + _math.sin(2*_math.pi*70*_t) * 0.5
-                         + _math.sin(2*_math.pi*12*_t) * 0.7)
-                _crackle = _rnd.gauss(0, 0.8) * max(0.0, 1.0 - _t * 2) * 0.8
-                _rumble_env = min(1.0, _t * 3) * max(0.0, 1.0 - (_t - 0.5) * 1.0)
-                _rumble = _math.sin(2*_math.pi*15*_t) * _rumble_env * 1.2
-                _s = (_initial_blast + _boom * _env + _crackle + _rumble)
+                # Clean explosive boom: pure low sines, no FM wobble (no "wawawa")
+                _boom = (_math.sin(2*_math.pi*55*_t) * 1.0
+                         + _math.sin(2*_math.pi*32*_t) * 0.85
+                         + _math.sin(2*_math.pi*80*_t) * 0.45)
+                _crackle = _rnd.gauss(0, 0.8) * max(0.0, 1.0 - _t * 2.5) * 0.7
+                _s = (_initial_blast + _boom * _env + _crackle)
                 _smp.append(max(-1.0, min(1.0, _s)))
             self.boss_explosion_sound = _make_snd(_smp)
             self.boss_explosion_sound.set_volume(1.0)
@@ -3729,7 +3755,8 @@ class mainGame:
             if bear.slide_frames > 0:
                 # Floor anchor: bottom of standing sprite = bear.y + 115
                 _attack_h = self.bearAttacking.get_height()  # 105
-                _slide_y = bear.getYPosition() + 115 - _attack_h + 18  # sit low/on the floor
+                # Sit attack sprite flush with the floor (its bottom = standing bottom)
+                _slide_y = bear.getYPosition() + 115 - _attack_h
                 _slide_x = bear.getXPosition() - (90 if bear.slide_dir < 0 else 0)
                 if bear.slide_dir < 0:
                     self.screen.blit(self.bearAttackingLeft, (_slide_x, _slide_y))
@@ -4636,21 +4663,34 @@ class mainGame:
                                      (28, 0, 10, _wall_h))
                     self.screen.blit(_glow_s, (_wx, _wall_top))
 
-            # ── BOMB GAUNTLET ZONE (13 000 – 15 500) ─────────────────────
-            # Short, intense corridor: 1 bomb per second, dropping both ahead
-            # AND behind the player, with a few platforms to dodge between.
+            # ── BOMB GAUNTLET ZONE (7 000 – 9 500) ───────────────────────
+            # Short, monster-free corridor: 1 bomb per second, dropping both
+            # ahead AND behind the player, with platforms to dodge between.
+            # Some bombs are RED INSTANT bombs that detonate the moment they land.
             if (not getattr(self, '_bomb_gauntlet_started', False)
-                    and backgroundScrollX >= 13000):
+                    and backgroundScrollX >= 7000):
                 self._bomb_gauntlet_started = True
                 self._bomb_gauntlet_active = True
                 self._bomb_gauntlet_timer = 0
                 self._bomb_gauntlet_alt = 0
+                # Wipe any lingering monsters so the zone is bombs-only
+                self.mummys = [m for m in self.mummys if m.getName() == "bigMummy"]
+                self.witches = []
+                self.greenBlobs = []
+                self.shadowShamans = []
+                self.miniFrankenBears = []
+                self.snakes = []
+                self.monkey_mummies = []
+                self.lions = []
+                # Suppress monster waves that would normally fire inside the zone
+                if len(self.activeMonsters) > 14:
+                    self.activeMonsters[14] = True
                 # Add 4 dodge platforms in front of the player at varied heights
                 _gp_specs = [
-                    (300, 400, 110, 18),
-                    (560, 320, 110, 18),
-                    (820, 380, 110, 18),
-                    (1080, 290, 110, 18),
+                    (300, 420, 110, 18),
+                    (560, 340, 110, 18),
+                    (820, 400, 110, 18),
+                    (1080, 310, 110, 18),
                 ]
                 self._gauntlet_blocks = []
                 for _gx, _gy, _gw, _gh in _gp_specs:
@@ -4658,16 +4698,29 @@ class mainGame:
                     self.blocks.append(_gb)
                     self._gauntlet_blocks.append(_gb)
                 self._push_toast('\u2620 BOMB GAUNTLET! Dodge and slide! \u2620',
-                                 duration=240, color=(255, 100, 60))
+                                 duration=360, color=(255, 100, 60))
+                self._push_toast('RED bombs explode INSTANTLY on landing!',
+                                 duration=360, color=(255, 200, 80))
                 if getattr(self, 'wave_warning_sound', None):
                     try: self.wave_warning_sound.play()
                     except Exception: pass
 
             if (getattr(self, '_bomb_gauntlet_active', False)
-                    and backgroundScrollX >= 15500):
+                    and backgroundScrollX >= 9500):
                 self._bomb_gauntlet_active = False
                 self._push_toast('Bomb gauntlet cleared!',
                                  duration=180, color=(120, 255, 160))
+
+            # Keep purging monster spawns inside the gauntlet (in case any slip in)
+            if getattr(self, '_bomb_gauntlet_active', False):
+                self.witches = []
+                self.greenBlobs = []
+                self.shadowShamans = []
+                self.miniFrankenBears = []
+                self.snakes = []
+                self.monkey_mummies = []
+                self.lions = []
+                self.mummys = [m for m in self.mummys if m.getName() == "bigMummy"]
 
             if getattr(self, '_bomb_gauntlet_active', False) and not _popup_active:
                 self._bomb_gauntlet_timer += 1
@@ -5284,6 +5337,20 @@ class mainGame:
                         self.screen.blit(_at, (_amx - _at.get_width() // 2, _ay - 48))
                 else:
                     self._mummy_arrow_frames = 0
+            # ---- Danger alarm: loop two-tone beep when HP is critical ----
+            try:
+                _hp_pct = bear.getHp() / max(1, bear.getMaxHp())
+                _danger_now = (_hp_pct <= 0.25 and bear.getHp() > 0)
+                _ch = getattr(self, 'danger_alarm_channel', None)
+                _snd = getattr(self, 'danger_alarm_sound', None)
+                if _danger_now and _snd and _ch and not getattr(self, '_danger_alarm_playing', False):
+                    _ch.play(_snd, loops=-1)
+                    self._danger_alarm_playing = True
+                elif (not _danger_now) and getattr(self, '_danger_alarm_playing', False):
+                    if _ch: _ch.stop()
+                    self._danger_alarm_playing = False
+            except Exception:
+                pass
             self._render_toasts()
             if getattr(self, '_head_alerts', None):
                 _ha_keep = []
