@@ -1090,6 +1090,8 @@ class mainGame:
         self.playerFires = []
         self.greenBlobs = []
         self.witches = []
+        # First 4 enemies in a fresh run get 50% HP for an easier start
+        self._easy_start_remaining = 4
         self.shadowShamans = []
         self.blocks = []
         self.frankenbear = []
@@ -2564,15 +2566,79 @@ class mainGame:
                 _target_step = min(_target_step, 12)
             bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.22
             STEP = max(1, int(round(bear._speed_lerp)))
-            # ---- Slide trigger (SPACE) -----------------------------------
+            # ---- Easy start: halve HP of the first 4 enemies a player sees ----
+            if getattr(self, '_easy_start_remaining', 0) > 0:
+                _easy_lists = (self.mummys, self.witches, self.greenBlobs,
+                               self.shadowShamans, self.miniFrankenBears,
+                               self.snakes, self.monkey_mummies, self.lions)
+                for _elist in _easy_lists:
+                    for _enemy in _elist:
+                        if self._easy_start_remaining <= 0:
+                            break
+                        if getattr(_enemy, '_easy_applied', False):
+                            continue
+                        # Skip bosses / minibosses
+                        _name = getattr(_enemy, 'getName', lambda: '')()
+                        if _name in ('bigMummy', 'frankenBear'):
+                            _enemy._easy_applied = True
+                            continue
+                        # Halve whichever HP attribute the enemy uses
+                        for _attr in ('hp', 'health'):
+                            if hasattr(_enemy, _attr):
+                                try:
+                                    _v = getattr(_enemy, _attr)
+                                    if isinstance(_v, (int, float)) and _v > 1:
+                                        setattr(_enemy, _attr, max(1, int(_v * 0.5)))
+                                except Exception:
+                                    pass
+                        _enemy._easy_applied = True
+                        self._easy_start_remaining -= 1
+                    if self._easy_start_remaining <= 0:
+                        break
+
+            # ---- Slide trigger (SPACE held = continuous, or double-tap LR/RR) ----
             keys_slide = pygame.key.get_pressed()
             _space_now = keys_slide[pygame.K_SPACE]
             _space_prev = getattr(self, '_space_was_held', False)
             self._space_was_held = _space_now
+            _right_now = keys_slide[pygame.K_RIGHT]
+            _left_now = keys_slide[pygame.K_LEFT]
+            _right_prev = getattr(self, '_right_was_held', False)
+            _left_prev = getattr(self, '_left_was_held', False)
+            self._right_was_held = _right_now
+            self._left_was_held = _left_now
+            # Double-tap detection (within ~18 frames / 0.3s)
+            self._right_tap_window = max(0, getattr(self, '_right_tap_window', 0) - 1)
+            self._left_tap_window = max(0, getattr(self, '_left_tap_window', 0) - 1)
+            _double_tap_right = False
+            _double_tap_left = False
+            if _right_now and not _right_prev:
+                if self._right_tap_window > 0:
+                    _double_tap_right = True
+                    self._right_tap_window = 0
+                else:
+                    self._right_tap_window = 18
+            if _left_now and not _left_prev:
+                if self._left_tap_window > 0:
+                    _double_tap_left = True
+                    self._left_tap_window = 0
+                else:
+                    self._left_tap_window = 18
             _on_ground_slide = (not bear.getJumpStatus() and not bear.getLeftJumpStatus())
-            if (_space_now and not _space_prev and _on_ground_slide
-                    and bear.slide_frames == 0 and bear.slide_cooldown == 0):
-                if keys_slide[pygame.K_LEFT]:
+            # Continuous slide while SPACE is held: re-trigger as soon as cooldown
+            # expires (no need to release/repress). Also trigger via double-tap.
+            _slide_trigger = ((_space_now and _on_ground_slide
+                               and bear.slide_frames == 0 and bear.slide_cooldown == 0)
+                              or (_double_tap_right and _on_ground_slide
+                                  and bear.slide_frames == 0 and bear.slide_cooldown == 0)
+                              or (_double_tap_left and _on_ground_slide
+                                  and bear.slide_frames == 0 and bear.slide_cooldown == 0))
+            if _slide_trigger:
+                if _double_tap_right:
+                    bear.slide_dir = 1
+                elif _double_tap_left:
+                    bear.slide_dir = -1
+                elif keys_slide[pygame.K_LEFT]:
                     bear.slide_dir = -1
                 elif keys_slide[pygame.K_RIGHT]:
                     bear.slide_dir = 1
@@ -2580,7 +2646,8 @@ class mainGame:
                     bear.slide_dir = -1 if bear.getLeftDirection() else 1
                 bear.setLeftDirection(bear.slide_dir < 0)
                 bear.slide_frames = 22
-                bear.slide_cooldown = 36
+                # Shorter cooldown when SPACE is held so it chains smoothly
+                bear.slide_cooldown = 14 if _space_now else 36
                 if getattr(self, 'slide_scrape_sound', None):
                     try: self.slide_scrape_sound.play()
                     except Exception: pass
@@ -2608,10 +2675,17 @@ class mainGame:
                     self._orig_keys_get_pressed = pygame.key.get_pressed
                 _real_keys = self._orig_keys_get_pressed()
                 pygame.key.get_pressed = lambda w=_SlideKeysWrapper(_real_keys, bear.slide_dir): w
-                # Slide+Jump: pressing Z during slide → jump with momentum
+                # Slide+Jump: pressing Z during slide → jump with EXTRA momentum
+                # Each consecutive slide-jump (chained while still airborne or
+                # within 30 frames of landing) builds extra carry, capped.
                 if keys_slide[pygame.K_z] and _on_ground_slide:
-                    bear.slide_jump_carry = 32
+                    _chain = getattr(bear, 'slide_jump_chain', 0)
+                    bear.slide_jump_chain = min(_chain + 1, 5)
+                    # Base 50 frames + up to +25 from chain bonus
+                    bear.slide_jump_carry = 50 + bear.slide_jump_chain * 5
                     bear.slide_jump_dir = bear.slide_dir
+                    bear.slide_jump_speed = 8 + bear.slide_jump_chain  # 9..13 px/frame
+                    bear.slide_chain_grace = 30
                     bear.slide_frames = 0
                     pygame.key.get_pressed = self._orig_keys_get_pressed
             else:
@@ -2619,13 +2693,23 @@ class mainGame:
                     pygame.key.get_pressed = self._orig_keys_get_pressed
             # Apply slide-jump horizontal carry while airborne
             if bear.slide_jump_carry > 0 and (bear.getJumpStatus() or bear.getLeftJumpStatus()):
-                _carry_step = 6
+                _carry_step = getattr(bear, 'slide_jump_speed', 8)
                 _new_x = bear.getXPosition() + bear.slide_jump_dir * _carry_step
                 _new_x = max(0, min(800, _new_x))
                 bear.setXPosition(_new_x)
                 bear.slide_jump_carry -= 1
             elif _on_ground_slide:
                 bear.slide_jump_carry = 0
+            # Track grace window for chaining slide-jumps
+            if _on_ground_slide:
+                _grace = getattr(bear, 'slide_chain_grace', 0)
+                if _grace > 0:
+                    bear.slide_chain_grace = _grace - 1
+                    if bear.slide_chain_grace == 0:
+                        bear.slide_jump_chain = 0
+                elif getattr(bear, 'slide_jump_chain', 0) > 0 and bear.slide_frames == 0:
+                    # Reset chain only after a full landed beat with no slide
+                    bear.slide_jump_chain = 0
 
             _cur_zone_idx = min(2, max(0, totalDistance // 4500))
             if _cur_zone_idx > self._last_zone_idx:
