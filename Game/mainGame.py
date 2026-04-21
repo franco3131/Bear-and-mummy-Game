@@ -1193,6 +1193,8 @@ class mainGame:
         self._zone_min_distance = 0
         self._last_zone_idx = 0
         self._zone_lock_toasted = False
+        self._zone_wall_world_x = -10000
+        self._head_alerts = []
         self._critical_hp_popup_shown = False
         self._beam_ever_shown = False
         self._post_boss_platform_popup_shown = False
@@ -2536,6 +2538,9 @@ class mainGame:
                 self._last_zone_idx = _cur_zone_idx
                 self._zone_min_distance = max(self._zone_min_distance, _cur_zone_idx * 4500)
                 self._zone_lock_toasted = False
+                # Plant the wall just behind the player at the moment the zone
+                # locks, so it's visible on screen briefly then scrolls offscreen.
+                self._zone_wall_world_x = totalDistance - 220
             if (totalDistance > self._zone_min_distance + 60
                     and totalDistance <= self._zone_min_distance + 90
                     and not self._zone_lock_toasted):
@@ -2561,7 +2566,8 @@ class mainGame:
             if bear.getEndText():
 
                 keys = pygame.key.get_pressed()
-                if totalDistance <= self._zone_min_distance - 300 and self._zone_min_distance > 0:
+                if (self._zone_wall_world_x > -9000
+                        and totalDistance <= self._zone_wall_world_x):
                     class _ZoneLeftLock:
                         def __init__(self, k): self._k = k
                         def __getitem__(self, key):
@@ -4541,8 +4547,8 @@ class mainGame:
                 if _bp in self.boot_pickups:
                     self.boot_pickups.remove(_bp)
 
-            if self._zone_min_distance > 0:
-                _wall_world_x = self._zone_min_distance - 300
+            if self._zone_min_distance > 0 and self._zone_wall_world_x > -9000:
+                _wall_world_x = self._zone_wall_world_x
                 _wall_screen_x = bear.getXPosition() - (totalDistance - _wall_world_x)
                 if -60 < _wall_screen_x < 960:
                     _wall_pulse = abs(math.sin(pygame.time.get_ticks() * 0.003))
@@ -5152,6 +5158,47 @@ class mainGame:
                 else:
                     self._mummy_arrow_frames = 0
             self._render_toasts()
+            if getattr(self, '_head_alerts', None):
+                _ha_keep = []
+                _ha_font = pygame.font.SysFont(None, 30, bold=True)
+                _ha_pulse = 0.5 + 0.5 * abs(math.sin(pygame.time.get_ticks() * 0.012))
+                for _ha in self._head_alerts:
+                    _ha['life'] -= 1
+                    if _ha['life'] <= 0:
+                        continue
+                    _ha_keep.append(_ha)
+                    _frac = _ha['life'] / max(1, _ha['max_life'])
+                    if _frac < 0.20:
+                        _alpha = int(255 * (_frac / 0.20))
+                    else:
+                        _alpha = 255
+                    _alpha = max(0, min(255, _alpha))
+                    _bx = bear.getXPosition() + 50
+                    _by = bear.getYPosition() - 70 - int(_ha_pulse * 6)
+                    _txt = _ha_font.render(_ha['text'], True, _ha['color'])
+                    _shd = _ha_font.render(_ha['text'], True, (0, 0, 0))
+                    _bw = _txt.get_width() + 24
+                    _bh = _txt.get_height() + 10
+                    _bg = pygame.Surface((_bw, _bh), pygame.SRCALPHA)
+                    pygame.draw.rect(_bg, (0, 0, 0, int(_alpha * 0.78)),
+                                     _bg.get_rect(), border_radius=10)
+                    pygame.draw.rect(_bg, (_ha['color'][0], _ha['color'][1],
+                                           _ha['color'][2], int(_alpha * (0.6 + 0.3 * _ha_pulse))),
+                                     _bg.get_rect(), width=3, border_radius=10)
+                    _bgx = max(10, min(890 - _bw, _bx - _bw // 2))
+                    _bgy = max(20, _by - _bh // 2)
+                    self.screen.blit(_bg, (_bgx, _bgy))
+                    _shd.set_alpha(_alpha)
+                    _txt.set_alpha(_alpha)
+                    self.screen.blit(_shd, (_bgx + 13, _bgy + 6))
+                    self.screen.blit(_txt, (_bgx + 12, _bgy + 5))
+                    pygame.draw.polygon(
+                        self.screen,
+                        (_ha['color'][0], _ha['color'][1], _ha['color'][2]),
+                        [(_bgx + _bw // 2 - 8, _bgy + _bh),
+                         (_bgx + _bw // 2 + 8, _bgy + _bh),
+                         (_bgx + _bw // 2, _bgy + _bh + 10)])
+                self._head_alerts = _ha_keep
             _luf = getattr(bear, '_level_up_float', 0)
             if _luf > 0:
                 bear._level_up_float -= 1
@@ -5282,7 +5329,9 @@ class mainGame:
                 self._mummy_hint_active = True
                 self._mummy_arrow_frames = 99999
                 try:
-                    self._push_toast('ATTACK FOREHEAD!', duration=240, color=(255, 90, 90))
+                    self._head_alerts.append({
+                        'text': 'ATTACK FOREHEAD!', 'life': 360, 'max_life': 360,
+                        'color': (255, 90, 90)})
                 except Exception:
                     pass
 
@@ -5525,6 +5574,7 @@ class mainGame:
                 self._zone_min_distance = 0
                 self._last_zone_idx = 0
                 self._zone_lock_toasted = False
+                self._zone_wall_world_x = -10000
                 self._boots_spawned = False
                 try:
                     self.boot_pickups = []
@@ -5754,14 +5804,9 @@ class mainGame:
 
             if self._xp_popups:
                 try:
-                    _xp_font = pygame.font.SysFont(
-                        'segoescript,brushscriptmt,lucidahandwriting,comicsansms,papyrus',
-                        24, bold=True, italic=True)
+                    _xp_font = pygame.font.SysFont(None, 26, bold=True)
                 except Exception:
-                    try:
-                        _xp_font = pygame.font.SysFont('Arial', 22, bold=True, italic=True)
-                    except Exception:
-                        _xp_font = pygame.font.Font(None, 24)
+                    _xp_font = pygame.font.Font(None, 26)
                 _xp_keep = []
                 for _xp in self._xp_popups:
                     _xp[1] -= 1.1
@@ -6620,8 +6665,8 @@ class mainGame:
     def _render_toasts(self):
         if not getattr(self, '_toasts', None):
             return
-        _toast_font = pygame.font.SysFont(None, 26, bold=True)
-        _y_base = 670
+        _toast_font = pygame.font.SysFont(None, 34, bold=True)
+        _y_base = 660
         _alive = []
         for i, _t in enumerate(self._toasts):
             _t['life'] -= 1
@@ -6629,27 +6674,34 @@ class mainGame:
                 continue
             _alive.append(_t)
         self._toasts = _alive[-3:]
+        _pulse = 0.5 + 0.5 * abs(math.sin(pygame.time.get_ticks() * 0.006))
         for i, _t in enumerate(reversed(self._toasts)):
             _frac = _t['life'] / max(1, _t['max_life'])
-            if _frac > 0.85:
-                _alpha = int(255 * (1.0 - _frac) / 0.15)
-            elif _frac < 0.20:
-                _alpha = int(255 * (_frac / 0.20))
+            if _frac > 0.90:
+                _alpha = int(255 * (1.0 - _frac) / 0.10)
+            elif _frac < 0.15:
+                _alpha = int(255 * (_frac / 0.15))
             else:
                 _alpha = 255
             _alpha = max(0, min(255, _alpha))
-            _y = _y_base - i * 32
+            _y = _y_base - i * 44
             _txt = _toast_font.render(_t['text'], True, _t['color'])
-            _bg_w = _txt.get_width() + 30
-            _bg_h = _txt.get_height() + 10
+            _shadow = _toast_font.render(_t['text'], True, (0, 0, 0))
+            _bg_w = _txt.get_width() + 40
+            _bg_h = _txt.get_height() + 16
             _bg = pygame.Surface((_bg_w, _bg_h), pygame.SRCALPHA)
-            pygame.draw.rect(_bg, (0, 0, 0, int(_alpha * 0.55)), _bg.get_rect(), border_radius=12)
-            pygame.draw.rect(_bg, (255, 255, 255, int(_alpha * 0.3)), _bg.get_rect(), width=2, border_radius=12)
+            pygame.draw.rect(_bg, (0, 0, 0, int(_alpha * 0.82)),
+                             _bg.get_rect(), border_radius=14)
+            _border_a = int(_alpha * (0.55 + 0.35 * _pulse))
+            pygame.draw.rect(_bg, (_t['color'][0], _t['color'][1], _t['color'][2], _border_a),
+                             _bg.get_rect(), width=3, border_radius=14)
             _bg_x = 450 - _bg_w // 2
             _bg_y = _y - _bg_h // 2
             self.screen.blit(_bg, (_bg_x, _bg_y))
+            _shadow.set_alpha(_alpha)
             _txt.set_alpha(_alpha)
-            self.screen.blit(_txt, (_bg_x + 15, _bg_y + 5))
+            self.screen.blit(_shadow, (_bg_x + 22, _bg_y + 10))
+            self.screen.blit(_txt, (_bg_x + 20, _bg_y + 8))
 
     def _stop_ambient_loop(self):
         if self._ambient_channel and self._ambient_playing:
