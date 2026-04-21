@@ -2582,13 +2582,15 @@ class mainGame:
                         if _name in ('bigMummy', 'frankenBear'):
                             _enemy._easy_applied = True
                             continue
-                        # Halve whichever HP attribute the enemy uses
+                        # Mummies: -50% HP. Other enemies: -75% HP.
+                        _is_mummy = isinstance(_enemy, Mummy)
+                        _factor = 0.5 if _is_mummy else 0.25
                         for _attr in ('hp', 'health'):
                             if hasattr(_enemy, _attr):
                                 try:
                                     _v = getattr(_enemy, _attr)
                                     if isinstance(_v, (int, float)) and _v > 1:
-                                        setattr(_enemy, _attr, max(1, int(_v * 0.5)))
+                                        setattr(_enemy, _attr, max(1, int(_v * _factor)))
                                 except Exception:
                                     pass
                         _enemy._easy_applied = True
