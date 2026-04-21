@@ -945,6 +945,13 @@ class mainGame:
         self._easter_egg_5555 = False
         self._konami_unlocked = False
         self._konami_seq = []
+        self._word_buffer = ''
+        self._word_bear_unlocked = False
+        self._word_dash_unlocked = False
+        self._word_jump_unlocked = False
+        self._rainbow_trail = []
+        self._confetti_particles = []
+        self._rainbow_tick = 0
         self._combo_master_unlocked = False
         self._lucky_100_unlocked = False
         self._no_hit_run = True
@@ -961,6 +968,13 @@ class mainGame:
         self._shop_afford_hinted = False
         self._shop_free_voucher_used = False
         self._shop_low_hp_hinted = False
+        self._beam_uses_total = 0
+        self._kills_since_beam_use = 0
+        self.boot_pickups = []
+        self._boots_spawned = False
+        self._zone_min_distance = 0
+        self._last_zone_idx = 0
+        self._zone_lock_toasted = False
         self._critical_hp_popup_shown = False
         self._beam_ever_shown = False
         self._post_boss_platform_popup_shown = False
@@ -1724,7 +1738,7 @@ class mainGame:
             self._intro_shown = True
             self._push_toast('Welcome, brave bear!', duration=300, color=(255, 220, 140))
             self._push_toast('Z:Attack  X:Fireball  ENTER:Shop', duration=360, color=(180, 240, 255))
-            self._push_toast('UP+X:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
+            self._push_toast('X+A:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
             self._push_toast('P:Pause  M:Mute', duration=360, color=(220, 200, 255))
 
         for mummy in self.mummys:
@@ -1800,6 +1814,47 @@ class mainGame:
                             bear.setCoins(bear.getCoins() + 30)
                             self._push_toast('\u2605 KONAMI! +25 MAX HP, full heal, +30 coins! \u2605', duration=300, color=(255, 215, 0))
                             self._push_toast('Bear Form: Awakened.', duration=240, color=(255, 180, 220))
+                            if getattr(self, 'level_up_sound', None):
+                                try: self.level_up_sound.play()
+                                except Exception: pass
+
+                    _letter_map = {
+                        pygame.K_a: 'A', pygame.K_b: 'B', pygame.K_d: 'D',
+                        pygame.K_e: 'E', pygame.K_h: 'H', pygame.K_j: 'J',
+                        pygame.K_m: 'M', pygame.K_n: 'N', pygame.K_p: 'P',
+                        pygame.K_r: 'R', pygame.K_s: 'S', pygame.K_t: 'T',
+                        pygame.K_u: 'U',
+                    }
+                    _letter = _letter_map.get(event.key)
+                    if _letter is not None:
+                        self._word_buffer = (self._word_buffer + _letter)[-12:]
+                        if (not self._word_bear_unlocked
+                                and self._word_buffer.endswith('BEAR')):
+                            self._word_bear_unlocked = True
+                            bear.setMaxHp(bear.getMaxHp() + 10)
+                            bear.setHp(bear.getMaxHp())
+                            bear.setCoins(bear.getCoins() + 50)
+                            self._push_toast('\u2605 SECRET WORD: BEAR! +10 MAX HP, +50 coins \u2605',
+                                             duration=300, color=(255, 200, 120))
+                            if getattr(self, 'level_up_sound', None):
+                                try: self.level_up_sound.play()
+                                except Exception: pass
+                        if (not self._word_dash_unlocked
+                                and self._word_buffer.endswith('DASH')):
+                            self._word_dash_unlocked = True
+                            bear.has_speed_boots = True
+                            self._push_toast('\u2605 SECRET WORD: DASH! Free Speed Boots! Hold SPACE \u2605',
+                                             duration=360, color=(255, 230, 120))
+                            if getattr(self, 'level_up_sound', None):
+                                try: self.level_up_sound.play()
+                                except Exception: pass
+                        if (not self._word_jump_unlocked
+                                and self._word_buffer.endswith('JUMP')):
+                            self._word_jump_unlocked = True
+                            bear.setMaxHp(bear.getMaxHp() + 15)
+                            bear.setHp(bear.getMaxHp())
+                            self._push_toast('\u2605 SECRET WORD: JUMP! +15 MAX HP \u2605',
+                                             duration=300, color=(180, 255, 220))
                             if getattr(self, 'level_up_sound', None):
                                 try: self.level_up_sound.play()
                                 except Exception: pass
@@ -2195,6 +2250,28 @@ class mainGame:
                 _target_step = min(_target_step, 12)
             bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.12
             STEP = max(1, int(round(bear._speed_lerp)))
+            if getattr(bear, 'has_speed_boots', False) and pygame.key.get_pressed()[pygame.K_SPACE]:
+                STEP *= 2
+
+            _cur_zone_idx = min(2, max(0, totalDistance // 4500))
+            if _cur_zone_idx > self._last_zone_idx:
+                self._last_zone_idx = _cur_zone_idx
+                self._zone_min_distance = max(self._zone_min_distance, _cur_zone_idx * 4500)
+                self._zone_lock_toasted = False
+            if (totalDistance > self._zone_min_distance + 60
+                    and totalDistance <= self._zone_min_distance + 90
+                    and not self._zone_lock_toasted):
+                self._zone_lock_toasted = True
+                self._push_toast('Zone barrier sealed! No turning back.',
+                                 duration=240, color=(220, 200, 255))
+
+            if not self._boots_spawned and totalDistance >= 2200:
+                self._boots_spawned = True
+                self.boot_pickups.append({
+                    'world_dist': totalDistance + 700,
+                    'y': 320,
+                    'bob': 0.0,
+                })
 
             _on_ground = (not bear.getJumpStatus() and not bear.getLeftJumpStatus())
             bear.update_coyote(_on_ground)
@@ -2203,11 +2280,20 @@ class mainGame:
             if bear.getEndText():
 
                 keys = pygame.key.get_pressed()
+                if totalDistance <= self._zone_min_distance + 30:
+                    class _ZoneLeftLock:
+                        def __init__(self, k): self._k = k
+                        def __getitem__(self, key):
+                            if key == pygame.K_LEFT: return False
+                            return self._k[key]
+                        def __len__(self): return len(self._k)
+                    keys = _ZoneLeftLock(keys)
 
                 # ---- X: throw fireball at full health --------------------
                 playerFireCooldown = max(0, playerFireCooldown - 1)
                 if (keys[pygame.K_x]
                         and not keys[pygame.K_UP]
+                        and not (keys[pygame.K_a] and beamCharge >= 100.0 and beamCooldown == 0)
                         and playerFireCooldown == 0):
                     _base_cd = 30
                     if getattr(bear, 'has_aimer', False):
@@ -2268,15 +2354,20 @@ class mainGame:
                 if beamCharge >= 100.0 and not beamReadyPopupShown:
                     beamReadyPopupShown = True
                     self._beam_ever_shown = True
-                    self._push_toast('\u26A1 BEAM READY! Press UP+X \u26A1', duration=240, color=(180, 255, 220))
-                    bear._level_up_float = 210
-                    bear._level_up_float_max = 210
-                    bear._level_up_text = 'BEAM READY! PRESS UP + X'
-                _beam_combo = (keys[pygame.K_UP] and keys[pygame.K_x])
+                    _show_beam_hint = (self._beam_uses_total == 0 or self._kills_since_beam_use >= 10)
+                    if _show_beam_hint:
+                        self._push_toast('\u26A1 BEAM READY! Press X+A \u26A1', duration=240, color=(180, 255, 220))
+                        bear._level_up_float = 210
+                        bear._level_up_float_max = 210
+                        bear._level_up_text = 'BEAM READY! PRESS X + A'
+                        self._kills_since_beam_use = 0
+                _beam_combo = (keys[pygame.K_x] and keys[pygame.K_a])
                 if (keys[pygame.K_c] or _beam_combo) and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
                     beamCooldown = 60
                     beamReadyPopupShown = False
+                    self._beam_uses_total += 1
+                    self._kills_since_beam_use = 0
                     _beam_dmg = bear.getDamageAttack() * 4
                     _beam_vx = -18 if bear.getLeftDirection() else 18
                     _beam_x = (bear.getXPosition() - 100
@@ -3401,6 +3492,12 @@ class mainGame:
 
             for monster in to_remove:
                 self._combo += 1
+                self._kills_since_beam_use += 1
+                try:
+                    self._spawn_confetti(int(monster.getXPosition() + 40),
+                                         int(monster.getYPosition() + 40))
+                except Exception:
+                    pass
                 self._combo_timer = 150
                 if self._combo > self._combo_max_session:
                     self._combo_max_session = self._combo
@@ -4086,6 +4183,49 @@ class mainGame:
             for _hd in _hd_remove:
                 if _hd in self.heart_drops:
                     self.heart_drops.remove(_hd)
+
+            _boots_remove = []
+            for _bp in self.boot_pickups:
+                _bp['bob'] += 0.08
+                _bs_x = int(_bp['world_dist'] - totalDistance + 100)
+                _bs_y = int(_bp['y'] + math.sin(_bp['bob']) * 6)
+                if -60 <= _bs_x <= 960:
+                    _glow = pygame.Surface((60, 60), pygame.SRCALPHA)
+                    _gp = abs(math.sin(pygame.time.get_ticks() * 0.004))
+                    pygame.draw.circle(_glow, (255, 220, 100, int(60 + _gp * 60)), (30, 30), int(22 + _gp * 4))
+                    self.screen.blit(_glow, (_bs_x - 30, _bs_y - 30))
+                    pygame.draw.rect(self.screen, (90, 50, 30), (_bs_x - 14, _bs_y - 4, 28, 14), border_radius=3)
+                    pygame.draw.rect(self.screen, (130, 75, 40), (_bs_x - 14, _bs_y - 12, 18, 12), border_radius=2)
+                    pygame.draw.rect(self.screen, (60, 35, 20), (_bs_x - 14, _bs_y - 4, 28, 14), 2, border_radius=3)
+                    pygame.draw.rect(self.screen, (60, 35, 20), (_bs_x - 14, _bs_y - 12, 18, 12), 2, border_radius=2)
+                    pygame.draw.line(self.screen, (255, 215, 0), (_bs_x - 12, _bs_y), (_bs_x + 10, _bs_y), 2)
+                    pygame.draw.circle(self.screen, (255, 235, 100), (_bs_x + 8, _bs_y + 3), 2)
+                    pygame.draw.circle(self.screen, (180, 220, 255, 200), (_bs_x - 4, _bs_y - 16), 3)
+                    _bear_rect = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
+                    _boot_rect = pygame.Rect(_bs_x - 16, _bs_y - 16, 32, 32)
+                    if _bear_rect.colliderect(_boot_rect):
+                        bear.has_speed_boots = True
+                        _boots_remove.append(_bp)
+                        self._push_toast('SPEED BOOTS! Hold SPACE while moving for 2x speed',
+                                         duration=360, color=(255, 230, 120))
+                        if getattr(self, 'level_up_sound', None):
+                            try: self.level_up_sound.play()
+                            except Exception: pass
+            for _bp in _boots_remove:
+                if _bp in self.boot_pickups:
+                    self.boot_pickups.remove(_bp)
+
+            if totalDistance <= self._zone_min_distance + 30 and self._zone_min_distance > 0:
+                _wall_pulse = abs(math.sin(pygame.time.get_ticks() * 0.003))
+                _wall_w = 24
+                pygame.draw.rect(self.screen, (90, 70, 60), (0, 200, _wall_w, 400))
+                for _by in range(200, 600, 32):
+                    pygame.draw.rect(self.screen, (60, 45, 38), (2, _by, _wall_w - 4, 28), 1)
+                    pygame.draw.line(self.screen, (50, 38, 30), (0, _by), (_wall_w, _by), 1)
+                _glow_a = int(80 + _wall_pulse * 80)
+                _glow_s = pygame.Surface((40, 400), pygame.SRCALPHA)
+                pygame.draw.rect(_glow_s, (180, 100, 200, _glow_a), (24, 0, 8, 400))
+                self.screen.blit(_glow_s, (0, 200))
 
             if not getattr(self, '_bomb_wave_30', False) and backgroundScrollX >= 18000:
                 self._bomb_wave_30 = True
@@ -5000,6 +5140,22 @@ class mainGame:
                     self._push_toast('\u2728 NEW GAME+ %d \u2728' % self.newGamePlusLevel, duration=300, color=(255, 215, 0))
                     self._push_toast('+%d starting coins, +%d%% beam recharge' % (_ng_coin_bonus, int((self._ng_beam_mult - 1.0) * 100)), duration=300, color=(180, 255, 220))
                     self._push_toast('Look for golden ELITE enemies — double XP!', duration=300, color=(255, 200, 100))
+                    import random as _ng_rnd
+                    _ng_flavor = _ng_rnd.choice([
+                        'The pyramid remembers you, bear...',
+                        'The mummies whisper your name in fear.',
+                        'Even the witches step aside.',
+                        'Your aura now leaves a rainbow trail!',
+                        'Try typing BEAR, DASH or JUMP for secrets...',
+                        'The ShadowShamans bow before your might.',
+                    ])
+                    self._push_toast(_ng_flavor, duration=300, color=(220, 200, 255))
+                    if self.newGamePlusLevel >= 1:
+                        self._push_toast('Rainbow trail unlocked!', duration=240, color=(255, 180, 220))
+                    if self.newGamePlusLevel >= 3:
+                        self._push_toast('NG+3: Confetti rain on every kill!', duration=240, color=(180, 255, 200))
+                    if self.newGamePlusLevel >= 5:
+                        self._push_toast('NG+5: The FrankenBear wears a crown.', duration=300, color=(255, 215, 80))
                 bear.setXPosition(150)
                 bear.setYPosition(300)
                 backgroundScrollX = 60
@@ -5089,8 +5245,77 @@ class mainGame:
                 except Exception:
                     pass
 
+            if self.newGamePlusLevel >= 1:
+                self._rainbow_tick = (self._rainbow_tick + 1) % 360
+                try:
+                    _bx = bear.getXPosition() + 50
+                    _by = bear.getYPosition() + 50
+                    if not self._rainbow_trail or \
+                            abs(self._rainbow_trail[-1][0] - _bx) > 6 or \
+                            abs(self._rainbow_trail[-1][1] - _by) > 6:
+                        self._rainbow_trail.append([_bx, _by, 30])
+                    if len(self._rainbow_trail) > 24:
+                        self._rainbow_trail = self._rainbow_trail[-24:]
+                except Exception:
+                    pass
+                _rt_keep = []
+                for _i, _pt in enumerate(self._rainbow_trail):
+                    _pt[2] -= 1
+                    if _pt[2] > 0:
+                        _hue = (self._rainbow_tick + _i * 18) % 360
+                        _h6 = _hue / 60.0
+                        _c = 1.0
+                        _x_ = _c * (1 - abs(_h6 % 2 - 1))
+                        if _h6 < 1: _r, _g, _b = _c, _x_, 0
+                        elif _h6 < 2: _r, _g, _b = _x_, _c, 0
+                        elif _h6 < 3: _r, _g, _b = 0, _c, _x_
+                        elif _h6 < 4: _r, _g, _b = 0, _x_, _c
+                        elif _h6 < 5: _r, _g, _b = _x_, 0, _c
+                        else: _r, _g, _b = _c, 0, _x_
+                        _alpha = int(160 * (_pt[2] / 30.0))
+                        _radius = max(3, int(10 * (_pt[2] / 30.0)))
+                        _surf = pygame.Surface((_radius * 2, _radius * 2), pygame.SRCALPHA)
+                        pygame.draw.circle(_surf,
+                            (int(_r * 255), int(_g * 255), int(_b * 255), _alpha),
+                            (_radius, _radius), _radius)
+                        self.screen.blit(_surf, (_pt[0] - _radius, _pt[1] - _radius))
+                        _rt_keep.append(_pt)
+                self._rainbow_trail = _rt_keep
+
+            if self._confetti_particles:
+                _cp_keep = []
+                for _p in self._confetti_particles:
+                    _p[0] += _p[2]
+                    _p[1] += _p[3]
+                    _p[3] += 0.25
+                    _p[4] -= 1
+                    if _p[4] > 0:
+                        _alpha = max(0, min(255, int(255 * (_p[4] / 40.0))))
+                        _col = (_p[5][0], _p[5][1], _p[5][2], _alpha)
+                        _csurf = pygame.Surface((6, 6), pygame.SRCALPHA)
+                        pygame.draw.rect(_csurf, _col, (0, 0, 6, 6))
+                        self.screen.blit(_csurf, (int(_p[0]), int(_p[1])))
+                        _cp_keep.append(_p)
+                self._confetti_particles = _cp_keep
+
             pygame.display.flip()
             self.clock.tick(60)
+
+    # -----------------------------------------------------------------------
+    def _spawn_confetti(self, x, y, count=12):
+        if self.newGamePlusLevel < 3:
+            return
+        import random as _crnd
+        _palette = [(255, 80, 80), (255, 200, 60), (80, 255, 120),
+                    (80, 200, 255), (220, 120, 255), (255, 255, 255)]
+        for _ in range(count):
+            self._confetti_particles.append([
+                float(x), float(y),
+                _crnd.uniform(-3.5, 3.5),
+                _crnd.uniform(-5.0, -1.5),
+                _crnd.randint(28, 44),
+                _crnd.choice(_palette),
+            ])
 
     # -----------------------------------------------------------------------
     def deleteAndCreateObjects(self, backgroundScrollX):
