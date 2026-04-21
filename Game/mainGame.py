@@ -2573,7 +2573,7 @@ class mainGame:
                 # ---- X: throw fireball at full health --------------------
                 playerFireCooldown = max(0, playerFireCooldown - 1)
                 if (keys[pygame.K_x]
-                        and not keys[pygame.K_UP]
+                        and not (keys[pygame.K_UP] and keys[pygame.K_a])
                         and not (keys[pygame.K_a] and keys[pygame.K_DOWN] and beamCharge >= 100.0 and beamCooldown == 0)
                         and playerFireCooldown == 0):
                     _base_cd = 30
@@ -2789,20 +2789,22 @@ class mainGame:
                     # bear's right edge at or past the block's left edge?
                     def _tall_wall_ahead(bx, ignore=None):
                         bear_right = bx + 100
+                        bear_top = bear.getYPosition()
                         bear_feet = bear.getYPosition() + 100
                         for blk in self.blocks:
                             if blk is ignore:
                                 continue
-                            # Only treat as a wall if the block's TOP is at
-                            # least 10px ABOVE the bear's feet — i.e., the
-                            # bear cannot simply step onto it.  Adjacent
-                            # platforms at the same height should not block
-                            # rightward jump movement.
-                            if blk.getBlockYPosition() > bear_feet - 10:
+                            blk_top = blk.getBlockYPosition()
+                            blk_bottom = blk_top + blk.getHeight()
+                            # Skip overhead platforms (bear can pass under)
+                            if blk_bottom <= bear_top + 10:
+                                continue
+                            # Skip blocks the bear can step onto
+                            if blk_top > bear_feet - 10:
                                 continue
                             if ((bear_right + STEP) >= blk.getBlockXPosition()
                                     and bear_right < blk.getBlockXPosition() + blk.getWidth()
-                                    and (blk.getBlockYPosition() + blk.getHeight()) >= 380):
+                                    and blk_bottom >= 380):
                                 return True
                         return False
 
@@ -5271,6 +5273,10 @@ class mainGame:
                 self.triggerText1 = True
                 self._mummy_hint_active = True
                 self._mummy_arrow_frames = 99999
+                try:
+                    self._push_toast('ATTACK FOREHEAD!', duration=240, color=(255, 90, 90))
+                except Exception:
+                    pass
 
             for spike in self.spikes:
                 spike.draw()
@@ -5599,7 +5605,93 @@ class mainGame:
                 except Exception:
                     pass
 
-            if self.newGamePlusLevel >= 1:
+            if self.newGamePlusLevel >= 2:
+                try:
+                    import random as _spk_rnd
+                    _bcx = bear.getXPosition() + 50
+                    _bcy = bear.getYPosition() + 50
+                    if not hasattr(self, '_sparkles'):
+                        self._sparkles = []
+                    if _spk_rnd.random() < 0.55:
+                        _ang = _spk_rnd.uniform(0, 6.283)
+                        _rad = _spk_rnd.uniform(40, 75)
+                        self._sparkles.append([
+                            _bcx + math.cos(_ang) * _rad,
+                            _bcy + math.sin(_ang) * _rad,
+                            _spk_rnd.uniform(-0.4, 0.4),
+                            _spk_rnd.uniform(-1.2, -0.3),
+                            _spk_rnd.randint(22, 38),
+                            _spk_rnd.choice([(255,255,180),(180,220,255),(255,180,220),(200,255,200)]),
+                        ])
+                    _sk_keep = []
+                    for _sp in self._sparkles:
+                        _sp[0] += _sp[2]; _sp[1] += _sp[3]; _sp[4] -= 1
+                        if _sp[4] > 0:
+                            _alpha = max(0, min(255, int(255 * (_sp[4] / 35.0))))
+                            _sz = 2 + int(_sp[4] / 8)
+                            _ssurf = pygame.Surface((_sz*4, _sz*4), pygame.SRCALPHA)
+                            _col = (_sp[5][0], _sp[5][1], _sp[5][2], _alpha)
+                            pygame.draw.line(_ssurf, _col, (0, _sz*2), (_sz*4, _sz*2), 2)
+                            pygame.draw.line(_ssurf, _col, (_sz*2, 0), (_sz*2, _sz*4), 2)
+                            self.screen.blit(_ssurf, (int(_sp[0])-_sz*2, int(_sp[1])-_sz*2))
+                            _sk_keep.append(_sp)
+                    self._sparkles = _sk_keep
+                except Exception:
+                    pass
+
+            if self.newGamePlusLevel >= 4:
+                try:
+                    _aura_t = pygame.time.get_ticks() * 0.005
+                    _aura_pulse = 0.5 + 0.5 * math.sin(_aura_t)
+                    _aura_r = int(70 + 20 * _aura_pulse)
+                    _aura_alpha = int(40 + 50 * _aura_pulse)
+                    _acx = bear.getXPosition() + 50
+                    _acy = bear.getYPosition() + 50
+                    _asurf = pygame.Surface((_aura_r*2, _aura_r*2), pygame.SRCALPHA)
+                    _hue = (self._rainbow_tick * 2) % 360
+                    _h6 = _hue / 60.0
+                    _xx = 1.0 - abs(_h6 % 2 - 1)
+                    if _h6 < 1: _r,_g,_b = 1.0, _xx, 0
+                    elif _h6 < 2: _r,_g,_b = _xx, 1.0, 0
+                    elif _h6 < 3: _r,_g,_b = 0, 1.0, _xx
+                    elif _h6 < 4: _r,_g,_b = 0, _xx, 1.0
+                    elif _h6 < 5: _r,_g,_b = _xx, 0, 1.0
+                    else: _r,_g,_b = 1.0, 0, _xx
+                    pygame.draw.circle(_asurf,
+                        (int(_r*255), int(_g*255), int(_b*255), _aura_alpha),
+                        (_aura_r, _aura_r), _aura_r)
+                    self.screen.blit(_asurf, (_acx - _aura_r, _acy - _aura_r))
+                except Exception:
+                    pass
+
+            if self.newGamePlusLevel >= 5:
+                try:
+                    if not hasattr(self, '_starfall'):
+                        self._starfall = []
+                    import random as _sf_rnd
+                    if _sf_rnd.random() < 0.18:
+                        self._starfall.append([
+                            _sf_rnd.randint(0, 900),
+                            -10.0,
+                            _sf_rnd.uniform(2.5, 5.5),
+                            _sf_rnd.choice([(255,255,200),(255,200,255),(180,220,255)]),
+                            _sf_rnd.randint(2, 4),
+                        ])
+                    _sf_keep = []
+                    for _st in self._starfall:
+                        _st[1] += _st[2]
+                        if _st[1] < 720:
+                            _stsurf = pygame.Surface((_st[4]*2, _st[4]*2), pygame.SRCALPHA)
+                            pygame.draw.circle(_stsurf,
+                                (_st[3][0], _st[3][1], _st[3][2], 200),
+                                (_st[4], _st[4]), _st[4])
+                            self.screen.blit(_stsurf, (int(_st[0])-_st[4], int(_st[1])-_st[4]))
+                            _sf_keep.append(_st)
+                    self._starfall = _sf_keep
+                except Exception:
+                    pass
+
+            if self.newGamePlusLevel >= 1 or bear.getLevel() >= 8:
                 self._rainbow_tick = (self._rainbow_tick + 1) % 360
                 try:
                     _bx = bear.getXPosition() + 50
@@ -5654,9 +5746,14 @@ class mainGame:
 
             if self._xp_popups:
                 try:
-                    _xp_font = pygame.font.SysFont('Arial', 22, bold=True)
+                    _xp_font = pygame.font.SysFont(
+                        'segoescript,brushscriptmt,lucidahandwriting,comicsansms,papyrus',
+                        24, bold=True, italic=True)
                 except Exception:
-                    _xp_font = pygame.font.Font(None, 24)
+                    try:
+                        _xp_font = pygame.font.SysFont('Arial', 22, bold=True, italic=True)
+                    except Exception:
+                        _xp_font = pygame.font.Font(None, 24)
                 _xp_keep = []
                 for _xp in self._xp_popups:
                     _xp[1] -= 1.1
