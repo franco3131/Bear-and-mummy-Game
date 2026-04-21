@@ -1092,6 +1092,11 @@ class mainGame:
         self.witches = []
         # First 4 enemies in a fresh run get 50% HP for an easier start
         self._easy_start_remaining = 4
+        # Death animation state (-1 = not dying)
+        self._death_anim_frame = -1
+        self._death_anim_x = 0
+        self._death_anim_y = 0
+        self._death_anim_dir = 1
         self.shadowShamans = []
         self.blocks = []
         self.frankenbear = []
@@ -1436,6 +1441,8 @@ class mainGame:
     _idle_hair_timer = 0
 
     def _draw_idle_bear(self, bear):
+        if getattr(self, '_death_anim_frame', -1) >= 0:
+            return
         if getattr(bear, 'slide_frames', 0) > 0:
             return
         if bear.get_crouch():
@@ -5692,6 +5699,114 @@ class mainGame:
             if not bear.getEndText():
                 bear.displayTextBox()
 
+            # ─── Death animation ─────────────────────────────────────
+            # When HP first hits 0, play a 120-frame fall/spin/shockwave
+            # sequence before the game-over screen takes over.
+            _DEATH_ANIM_LEN = 120
+            if bear.getHealth() <= 0 and self._death_anim_frame < 0 and not self.triggerText4:
+                self._death_anim_frame = 0
+                self._death_anim_x = bear.getXPosition()
+                self._death_anim_y = bear.getYPosition()
+                self._death_anim_dir = -1 if bear.getLeftDirection() else 1
+                # Stop the danger alarm so it doesn't blare during the death scene
+                try:
+                    if getattr(self, '_danger_alarm_playing', False) and getattr(self, 'danger_alarm_channel', None):
+                        self.danger_alarm_channel.stop()
+                        self._danger_alarm_playing = False
+                except Exception:
+                    pass
+                try:
+                    if getattr(self, 'bear_hurt_sound', None):
+                        self.bear_hurt_sound.play()
+                except Exception:
+                    pass
+                try:
+                    if getattr(self, 'boss_explosion_sound', None):
+                        self.boss_explosion_sound.play()
+                except Exception:
+                    pass
+
+            if self._death_anim_frame >= 0 and self._death_anim_frame < _DEATH_ANIM_LEN:
+                _df = self._death_anim_frame
+                _dprog = _df / _DEATH_ANIM_LEN
+                _dx0 = self._death_anim_x
+                _dy0 = self._death_anim_y
+                # Brief upward pop, then fall off screen
+                if _df < 25:
+                    _vert = -2.6 * _df  # rise ~65px
+                else:
+                    _t2 = _df - 25
+                    _vert = -65 + 0.55 * _t2 * _t2 * 0.18 * _t2  # accelerating fall
+                # Spin
+                _rot = (_df * 9 * self._death_anim_dir) % 360
+                # Pick a sprite to spin
+                _spr_src = (self.bearWalkingLeft1 if self._death_anim_dir < 0
+                            else self.bearWalking1)
+                # Red-tint the sprite
+                try:
+                    _tinted = _spr_src.copy()
+                    _tint_a = int(160 * _dprog)
+                    _tint_overlay = pygame.Surface(_tinted.get_size(), pygame.SRCALPHA)
+                    _tint_overlay.fill((255, 40, 40, _tint_a))
+                    _tinted.blit(_tint_overlay, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                except Exception:
+                    _tinted = _spr_src
+                _rotated = pygame.transform.rotate(_tinted, _rot)
+                _rect = _rotated.get_rect(center=(_dx0 + 60, _dy0 + 55 + int(_vert)))
+                # Expanding white→orange shockwave from death point
+                _sw_r = int(20 + _df * 4)
+                _sw_a = max(0, 220 - int(_df * 1.8))
+                if _sw_a > 0:
+                    _sw_surf = pygame.Surface((_sw_r * 2 + 4, _sw_r * 2 + 4),
+                                              pygame.SRCALPHA)
+                    pygame.draw.circle(_sw_surf, (255, 255, 220, _sw_a),
+                                       (_sw_r + 2, _sw_r + 2), _sw_r, 4)
+                    pygame.draw.circle(_sw_surf, (255, 140, 60, _sw_a // 2),
+                                       (_sw_r + 2, _sw_r + 2), max(1, _sw_r - 8), 3)
+                    self.screen.blit(_sw_surf,
+                                     (_dx0 + 60 - _sw_r - 2, _dy0 + 55 - _sw_r - 2))
+                # "Star burst" particles radiating out
+                _num_stars = 8
+                for _si in range(_num_stars):
+                    _angle = (_si / _num_stars) * 2 * math.pi
+                    _sd = 20 + _df * 3
+                    _sx = _dx0 + 60 + int(math.cos(_angle) * _sd)
+                    _sy = _dy0 + 55 + int(math.sin(_angle) * _sd)
+                    _scol_a = max(0, 230 - int(_df * 2))
+                    if _scol_a > 0:
+                        _star_surf = pygame.Surface((10, 10), pygame.SRCALPHA)
+                        pygame.draw.circle(_star_surf, (255, 230, 100, _scol_a),
+                                           (5, 5), max(2, 5 - _df // 25))
+                        self.screen.blit(_star_surf, (_sx - 5, _sy - 5))
+                # The spinning bear
+                self.screen.blit(_rotated, _rect.topleft)
+                # Screen-wide red vignette flash that fades in
+                _flash_a = int(min(140, _df * 2.5))
+                if _flash_a > 0:
+                    _flash_surf = pygame.Surface(self.screen.get_size(),
+                                                 pygame.SRCALPHA)
+                    _flash_surf.fill((180, 0, 0, _flash_a))
+                    self.screen.blit(_flash_surf, (0, 0))
+                # Big "K.O.!" text appears halfway through
+                if _df > 60:
+                    _ko_font = pygame.font.SysFont(None, 120, bold=True)
+                    _ko_a = min(255, (_df - 60) * 8)
+                    _ko_surf = _ko_font.render('K.O.!', True, (255, 230, 60))
+                    _ko_outline = _ko_font.render('K.O.!', True, (60, 0, 0))
+                    _kw, _kh = _ko_surf.get_size()
+                    _kx = self.screen.get_width() // 2 - _kw // 2
+                    _ky = self.screen.get_height() // 2 - _kh // 2 - 30
+                    _ko_surf.set_alpha(_ko_a)
+                    _ko_outline.set_alpha(_ko_a)
+                    for _ox, _oy in [(-3, 0), (3, 0), (0, -3), (0, 3)]:
+                        self.screen.blit(_ko_outline, (_kx + _ox, _ky + _oy))
+                    self.screen.blit(_ko_surf, (_kx, _ky))
+                self._death_anim_frame += 1
+                # Hold on the last frame; only proceed when finished
+                pygame.display.flip()
+                self.clock.tick(60)
+                continue
+
             if bear.getHealth() <= 0 and not self.triggerText4:
                 if getattr(self, '_checkpoint_saved', False) and self._checkpoint_data:
                     totalDistance, backgroundScrollX = self._restore_checkpoint(
@@ -5700,6 +5815,7 @@ class mainGame:
                                        'Return to your last save.',
                                        'Press "s" to continue'])
                     bear.setEndText(False)
+                    self._death_anim_frame = -1  # ready for next death
                 else:
                     self._clear_poison(bear)
                     bear.setEndText(False)
