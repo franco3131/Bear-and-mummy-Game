@@ -390,7 +390,118 @@ class mainGame:
                 _smp.append(max(-1.0, min(1.0, _s)))
             self.explosion_sound = _make_snd(_smp)
             self.explosion_sound.set_volume(0.85)
-            
+
+            # ── MMX JUMP BLIP: short ascending sine "boop" ──────────────
+            _n = int(_RATE * 0.10)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 520 + 380 * (_t / 0.10)
+                _sq = 1.0 if (_math.sin(2*_math.pi*_f*_t) > 0) else -1.0
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.55
+                      + _sq * 0.18
+                      + _math.sin(2*_math.pi*_f*2*_t) * 0.10)
+                _env = min(1.0, _i/(_RATE*0.005)) * max(0.0, 1.0 - _t/0.10) ** 1.5
+                _smp.append(_s * _env * 0.45)
+            self.mmx_jump_sound = _make_snd(_smp)
+            self.mmx_jump_sound.set_volume(0.42)
+
+            # ── MMX LAND TAP: low click + soft thump ────────────────────
+            _n = int(_RATE * 0.13)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _click = (_rnd.gauss(0, 1) * max(0.0, 1.0 - _t * 40)) * 0.6
+                _thump = _math.sin(2*_math.pi*(110 - 60*_t/0.13)*_t) * max(0.0, 1.0 - _t/0.13) ** 1.4 * 0.55
+                _smp.append((_click + _thump) * 0.55)
+            self.mmx_land_sound = _make_snd(_smp)
+            self.mmx_land_sound.set_volume(0.45)
+
+            # ── MMX DASH: sharp filtered noise sweep ────────────────────
+            _n = int(_RATE * 0.22)
+            _smp = []
+            _prev = 0.0
+            for _i in range(_n):
+                _t = _i / _RATE
+                _noise = _rnd.gauss(0, 1)
+                _alpha = 0.18 + 0.55 * (_t / 0.22)
+                _filt = _prev + _alpha * (_noise - _prev)
+                _prev = _filt
+                _whoosh = _math.sin(2*_math.pi*(180 + 360*_t/0.22)*_t) * 0.30
+                _env = min(1.0, _i/(_RATE*0.008)) * max(0.0, 1.0 - _t/0.22) ** 0.9
+                _smp.append((_filt * 0.55 + _whoosh) * _env * 0.50)
+            self.mmx_dash_sound = _make_snd(_smp)
+            self.mmx_dash_sound.set_volume(0.38)
+
+            # ── MMX CHARGED SHOT: rising whir + release boom ────────────
+            _n = int(_RATE * 0.55)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                if _t < 0.20:
+                    # Charge ramp
+                    _f = 240 + 600 * (_t / 0.20)
+                    _s = (_math.sin(2*_math.pi*_f*_t) * 0.40
+                          + _math.sin(2*_math.pi*_f*1.5*_t) * 0.22
+                          + _math.sin(2*_math.pi*_f*2*_t) * 0.15)
+                    _env = min(1.0, _i/(_RATE*0.010))
+                else:
+                    # Release: descending power chord + noise burst
+                    _td = _t - 0.20
+                    _f = 880 - 720 * (_td / 0.35)
+                    _s = (_math.sin(2*_math.pi*_f*_t) * 0.55
+                          + _math.sin(2*_math.pi*_f*0.5*_t) * 0.40
+                          + _math.sin(2*_math.pi*_f*2*_t) * 0.20
+                          + _rnd.gauss(0, 1) * max(0.0, 1.0 - _td * 8) * 0.35)
+                    _env = max(0.0, 1.0 - _td/0.35) ** 1.1
+                _smp.append(_s * _env * 0.45)
+            self.mmx_charged_shot_sound = _make_snd(_smp)
+            self.mmx_charged_shot_sound.set_volume(0.55)
+
+            # ── MMX POWER-UP / CAPSULE jingle: ascending blip arpeggio ──
+            _n = int(_RATE * 0.55)
+            _smp = []
+            _notes = [(0.00, 523), (0.10, 659), (0.20, 784),
+                      (0.30, 1047), (0.42, 1319)]
+            for _i in range(_n):
+                _t = _i / _RATE
+                _s = 0.0
+                for _onset, _f in _notes:
+                    if _t >= _onset:
+                        _td = _t - _onset
+                        if _td < 0.13:
+                            _ne = (1.0 - _td/0.13) ** 1.2
+                            _s += (_math.sin(2*_math.pi*_f*_td) * 0.40
+                                   + _math.sin(2*_math.pi*_f*2*_td) * 0.18) * _ne
+                _env = max(0.0, 1.0 - _t/0.55) ** 0.6
+                _smp.append(_s * _env * 0.45)
+            self.mmx_powerup_sound = _make_snd(_smp)
+            self.mmx_powerup_sound.set_volume(0.65)
+
+            # ── MMX HURT SPARK: harsh noise + pitched ring ──────────────
+            _n = int(_RATE * 0.18)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _spark = _rnd.gauss(0, 1) * max(0.0, 1.0 - _t/0.05) * 0.55
+                _ring = _math.sin(2*_math.pi*(680 - 280*_t/0.18)*_t) * max(0.0, 1.0 - _t/0.18) * 0.35
+                _smp.append((_spark + _ring) * 0.55)
+            self.mmx_spark_sound = _make_snd(_smp)
+            self.mmx_spark_sound.set_volume(0.55)
+
+            # ── MMX COIN PLUCK: short two-tone "ting" ───────────────────
+            _n = int(_RATE * 0.12)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 1320 if _t < 0.045 else 1760
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.55
+                      + _math.sin(2*_math.pi*_f*2*_t) * 0.20)
+                _env = max(0.0, 1.0 - _t/0.12) ** 1.3
+                _smp.append(_s * _env * 0.40)
+            self.mmx_coin_sound = _make_snd(_smp)
+            self.mmx_coin_sound.set_volume(0.42)
+
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
             self.blob_jump_sound = pygame.mixer.Sound("Game/Sounds/blob_jump.wav")
@@ -1307,6 +1418,10 @@ class mainGame:
         bear = Bear(150, 300, self.screen, self.thud_sound)
         bear.grunt_sound = self.grunt_sound
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
+        bear._mmx_jump_sound = getattr(self, 'mmx_jump_sound', None)
+        bear._mmx_land_sound = getattr(self, 'mmx_land_sound', None)
+        bear._mmx_dash_sound = getattr(self, 'mmx_dash_sound', None)
+        bear._mmx_powerup_sound = getattr(self, 'mmx_powerup_sound', None)
         bear.level_up_sound = getattr(self, 'level_up_sound', None)
         bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
         bear.has_lightning = True
@@ -1662,6 +1777,10 @@ class mainGame:
         self._bear_ref = bear
         bear.grunt_sound = self.grunt_sound
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
+        bear._mmx_jump_sound = getattr(self, 'mmx_jump_sound', None)
+        bear._mmx_land_sound = getattr(self, 'mmx_land_sound', None)
+        bear._mmx_dash_sound = getattr(self, 'mmx_dash_sound', None)
+        bear._mmx_powerup_sound = getattr(self, 'mmx_powerup_sound', None)
         bear.level_up_sound = getattr(self, 'level_up_sound', None)
         bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
         bear.has_lightning = False
@@ -1817,6 +1936,9 @@ class mainGame:
                             if getattr(self, 'level_up_sound', None):
                                 try: self.level_up_sound.play()
                                 except Exception: pass
+                            if getattr(self, 'mmx_powerup_sound', None):
+                                try: self.mmx_powerup_sound.play()
+                                except Exception: pass
 
                     _letter_map = {
                         pygame.K_a: 'A', pygame.K_b: 'B', pygame.K_d: 'D',
@@ -1839,6 +1961,9 @@ class mainGame:
                             if getattr(self, 'level_up_sound', None):
                                 try: self.level_up_sound.play()
                                 except Exception: pass
+                            if getattr(self, 'mmx_powerup_sound', None):
+                                try: self.mmx_powerup_sound.play()
+                                except Exception: pass
                         if (not self._word_dash_unlocked
                                 and self._word_buffer.endswith('DASH')):
                             self._word_dash_unlocked = True
@@ -1847,6 +1972,9 @@ class mainGame:
                                              duration=360, color=(255, 230, 120))
                             if getattr(self, 'level_up_sound', None):
                                 try: self.level_up_sound.play()
+                                except Exception: pass
+                            if getattr(self, 'mmx_powerup_sound', None):
+                                try: self.mmx_powerup_sound.play()
                                 except Exception: pass
                         if (not self._word_jump_unlocked
                                 and self._word_buffer.endswith('JUMP')):
@@ -1857,6 +1985,9 @@ class mainGame:
                                              duration=300, color=(180, 255, 220))
                             if getattr(self, 'level_up_sound', None):
                                 try: self.level_up_sound.play()
+                                except Exception: pass
+                            if getattr(self, 'mmx_powerup_sound', None):
+                                try: self.mmx_powerup_sound.play()
                                 except Exception: pass
                     if event.key == pygame.K_p and not shop_open:
                         self._paused = True
@@ -1982,6 +2113,9 @@ class mainGame:
                                         shop_last_weapon_bought = 'big_fireball'
                                     shop_message = msg
                                     if self.shop_buy_sound: self.shop_buy_sound.play()
+                                    if getattr(self, 'mmx_powerup_sound', None):
+                                        try: self.mmx_powerup_sound.play()
+                                        except Exception: pass
                                 else:
                                     shop_message = 'Not enough coins.'
                                     if self.shop_error_sound: self.shop_error_sound.play()
@@ -2250,8 +2384,17 @@ class mainGame:
                 _target_step = min(_target_step, 12)
             bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.12
             STEP = max(1, int(round(bear._speed_lerp)))
-            if getattr(bear, 'has_speed_boots', False) and pygame.key.get_pressed()[pygame.K_SPACE]:
+            _dash_now = (getattr(bear, 'has_speed_boots', False)
+                         and pygame.key.get_pressed()[pygame.K_SPACE])
+            if _dash_now:
                 STEP *= 2
+                if not getattr(self, '_was_dashing', False):
+                    if getattr(self, 'mmx_dash_sound', None):
+                        try: self.mmx_dash_sound.play()
+                        except Exception: pass
+                self._was_dashing = True
+            else:
+                self._was_dashing = False
 
             _cur_zone_idx = min(2, max(0, totalDistance // 4500))
             if _cur_zone_idx > self._last_zone_idx:
@@ -2381,6 +2524,8 @@ class mainGame:
                     })
                     if self.beam_sound:
                         self.beam_sound.play()
+                    if getattr(self, 'mmx_charged_shot_sound', None):
+                        self.mmx_charged_shot_sound.play()
                     attackingAnimationCounter = 1
 
                 # ---- D: shockwave attack (also crouches on floor when not attacking) ----------------
@@ -3752,6 +3897,8 @@ class mainGame:
                     bear.setCoins(bear.getCoins() + 1)
                     if getattr(self, 'coin_sound', None):
                         self.coin_sound.play()
+                    if getattr(self, 'mmx_coin_sound', None):
+                        self.mmx_coin_sound.play()
                     if bear.getCoins() >= 100 and not self._lucky_100_unlocked:
                         self._lucky_100_unlocked = True
                         bear.setCoins(bear.getCoins() + 50)
@@ -4187,6 +4334,8 @@ class mainGame:
                         bear.setCoins(bear.getCoins() + 1)
                         if getattr(self, 'coin_sound', None):
                             self.coin_sound.play()
+                        if getattr(self, 'mmx_coin_sound', None):
+                            self.mmx_coin_sound.play()
                         _hd_remove.append(_hd)
             for _hd in _hd_remove:
                 if _hd in self.heart_drops:
@@ -5052,6 +5201,10 @@ class mainGame:
                 self._bear_ref = bear
                 bear.grunt_sound = self.grunt_sound
                 bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
+                bear._mmx_jump_sound = getattr(self, 'mmx_jump_sound', None)
+                bear._mmx_land_sound = getattr(self, 'mmx_land_sound', None)
+                bear._mmx_dash_sound = getattr(self, 'mmx_dash_sound', None)
+                bear._mmx_powerup_sound = getattr(self, 'mmx_powerup_sound', None)
                 bear.level_up_sound = getattr(self, 'level_up_sound', None)
                 bear.spike_hit_sound = getattr(self, 'spike_hit_sound', None)
                 # Assign crouch sprites
@@ -7773,6 +7926,12 @@ class Bear:
                 self.jump_scream_sound.play()
         except:
             pass
+        try:
+            _mmx = getattr(self, '_mmx_jump_sound', None)
+            if _mmx:
+                _mmx.play()
+        except Exception:
+            pass
 
     def _jumpPhysics(self, blocks):
         """
@@ -7827,6 +7986,12 @@ class Bear:
             self.trigger_land_squash()
             if self.thud_sound:
                 self.thud_sound.play()
+            try:
+                _mmx_l = getattr(self, '_mmx_land_sound', None)
+                if _mmx_l:
+                    _mmx_l.play()
+            except Exception:
+                pass
             if self.consume_jump_buffer():
                 self.setJumpStatus(True)
                 self.startJump()
@@ -8177,6 +8342,9 @@ class Bear:
         if self.maxExp <= self.exp:
             if hasattr(self, 'level_up_sound') and self.level_up_sound:
                 self.level_up_sound.play()
+            if hasattr(self, '_mmx_powerup_sound') and self._mmx_powerup_sound:
+                try: self._mmx_powerup_sound.play()
+                except Exception: pass
             self.level += 1
             self.maxExp += 20
             self.exp = 0
