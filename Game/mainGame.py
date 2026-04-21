@@ -2498,8 +2498,16 @@ class mainGame:
                     # bear's right edge at or past the block's left edge?
                     def _tall_wall_ahead(bx, ignore=None):
                         bear_right = bx + 100
+                        bear_feet = bear.getYPosition() + 100
                         for blk in self.blocks:
                             if blk is ignore:
+                                continue
+                            # Only treat as a wall if the block's TOP is at
+                            # least 10px ABOVE the bear's feet — i.e., the
+                            # bear cannot simply step onto it.  Adjacent
+                            # platforms at the same height should not block
+                            # rightward jump movement.
+                            if blk.getBlockYPosition() > bear_feet - 10:
                                 continue
                             if ((bear_right + STEP) >= blk.getBlockXPosition()
                                     and bear_right < blk.getBlockXPosition() + blk.getWidth()
@@ -4633,13 +4641,20 @@ class mainGame:
                 if closest_block:
                     bear.sourceBlock = closest_block
 
+            # Critical: only fall if NO block currently supports the bear.
+            # When walking across adjacent (e.g. stretched) platforms, the
+            # block we just left briefly has dropStatus=True even while the
+            # next block already has onPlatform=True. Falling in that frame
+            # caused the bear to drop straight through stretched platforms.
+            _any_support = any(b.getOnPlatform() for b in self.blocks)
             for block in self.blocks:
                 # Skip drop gravity while jump physics are already controlling
                 # vertical movement – double-falling causes the bear to blow
                 # through landing windows and fall through platforms.
                 if (block.getDropStatus() and not bear.getComingUp()
                         and not bear.getJumpStatus()
-                        and not bear.getLeftJumpStatus()):
+                        and not bear.getLeftJumpStatus()
+                        and not _any_support):
                     if bear.getYPosition() + 100 < floorHeight:
                         bear.setYPosition(bear.getYPosition() + JUMP_STEP)
                     elif bear.getYPosition() + 100 >= floorHeight:
@@ -4648,6 +4663,10 @@ class mainGame:
                         block.setOnPlatform(False)
                         bear.setJumpStatus(False)
                         bear.setLeftJumpStatus(False)
+                elif (block.getDropStatus() and _any_support
+                        and not bear.getJumpStatus()
+                        and not bear.getLeftJumpStatus()):
+                    block.setDropStatus(False)
 
             # ---- Damage numbers always rendered on top of blocks --------
             for _m in (self.mummys + self.witches +
@@ -6044,6 +6063,46 @@ class mainGame:
                     layer['channel'].stop()
                     layer['active'] = False
 
+    def _update_bonus_instrument_layer(self, track):
+        """Roll the dice — about half the time, layer an extra instrument
+        (woodwind/bells) over the current music for variety."""
+        if not getattr(self, '_tension_layers_ready', False):
+            return
+        if not hasattr(self, '_bonus_inst_channel'):
+            try:
+                self._bonus_inst_channel = pygame.mixer.Channel(20)
+            except Exception:
+                self._bonus_inst_channel = None
+        ch = getattr(self, '_bonus_inst_channel', None)
+        if ch is None:
+            return
+        # Skip during boss music — boss tracks should stay focused
+        if track in ("boss_mummy", "boss_final"):
+            try: ch.fadeout(800)
+            except Exception: pass
+            return
+        # Pick a sound source from existing synth layers
+        _candidates = [getattr(self, '_layer_bells', None),
+                       getattr(self, '_layer_violin', None),
+                       getattr(self, '_layer_strings', None)]
+        _candidates = [s for s in _candidates if s is not None]
+        if not _candidates:
+            return
+        import random as _brnd
+        # 50% chance to activate this music phase
+        if _brnd.random() < 0.5:
+            snd = _brnd.choice(_candidates)
+            _vol = 0.10 if track in ("normal", "post_boss_normal") else 0.13
+            try:
+                ch.stop()
+                ch.play(snd, loops=-1, fade_ms=2500)
+                ch.set_volume(_vol)
+            except Exception:
+                pass
+        else:
+            try: ch.fadeout(1500)
+            except Exception: pass
+
     def _stop_tension_layers(self):
         if not getattr(self, '_tension_layers_ready', False):
             return
@@ -6111,6 +6170,10 @@ class mainGame:
         if getattr(self, '_current_music', None) == track:
             return
         self._current_music = track
+        try:
+            self._update_bonus_instrument_layer(track)
+        except Exception:
+            pass
         if track in ("boss_mummy", "boss_final", "jungle", "post_boss_normal"):
             self._stop_tension_layers()
         _files = {
