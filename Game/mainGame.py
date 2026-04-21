@@ -1135,6 +1135,8 @@ class mainGame:
         self.triggerText3 = False
         self.triggerText4 = False
         self.triggerText5 = False
+        self._bigMummy_alert_shown = False
+        self._bigMummy_first_hit = False
         self.createdBoss = False
         self.doorPopupTriggered = False
         self.leftBoundary = 180
@@ -2533,6 +2535,66 @@ class mainGame:
             else:
                 self._was_dashing = False
 
+            # ---- Slide trigger (SPACE) -----------------------------------
+            keys_slide = pygame.key.get_pressed()
+            _space_now = keys_slide[pygame.K_SPACE]
+            _space_prev = getattr(self, '_space_was_held', False)
+            self._space_was_held = _space_now
+            _on_ground_slide = (not bear.getJumpStatus() and not bear.getLeftJumpStatus())
+            if (_space_now and not _space_prev and _on_ground_slide
+                    and bear.slide_frames == 0 and bear.slide_cooldown == 0):
+                if keys_slide[pygame.K_LEFT]:
+                    bear.slide_dir = -1
+                elif keys_slide[pygame.K_RIGHT]:
+                    bear.slide_dir = 1
+                else:
+                    bear.slide_dir = -1 if bear.getLeftDirection() else 1
+                bear.setLeftDirection(bear.slide_dir < 0)
+                bear.slide_frames = 22
+                bear.slide_cooldown = 36
+                if getattr(self, 'mmx_dash_sound', None):
+                    try: self.mmx_dash_sound.play()
+                    except Exception: pass
+            if bear.slide_cooldown > 0:
+                bear.slide_cooldown -= 1
+            if bear.slide_frames > 0:
+                bear.slide_frames -= 1
+                STEP = max(STEP, 14)
+                # Force the LR key in the slide direction so the existing
+                # movement code carries the bear forward.
+                class _SlideKeysWrapper:
+                    def __init__(self, k, d):
+                        self._k = k; self._d = d
+                    def __getitem__(self, key):
+                        if self._d > 0 and key == pygame.K_RIGHT: return True
+                        if self._d < 0 and key == pygame.K_LEFT: return True
+                        if self._d > 0 and key == pygame.K_LEFT: return False
+                        if self._d < 0 and key == pygame.K_RIGHT: return False
+                        return self._k[key]
+                # Override pygame.key.get_pressed temporarily
+                if not hasattr(self, '_orig_keys_get_pressed'):
+                    self._orig_keys_get_pressed = pygame.key.get_pressed
+                _real_keys = self._orig_keys_get_pressed()
+                pygame.key.get_pressed = lambda w=_SlideKeysWrapper(_real_keys, bear.slide_dir): w
+                # Slide+Jump: pressing Z during slide → jump with momentum
+                if keys_slide[pygame.K_z] and _on_ground_slide:
+                    bear.slide_jump_carry = 32
+                    bear.slide_jump_dir = bear.slide_dir
+                    bear.slide_frames = 0
+                    pygame.key.get_pressed = self._orig_keys_get_pressed
+            else:
+                if hasattr(self, '_orig_keys_get_pressed'):
+                    pygame.key.get_pressed = self._orig_keys_get_pressed
+            # Apply slide-jump horizontal carry while airborne
+            if bear.slide_jump_carry > 0 and (bear.getJumpStatus() or bear.getLeftJumpStatus()):
+                _carry_step = 6
+                _new_x = bear.getXPosition() + bear.slide_jump_dir * _carry_step
+                _new_x = max(0, min(800, _new_x))
+                bear.setXPosition(_new_x)
+                bear.slide_jump_carry -= 1
+            elif _on_ground_slide:
+                bear.slide_jump_carry = 0
+
             _cur_zone_idx = min(2, max(0, totalDistance // 4500))
             if _cur_zone_idx > self._last_zone_idx:
                 self._last_zone_idx = _cur_zone_idx
@@ -3168,6 +3230,10 @@ class mainGame:
                                     monster.setDamageReceived(_dmg)
                                     monster.setStunned(1)
                                     monster.setHealth(monster.getHealth() - _apply_defense(monster, _dmg))
+                                    self._bigMummy_first_hit = True
+                                    self._head_alerts = [
+                                        _ha for _ha in getattr(self, '_head_alerts', [])
+                                        if _ha.get('tag') != 'bigmummy']
                                     if _is_crit and self.crit_sound:
                                         self.crit_sound.play()
                                     elif self.hit_sound:
@@ -3219,6 +3285,10 @@ class mainGame:
                                     monster.setDamageReceived(_dmg)
                                     monster.setStunned(1)
                                     monster.setHealth(monster.getHealth() - _apply_defense(monster, _dmg))
+                                    self._bigMummy_first_hit = True
+                                    self._head_alerts = [
+                                        _ha for _ha in getattr(self, '_head_alerts', [])
+                                        if _ha.get('tag') != 'bigmummy']
                                     if _is_crit and self.crit_sound:
                                         self.crit_sound.play()
                                     elif self.hit_sound:
@@ -3654,8 +3724,23 @@ class mainGame:
                 elif bear.getLeftJumpStatus():
                     bear.leftJump(self.blocks)
 
+            # ---- Slide pose (Mega-Man-X style) ---------------------------------
+            if bear.slide_frames > 0:
+                _slide_y_off = 25  # lower the sprite to look low/sliding
+                if bear.slide_dir < 0:
+                    self.screen.blit(self.bearAttackingLeft,
+                                     (bear.getXPosition(), bear.getYPosition() + _slide_y_off))
+                else:
+                    self.screen.blit(self.bearAttacking,
+                                     (bear.getXPosition(), bear.getYPosition() + _slide_y_off))
+                # dust puffs behind the slide
+                for _i in range(3):
+                    _dx = bear.getXPosition() + (50 - bear.slide_dir * (20 + _i * 8))
+                    _dy = bear.getYPosition() + 90 + _i * 2
+                    pygame.draw.circle(self.screen, (220, 210, 190),
+                                       (int(_dx), int(_dy)), 6 - _i)
             # ---- Attack animation (always runs, fixes 1-frame flicker gap) ------
-            if 1 <= attackingAnimationCounter < 12:
+            elif 1 <= attackingAnimationCounter < 12:
                 attackingAnimationCounter += 1
                 if bear.getLeftDirection():
                     self.screen.blit(self.bearAttackingLeft,
@@ -5323,17 +5408,28 @@ class mainGame:
                     "NG+" + str(self.newGamePlusLevel), True, (255, 215, 0))
                 self.screen.blit(_ng_txt, (810, 10))
 
-            # ---- Story / trigger text (triggers scaled to 8px steps) ----
-            if totalDistance > 2300 and not self.triggerText1 and not getattr(self, '_monkey_level_active', False):
-                self.triggerText1 = True
-                self._mummy_hint_active = True
-                self._mummy_arrow_frames = 99999
-                try:
+            # ---- Big-mummy on-screen alert (shows as soon as it's visible,
+            #      clears the moment the player lands the first hit) --------
+            if not getattr(self, '_bigMummy_first_hit', False):
+                _bm_visible = False
+                for _mu in self.mummys:
+                    try:
+                        if (_mu.getName() == "bigMummy" and _mu.getHp() > 0
+                                and -100 < _mu.getXPosition() < 950):
+                            _bm_visible = True
+                            break
+                    except Exception:
+                        pass
+                if _bm_visible and not getattr(self, '_bigMummy_alert_shown', False):
+                    self._bigMummy_alert_shown = True
+                    self.triggerText1 = True
+                    self._mummy_hint_active = True
+                    self._mummy_arrow_frames = 99999
                     self._head_alerts.append({
-                        'text': 'ATTACK FOREHEAD!', 'life': 360, 'max_life': 360,
-                        'color': (255, 90, 90)})
-                except Exception:
-                    pass
+                        'text': 'ATTACK FOREHEAD!',
+                        'life': 99999, 'max_life': 99999,
+                        'color': (255, 90, 90),
+                        'tag': 'bigmummy'})
 
             for spike in self.spikes:
                 spike.draw()
@@ -5421,6 +5517,8 @@ class mainGame:
                 self.triggerText1 = False; self.triggerText2 = False
                 self.triggerText3 = False; self.triggerText4 = False
                 self.triggerText5 = False; self.createdBoss = False
+                self._bigMummy_alert_shown = False
+                self._bigMummy_first_hit = False
                 self.doorPopupTriggered = False
                 self.leftBoundary = 180; self.rightBoundary = 300
                 self.isFinalBossDestroyed = False
@@ -8071,6 +8169,12 @@ class Bear:
         self.jumping = False
         self.jumpLeft = False
         self.jumpVelocity = 0.0      # px/frame upward; positive = rising
+        # ---- Slide / Mega-Man-X dash attributes ----
+        self.slide_frames = 0          # frames of active slide remaining
+        self.slide_dir = 1             # +1 right, -1 left
+        self.slide_cooldown = 0        # frames until next slide allowed
+        self.slide_jump_carry = 0      # frames of horizontal momentum after a slide jump
+        self.slide_jump_dir = 0        # direction of carry
         self.level = 1
         self.textHeight = 30
         self.randomBlink = random.randint(15, 30)
