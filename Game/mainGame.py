@@ -502,6 +502,111 @@ class mainGame:
             self.mmx_coin_sound = _make_snd(_smp)
             self.mmx_coin_sound.set_volume(0.42)
 
+            # ── MMX LEMON SHOT: short "pew" pellet ──────────────────────
+            _n = int(_RATE * 0.09)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 1100 - 700 * (_t / 0.09)
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.55
+                      + _math.sin(2*_math.pi*_f*2*_t) * 0.18)
+                _env = min(1.0, _i/(_RATE*0.004)) * max(0.0, 1.0 - _t/0.09) ** 1.4
+                _smp.append(_s * _env * 0.42)
+            self.mmx_lemon_shot_sound = _make_snd(_smp)
+            self.mmx_lemon_shot_sound.set_volume(0.40)
+
+            # ── MMX ENEMY EXPLODE: short pop + noise burst ──────────────
+            _n = int(_RATE * 0.28)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _pop = _math.sin(2*_math.pi*(220 - 160*_t/0.28)*_t) * max(0.0, 1.0 - _t/0.18) * 0.55
+                _noise = _rnd.gauss(0, 1) * max(0.0, 1.0 - _t/0.28) ** 1.2 * 0.45
+                _ring = _math.sin(2*_math.pi*(880 - 600*_t/0.28)*_t) * max(0.0, 1.0 - _t/0.20) * 0.22
+                _smp.append((_pop + _noise + _ring) * 0.50)
+            self.mmx_enemy_explode_sound = _make_snd(_smp)
+            self.mmx_enemy_explode_sound.set_volume(0.55)
+
+            # ── MMX PAUSE: classic two-tone "wuh-wuh" ───────────────────
+            _n = int(_RATE * 0.32)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                if _t < 0.14:
+                    _f = 660
+                    _ne = min(1.0, _i/(_RATE*0.005)) * max(0.0, 1.0 - _t/0.14) ** 0.8
+                else:
+                    _td = _t - 0.14
+                    _f = 440
+                    _ne = min(1.0, (_i - _RATE*0.14)/(_RATE*0.005)) * max(0.0, 1.0 - _td/0.18) ** 0.8
+                _sq = 1.0 if (_math.sin(2*_math.pi*_f*_t) > 0) else -1.0
+                _s = (_math.sin(2*_math.pi*_f*_t) * 0.45 + _sq * 0.20) * _ne
+                _smp.append(_s * 0.40)
+            self.mmx_pause_sound = _make_snd(_smp)
+            self.mmx_pause_sound.set_volume(0.50)
+
+            # ── MMX LOW HEALTH WARNING: pulsing high beep ───────────────
+            _n = int(_RATE * 0.22)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 1760
+                _pulse = 1.0 if (int(_t * 22) % 2 == 0) else 0.4
+                _s = _math.sin(2*_math.pi*_f*_t) * 0.45 * _pulse
+                _env = min(1.0, _i/(_RATE*0.004)) * max(0.0, 1.0 - _t/0.22) ** 1.0
+                _smp.append(_s * _env * 0.40)
+            self.mmx_low_health_sound = _make_snd(_smp)
+            self.mmx_low_health_sound.set_volume(0.45)
+
+            # ── MMX 1-UP / LIFE GAIN: bright ascending arpeggio ─────────
+            _n = int(_RATE * 0.70)
+            _smp = []
+            _notes = [(0.00, 784), (0.10, 988), (0.20, 1175),
+                      (0.30, 1568), (0.42, 1976), (0.55, 2349)]
+            for _i in range(_n):
+                _t = _i / _RATE
+                _s = 0.0
+                for _onset, _f in _notes:
+                    if _t >= _onset:
+                        _td = _t - _onset
+                        if _td < 0.14:
+                            _ne = (1.0 - _td/0.14) ** 1.1
+                            _s += (_math.sin(2*_math.pi*_f*_td) * 0.36
+                                   + _math.sin(2*_math.pi*_f*2*_td) * 0.16) * _ne
+                _env = max(0.0, 1.0 - _t/0.70) ** 0.5
+                _smp.append(_s * _env * 0.42)
+            self.mmx_life_up_sound = _make_snd(_smp)
+            self.mmx_life_up_sound.set_volume(0.65)
+
+            # ── MMX BOSS DOOR: low rising drone with metal clank ────────
+            _n = int(_RATE * 0.85)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 60 + 90 * (_t / 0.85)
+                _drone = (_math.sin(2*_math.pi*_f*_t) * 0.50
+                          + _math.sin(2*_math.pi*_f*1.5*_t) * 0.25
+                          + _math.sin(2*_math.pi*_f*2*_t) * 0.18)
+                _clank = 0.0
+                if 0.45 < _t < 0.52:
+                    _clank = _rnd.gauss(0, 1) * 0.45 + _math.sin(2*_math.pi*440*_t) * 0.30
+                _env = min(1.0, _i/(_RATE*0.020)) * max(0.0, 1.0 - _t/0.85) ** 0.7
+                _smp.append((_drone + _clank) * _env * 0.45)
+            self.mmx_boss_door_sound = _make_snd(_smp)
+            self.mmx_boss_door_sound.set_volume(0.65)
+
+            # ── MMX MENU SELECT: tiny "tik" cursor blip ─────────────────
+            _n = int(_RATE * 0.04)
+            _smp = []
+            for _i in range(_n):
+                _t = _i / _RATE
+                _f = 1480
+                _s = _math.sin(2*_math.pi*_f*_t) * 0.55
+                _env = max(0.0, 1.0 - _t/0.04) ** 1.6
+                _smp.append(_s * _env * 0.38)
+            self.mmx_select_sound = _make_snd(_smp)
+            self.mmx_select_sound.set_volume(0.40)
+
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
             self.blob_jump_sound = pygame.mixer.Sound("Game/Sounds/blob_jump.wav")
@@ -1931,6 +2036,9 @@ class mainGame:
                             bear.setMaxHp(bear.getMaxHp() + 25)
                             bear.setHp(bear.getMaxHp())
                             bear.setCoins(bear.getCoins() + 30)
+                            if getattr(self, 'mmx_life_up_sound', None):
+                                try: self.mmx_life_up_sound.play()
+                                except Exception: pass
                             self._push_toast('\u2605 KONAMI! +25 MAX HP, full heal, +30 coins! \u2605', duration=300, color=(255, 215, 0))
                             self._push_toast('Bear Form: Awakened.', duration=240, color=(255, 180, 220))
                             if getattr(self, 'level_up_sound', None):
@@ -1995,7 +2103,26 @@ class mainGame:
                             self._paused_snapshot = self.screen.copy()
                         except Exception:
                             self._paused_snapshot = None
-                        pygame.mixer.pause()
+                        _pause_cue_idx = -1
+                        if getattr(self, 'mmx_pause_sound', None):
+                            try:
+                                _nch_total = pygame.mixer.get_num_channels()
+                                for _ci_try in range(_nch_total):
+                                    _ch_try = pygame.mixer.Channel(_ci_try)
+                                    if not _ch_try.get_busy():
+                                        _ch_try.play(self.mmx_pause_sound)
+                                        _pause_cue_idx = _ci_try
+                                        break
+                            except Exception:
+                                _pause_cue_idx = -1
+                        try:
+                            _nch = pygame.mixer.get_num_channels()
+                            for _ci in range(_nch):
+                                if _ci == _pause_cue_idx:
+                                    continue
+                                pygame.mixer.Channel(_ci).pause()
+                        except Exception:
+                            pygame.mixer.pause()
                         continue
                     elif event.key == pygame.K_m:
                         self._muted = not self._muted
@@ -2044,10 +2171,16 @@ class mainGame:
                             _prev_sel = shop_selection
                             shop_selection = max(0, shop_selection - 1)
                             if shop_selection != _prev_sel and self.shop_navigate_sound: self.shop_navigate_sound.play()
+                            if shop_selection != _prev_sel and getattr(self, 'mmx_select_sound', None):
+                                try: self.mmx_select_sound.play()
+                                except Exception: pass
                         elif event.key == pygame.K_DOWN:
                             _prev_sel = shop_selection
                             shop_selection = min(max(len(shop_items) - 1, 0), shop_selection + 1)
                             if shop_selection != _prev_sel and self.shop_navigate_sound: self.shop_navigate_sound.play()
+                            if shop_selection != _prev_sel and getattr(self, 'mmx_select_sound', None):
+                                try: self.mmx_select_sound.play()
+                                except Exception: pass
                         elif event.key == pygame.K_x:
                             if shop_selection < len(shop_items):
                                 item_type, cost = shop_items[shop_selection]
@@ -2485,6 +2618,9 @@ class mainGame:
                                  _fb_img,
                                  self.screen,
                                  size=(78, 78) if getattr(bear, 'has_big_fireball', False) else (60, 60)))
+                    if getattr(self, 'mmx_lemon_shot_sound', None):
+                        try: self.mmx_lemon_shot_sound.play()
+                        except Exception: pass
                     if getattr(bear, 'has_big_fireball', False):
                         self.playerFires[-1].damageAttack = int(self.playerFires[-1].damageAttack * 1.2)
                     if self.fire_sound:
@@ -3619,6 +3755,9 @@ class mainGame:
                     if monster.getDestructionAnimationCount() == 1:
                         if getattr(self, 'enemy_hit_sound', None):
                             self.enemy_hit_sound.play()
+                        if getattr(self, 'mmx_enemy_explode_sound', None):
+                            try: self.mmx_enemy_explode_sound.play()
+                            except Exception: pass
                     if monster.getDestructionAnimationCount() == 5:
                         _is_boss_monster = monster.getName() == "bigMummy"
                         if _is_boss_monster and getattr(self, 'boss_explosion_sound', None):
@@ -4654,6 +4793,10 @@ class mainGame:
 
                 if self.bossTimerAnimation > 30:
                     background.setBlackBackground(True)
+                if self.bossTimerAnimation == 31:
+                    if getattr(self, 'mmx_boss_door_sound', None):
+                        try: self.mmx_boss_door_sound.play()
+                        except Exception: pass
 
                 if self.bossTimerAnimation > 170:
                     if self.showBoss:
@@ -5469,6 +5612,30 @@ class mainGame:
                         self.screen.blit(_csurf, (int(_p[0]), int(_p[1])))
                         _cp_keep.append(_p)
                 self._confetti_particles = _cp_keep
+
+            try:
+                _hp_now = bear.getHp()
+                _max_hp = max(1, bear.getMaxHp())
+                _ratio = _hp_now / _max_hp
+                if _ratio < 0.25 and _hp_now > 0:
+                    if not getattr(self, '_low_hp_warned', False):
+                        if getattr(self, 'mmx_low_health_sound', None):
+                            try: self.mmx_low_health_sound.play()
+                            except Exception: pass
+                        self._low_hp_warned = True
+                        self._low_hp_pulse_timer = 0
+                    else:
+                        self._low_hp_pulse_timer = getattr(self, '_low_hp_pulse_timer', 0) + 1
+                        if self._low_hp_pulse_timer >= 90:
+                            self._low_hp_pulse_timer = 0
+                            if getattr(self, 'mmx_low_health_sound', None):
+                                try: self.mmx_low_health_sound.play()
+                                except Exception: pass
+                elif _ratio >= 0.40:
+                    self._low_hp_warned = False
+                    self._low_hp_pulse_timer = 0
+            except Exception:
+                pass
 
             pygame.display.flip()
             self.clock.tick(60)
