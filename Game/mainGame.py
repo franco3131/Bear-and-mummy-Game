@@ -2078,6 +2078,22 @@ class mainGame:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return
+                # ─── QoL: auto-pause when window loses focus ───
+                if (event.type == getattr(pygame, 'WINDOWFOCUSLOST', -999)
+                        or (event.type == pygame.ACTIVEEVENT
+                            and getattr(event, 'gain', 1) == 0
+                            and getattr(event, 'state', 0) & 2)):
+                    if not getattr(self, '_paused', False) and not shop_open:
+                        self._paused = True
+                        try:
+                            self._paused_snapshot = self.screen.copy()
+                        except Exception:
+                            self._paused_snapshot = None
+                        try:
+                            pygame.mixer.pause()
+                        except Exception:
+                            pass
+                        continue
                 if event.type == pygame.KEYDOWN:
                     _kk = event.key
                     _ksym = None
@@ -2712,6 +2728,24 @@ class mainGame:
                 elif getattr(bear, 'slide_jump_chain', 0) > 0 and bear.slide_frames == 0:
                     # Reset chain only after a full landed beat with no slide
                     bear.slide_jump_chain = 0
+
+            # ─── QoL: slide cooldown indicator under the bear ───
+            if (bear.slide_cooldown > 0 and bear.slide_frames == 0
+                    and not _popup_active):
+                _cd_max = 36
+                _cd_pct = max(0.0, min(1.0, bear.slide_cooldown / _cd_max))
+                _bar_w = 40
+                _bar_h = 4
+                _bar_x = bear.getXPosition() + 50 - _bar_w // 2
+                _bar_y = bear.getYPosition() + 122
+                pygame.draw.rect(self.screen, (30, 30, 30),
+                                 (_bar_x - 1, _bar_y - 1, _bar_w + 2, _bar_h + 2))
+                pygame.draw.rect(self.screen, (60, 60, 80),
+                                 (_bar_x, _bar_y, _bar_w, _bar_h))
+                _fill_w = int(_bar_w * (1.0 - _cd_pct))
+                if _fill_w > 0:
+                    pygame.draw.rect(self.screen, (120, 220, 255),
+                                     (_bar_x, _bar_y, _fill_w, _bar_h))
 
             _cur_zone_idx = min(2, max(0, totalDistance // 4500))
             if _cur_zone_idx > self._last_zone_idx:
@@ -4956,6 +4990,28 @@ class mainGame:
                         _bomb['vy'] = 0.0
                     _bx_i = int(_bomb['x'])
                     _by_i = int(_bomb['y'])
+                    # ─── QoL: landing-shadow telegraph on the ground ───
+                    # Pulsing red ring shows exactly where this bomb will land.
+                    # Tighter/brighter as the bomb gets closer.
+                    _gnd_y = 385
+                    _falling_dist = max(1, _gnd_y - _by_i)
+                    _proximity = 1.0 - min(1.0, _falling_dist / 400.0)  # 0 far, 1 near
+                    _is_instant_b = _bomb.get('instant', False)
+                    _shadow_r = int((26 if _b_big else 18) + 10 * (1 - _proximity))
+                    _shadow_pulse = abs(math.sin(pygame.time.get_ticks() * 0.018))
+                    _base_a = int(80 + 140 * _proximity)
+                    _shadow_a = max(40, min(230, int(_base_a + _shadow_pulse * 50)))
+                    _shadow_col = (255, 50, 50) if _is_instant_b else (255, 140, 40)
+                    _shadow_surf = pygame.Surface((_shadow_r * 2 + 4, _shadow_r + 12),
+                                                  pygame.SRCALPHA)
+                    pygame.draw.ellipse(_shadow_surf,
+                                        (*_shadow_col, _shadow_a),
+                                        (0, 0, _shadow_r * 2, _shadow_r))
+                    pygame.draw.ellipse(_shadow_surf,
+                                        (*_shadow_col, min(255, _shadow_a + 60)),
+                                        (4, 4, _shadow_r * 2 - 8, _shadow_r - 8), 2)
+                    self.screen.blit(_shadow_surf,
+                                     (_bx_i - _shadow_r, _gnd_y + 6))
                     _fall_r = 24 if _b_big else 16
                     _fall_inner = 18 if _b_big else 12
                     _fall_fuse = 6 if _b_big else 4
