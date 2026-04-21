@@ -402,9 +402,9 @@ class mainGame:
                       + _sq * 0.18
                       + _math.sin(2*_math.pi*_f*2*_t) * 0.10)
                 _env = min(1.0, _i/(_RATE*0.005)) * max(0.0, 1.0 - _t/0.10) ** 1.5
-                _smp.append(_s * _env * 0.45)
+                _smp.append(_s * _env * 0.85)
             self.mmx_jump_sound = _make_snd(_smp)
-            self.mmx_jump_sound.set_volume(0.42)
+            self.mmx_jump_sound.set_volume(1.0)
 
             # ── MMX LAND TAP: low click + soft thump ────────────────────
             _n = int(_RATE * 0.13)
@@ -413,9 +413,9 @@ class mainGame:
                 _t = _i / _RATE
                 _click = (_rnd.gauss(0, 1) * max(0.0, 1.0 - _t * 40)) * 0.6
                 _thump = _math.sin(2*_math.pi*(110 - 60*_t/0.13)*_t) * max(0.0, 1.0 - _t/0.13) ** 1.4 * 0.55
-                _smp.append((_click + _thump) * 0.55)
+                _smp.append((_click + _thump) * 0.95)
             self.mmx_land_sound = _make_snd(_smp)
-            self.mmx_land_sound.set_volume(0.45)
+            self.mmx_land_sound.set_volume(1.0)
 
             # ── MMX DASH: sharp filtered noise sweep ────────────────────
             _n = int(_RATE * 0.22)
@@ -429,9 +429,9 @@ class mainGame:
                 _prev = _filt
                 _whoosh = _math.sin(2*_math.pi*(180 + 360*_t/0.22)*_t) * 0.30
                 _env = min(1.0, _i/(_RATE*0.008)) * max(0.0, 1.0 - _t/0.22) ** 0.9
-                _smp.append((_filt * 0.55 + _whoosh) * _env * 0.50)
+                _smp.append((_filt * 0.55 + _whoosh) * _env * 0.95)
             self.mmx_dash_sound = _make_snd(_smp)
-            self.mmx_dash_sound.set_volume(0.38)
+            self.mmx_dash_sound.set_volume(1.0)
 
             # ── MMX CHARGED SHOT: rising whir + release boom ────────────
             _n = int(_RATE * 0.55)
@@ -454,9 +454,9 @@ class mainGame:
                           + _math.sin(2*_math.pi*_f*2*_t) * 0.20
                           + _rnd.gauss(0, 1) * max(0.0, 1.0 - _td * 8) * 0.35)
                     _env = max(0.0, 1.0 - _td/0.35) ** 1.1
-                _smp.append(_s * _env * 0.45)
+                _smp.append(_s * _env * 0.85)
             self.mmx_charged_shot_sound = _make_snd(_smp)
-            self.mmx_charged_shot_sound.set_volume(0.55)
+            self.mmx_charged_shot_sound.set_volume(1.0)
 
             # ── MMX POWER-UP / CAPSULE jingle: ascending blip arpeggio ──
             _n = int(_RATE * 0.55)
@@ -474,9 +474,9 @@ class mainGame:
                             _s += (_math.sin(2*_math.pi*_f*_td) * 0.40
                                    + _math.sin(2*_math.pi*_f*2*_td) * 0.18) * _ne
                 _env = max(0.0, 1.0 - _t/0.55) ** 0.6
-                _smp.append(_s * _env * 0.45)
+                _smp.append(_s * _env * 0.85)
             self.mmx_powerup_sound = _make_snd(_smp)
-            self.mmx_powerup_sound.set_volume(0.65)
+            self.mmx_powerup_sound.set_volume(1.0)
 
             # ── MMX HURT SPARK: harsh noise + pitched ring ──────────────
             _n = int(_RATE * 0.18)
@@ -487,7 +487,7 @@ class mainGame:
                 _ring = _math.sin(2*_math.pi*(680 - 280*_t/0.18)*_t) * max(0.0, 1.0 - _t/0.18) * 0.35
                 _smp.append((_spark + _ring) * 0.55)
             self.mmx_spark_sound = _make_snd(_smp)
-            self.mmx_spark_sound.set_volume(0.55)
+            self.mmx_spark_sound.set_volume(1.0)
 
             # ── MMX COIN PLUCK: short two-tone "ting" ───────────────────
             _n = int(_RATE * 0.12)
@@ -498,9 +498,9 @@ class mainGame:
                 _s = (_math.sin(2*_math.pi*_f*_t) * 0.55
                       + _math.sin(2*_math.pi*_f*2*_t) * 0.20)
                 _env = max(0.0, 1.0 - _t/0.12) ** 1.3
-                _smp.append(_s * _env * 0.40)
+                _smp.append(_s * _env * 0.85)
             self.mmx_coin_sound = _make_snd(_smp)
-            self.mmx_coin_sound.set_volume(0.42)
+            self.mmx_coin_sound.set_volume(1.0)
 
             # ── MMX LEMON SHOT: short "pew" pellet ──────────────────────
             _n = int(_RATE * 0.09)
@@ -511,9 +511,9 @@ class mainGame:
                 _s = (_math.sin(2*_math.pi*_f*_t) * 0.55
                       + _math.sin(2*_math.pi*_f*2*_t) * 0.18)
                 _env = min(1.0, _i/(_RATE*0.004)) * max(0.0, 1.0 - _t/0.09) ** 1.4
-                _smp.append(_s * _env * 0.42)
+                _smp.append(_s * _env * 0.90)
             self.mmx_lemon_shot_sound = _make_snd(_smp)
-            self.mmx_lemon_shot_sound.set_volume(0.40)
+            self.mmx_lemon_shot_sound.set_volume(1.0)
 
             # ── MMX ENEMY EXPLODE: short pop + noise burst ──────────────
             _n = int(_RATE * 0.28)
@@ -523,9 +523,9 @@ class mainGame:
                 _pop = _math.sin(2*_math.pi*(220 - 160*_t/0.28)*_t) * max(0.0, 1.0 - _t/0.18) * 0.55
                 _noise = _rnd.gauss(0, 1) * max(0.0, 1.0 - _t/0.28) ** 1.2 * 0.45
                 _ring = _math.sin(2*_math.pi*(880 - 600*_t/0.28)*_t) * max(0.0, 1.0 - _t/0.20) * 0.22
-                _smp.append((_pop + _noise + _ring) * 0.50)
+                _smp.append((_pop + _noise + _ring) * 0.95)
             self.mmx_enemy_explode_sound = _make_snd(_smp)
-            self.mmx_enemy_explode_sound.set_volume(0.55)
+            self.mmx_enemy_explode_sound.set_volume(1.0)
 
             # ── MMX PAUSE: classic two-tone "wuh-wuh" ───────────────────
             _n = int(_RATE * 0.32)
@@ -543,7 +543,7 @@ class mainGame:
                 _s = (_math.sin(2*_math.pi*_f*_t) * 0.45 + _sq * 0.20) * _ne
                 _smp.append(_s * 0.40)
             self.mmx_pause_sound = _make_snd(_smp)
-            self.mmx_pause_sound.set_volume(0.50)
+            self.mmx_pause_sound.set_volume(1.0)
 
             # ── MMX LOW HEALTH WARNING: pulsing high beep ───────────────
             _n = int(_RATE * 0.22)
@@ -556,7 +556,7 @@ class mainGame:
                 _env = min(1.0, _i/(_RATE*0.004)) * max(0.0, 1.0 - _t/0.22) ** 1.0
                 _smp.append(_s * _env * 0.40)
             self.mmx_low_health_sound = _make_snd(_smp)
-            self.mmx_low_health_sound.set_volume(0.45)
+            self.mmx_low_health_sound.set_volume(1.0)
 
             # ── MMX 1-UP / LIFE GAIN: bright ascending arpeggio ─────────
             _n = int(_RATE * 0.70)
@@ -576,7 +576,7 @@ class mainGame:
                 _env = max(0.0, 1.0 - _t/0.70) ** 0.5
                 _smp.append(_s * _env * 0.42)
             self.mmx_life_up_sound = _make_snd(_smp)
-            self.mmx_life_up_sound.set_volume(0.65)
+            self.mmx_life_up_sound.set_volume(1.0)
 
             # ── MMX BOSS DOOR: low rising drone with metal clank ────────
             _n = int(_RATE * 0.85)
@@ -593,7 +593,7 @@ class mainGame:
                 _env = min(1.0, _i/(_RATE*0.020)) * max(0.0, 1.0 - _t/0.85) ** 0.7
                 _smp.append((_drone + _clank) * _env * 0.45)
             self.mmx_boss_door_sound = _make_snd(_smp)
-            self.mmx_boss_door_sound.set_volume(0.65)
+            self.mmx_boss_door_sound.set_volume(1.0)
 
             # ── MMX MENU SELECT: tiny "tik" cursor blip ─────────────────
             _n = int(_RATE * 0.04)
@@ -605,7 +605,7 @@ class mainGame:
                 _env = max(0.0, 1.0 - _t/0.04) ** 1.6
                 _smp.append(_s * _env * 0.38)
             self.mmx_select_sound = _make_snd(_smp)
-            self.mmx_select_sound.set_volume(0.40)
+            self.mmx_select_sound.set_volume(1.0)
 
             self.fireball_sound = pygame.mixer.Sound("Game/Sounds/fireball.wav")
             self.fireball_sound.set_volume(0.50)
@@ -1961,8 +1961,8 @@ class mainGame:
         if not self._intro_shown:
             self._intro_shown = True
             self._push_toast('Welcome, brave bear!', duration=300, color=(255, 220, 140))
-            self._push_toast('Z:Attack  X:Fireball  ENTER:Shop', duration=360, color=(180, 240, 255))
-            self._push_toast('X+A:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
+            self._push_toast('Z:Attack  X:Fireball  DOWN:Crouch  ENTER:Shop', duration=360, color=(180, 240, 255))
+            self._push_toast('A+DOWN:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
             self._push_toast('P:Pause  M:Mute', duration=360, color=(220, 200, 255))
 
         for mummy in self.mummys:
@@ -2515,7 +2515,7 @@ class mainGame:
             _target_step = _base_step if _has_alive_enemy else int(_base_step * 1.5)
             if bear.getLevel() >= 14:
                 _target_step = min(_target_step, 12)
-            bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.12
+            bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.22
             STEP = max(1, int(round(bear._speed_lerp)))
             _dash_now = (getattr(bear, 'has_speed_boots', False)
                          and pygame.key.get_pressed()[pygame.K_SPACE])
@@ -2541,11 +2541,14 @@ class mainGame:
                 self._push_toast('Zone barrier sealed! No turning back.',
                                  duration=240, color=(220, 200, 255))
 
-            if not self._boots_spawned and totalDistance >= 2200:
+            if not self._boots_spawned and totalDistance >= 5500:
                 self._boots_spawned = True
+                import random as _br_rand
+                _boots_offset = _br_rand.randint(800, 2200)
+                _boots_y_choice = _br_rand.choice([180, 220, 320])
                 self.boot_pickups.append({
-                    'world_dist': totalDistance + 700,
-                    'y': 320,
+                    'world_dist': totalDistance + _boots_offset,
+                    'y': _boots_y_choice,
                     'bob': 0.0,
                 })
 
@@ -2556,7 +2559,7 @@ class mainGame:
             if bear.getEndText():
 
                 keys = pygame.key.get_pressed()
-                if totalDistance <= self._zone_min_distance + 30:
+                if totalDistance <= self._zone_min_distance - 300 and self._zone_min_distance > 0:
                     class _ZoneLeftLock:
                         def __init__(self, k): self._k = k
                         def __getitem__(self, key):
@@ -2569,7 +2572,7 @@ class mainGame:
                 playerFireCooldown = max(0, playerFireCooldown - 1)
                 if (keys[pygame.K_x]
                         and not keys[pygame.K_UP]
-                        and not (keys[pygame.K_a] and beamCharge >= 100.0 and beamCooldown == 0)
+                        and not (keys[pygame.K_a] and keys[pygame.K_DOWN] and beamCharge >= 100.0 and beamCooldown == 0)
                         and playerFireCooldown == 0):
                     _base_cd = 30
                     if getattr(bear, 'has_aimer', False):
@@ -2635,12 +2638,12 @@ class mainGame:
                     self._beam_ever_shown = True
                     _show_beam_hint = (self._beam_uses_total == 0 or self._kills_since_beam_use >= 10)
                     if _show_beam_hint:
-                        self._push_toast('\u26A1 BEAM READY! Press X+A \u26A1', duration=240, color=(180, 255, 220))
+                        self._push_toast('\u26A1 BEAM READY! Press A+DOWN \u26A1', duration=240, color=(180, 255, 220))
                         bear._level_up_float = 210
                         bear._level_up_float_max = 210
-                        bear._level_up_text = 'BEAM READY! PRESS X + A'
+                        bear._level_up_text = 'BEAM READY! PRESS A + DOWN'
                         self._kills_since_beam_use = 0
-                _beam_combo = (keys[pygame.K_x] and keys[pygame.K_a])
+                _beam_combo = (keys[pygame.K_a] and keys[pygame.K_DOWN])
                 if (keys[pygame.K_c] or _beam_combo) and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
                     beamCooldown = 60
@@ -2696,8 +2699,13 @@ class mainGame:
                                 enemy.setDamageReceived(shock_damage)
                                 enemy.setStunned(3)
                                 enemy.setHealth(enemy.getHealth() - _apply_defense(enemy, shock_damage))
+                elif (keys[pygame.K_DOWN]
+                      and not keys[pygame.K_a]
+                      and not bear.getJumpStatus()
+                      and not bear.getLeftJumpStatus()
+                      and bear.getYPosition() + 100 >= 400):
+                    bear.set_crouch(True)
                 elif keys[pygame.K_d] and self.weapon_cooldown > 0:
-                    # D not on cooldown for attack: crouch only on floor
                     if (not bear.getJumpStatus() and not bear.getLeftJumpStatus()
                             and bear.getYPosition() + 100 >= 400):
                         bear.set_crouch(True)
@@ -3780,6 +3788,10 @@ class mainGame:
                             if self._combo >= 2:
                                 self._push_toast('+%d XP  (x%.1f combo bonus!)' % (_exp_gain, _combo_mult), duration=120, color=(255, 230, 140))
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
+                        try:
+                            self._push_toast('exp %d' % _exp_gain, duration=80, color=(255, 245, 140))
+                        except Exception:
+                            pass
                         to_remove.append(monster)
 
             for monster in to_remove:
@@ -4511,17 +4523,20 @@ class mainGame:
                 if _bp in self.boot_pickups:
                     self.boot_pickups.remove(_bp)
 
-            if totalDistance <= self._zone_min_distance + 30 and self._zone_min_distance > 0:
+            if totalDistance <= self._zone_min_distance - 300 and self._zone_min_distance > 0:
                 _wall_pulse = abs(math.sin(pygame.time.get_ticks() * 0.003))
-                _wall_w = 24
-                pygame.draw.rect(self.screen, (90, 70, 60), (0, 200, _wall_w, 400))
-                for _by in range(200, 600, 32):
+                _wall_w = 28
+                _wall_top = 60
+                _wall_bot = 720
+                _wall_h = _wall_bot - _wall_top
+                pygame.draw.rect(self.screen, (90, 70, 60), (0, _wall_top, _wall_w, _wall_h))
+                for _by in range(_wall_top, _wall_bot, 32):
                     pygame.draw.rect(self.screen, (60, 45, 38), (2, _by, _wall_w - 4, 28), 1)
                     pygame.draw.line(self.screen, (50, 38, 30), (0, _by), (_wall_w, _by), 1)
                 _glow_a = int(80 + _wall_pulse * 80)
-                _glow_s = pygame.Surface((40, 400), pygame.SRCALPHA)
-                pygame.draw.rect(_glow_s, (180, 100, 200, _glow_a), (24, 0, 8, 400))
-                self.screen.blit(_glow_s, (0, 200))
+                _glow_s = pygame.Surface((44, _wall_h), pygame.SRCALPHA)
+                pygame.draw.rect(_glow_s, (180, 100, 200, _glow_a), (28, 0, 10, _wall_h))
+                self.screen.blit(_glow_s, (0, _wall_top))
 
             if not getattr(self, '_bomb_wave_30', False) and backgroundScrollX >= 18000:
                 self._bomb_wave_30 = True
@@ -5477,6 +5492,14 @@ class mainGame:
                 totalDistance = 60
                 background.setXPosition(backgroundScrollX)
                 self._switch_music("normal")
+                self._zone_min_distance = 0
+                self._last_zone_idx = 0
+                self._zone_lock_toasted = False
+                self._boots_spawned = False
+                try:
+                    self.boot_pickups = []
+                except Exception:
+                    pass
 
             # ---- Lightning strike animation (drawn on top of everything) ----
             if self.lightning_anim > 0:
@@ -8271,6 +8294,17 @@ class Bear:
 
     def is_bear_hurt(self, positionRelative, bearXPosition, bearYPosition,
                    objectXPosition, objectYPosition, objectName):
+        if getattr(self, 'is_crouching', False):
+            if objectName not in _MONSTER_SIZES:
+                return False
+            _ow, _oh = _MONSTER_SIZES[objectName]
+            _crouch_top_offset = 45
+            _crouch_h = BEAR_H - _crouch_top_offset - 5
+            bear_rect = pygame.Rect(bearXPosition + 5,
+                                    bearYPosition + _crouch_top_offset,
+                                    BEAR_W - 10, _crouch_h)
+            obj_rect = pygame.Rect(objectXPosition, objectYPosition, _ow, _oh)
+            return bear_rect.colliderect(obj_rect)
         return is_bear_hurt(positionRelative, bearXPosition, bearYPosition,
                           objectXPosition, objectYPosition, objectName)
 
