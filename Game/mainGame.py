@@ -1079,6 +1079,7 @@ class mainGame:
         self._combo = 0
         self._combo_timer = 0
         self._combo_max_session = 0
+        self._kill_total = 0
         self._intro_banner = None
         self._mummy_arrow_frames = 0
 
@@ -3777,25 +3778,37 @@ class mainGame:
                     _destroy_limit = 60 if monster.getName() == "bigMummy" else 30
                     if monster.getDestructionAnimationCount() >= _destroy_limit:
                         monster.setStartDestructionAnimation(False)
-                        _exp_gain = monster.getExp()
-                        if self._hardMode:
-                            _exp_gain = int(_exp_gain * 1.75)
-                        _combo_cap = 1.0 if self._hardMode else 2.0
-                        _combo_step = 0.10 if self._hardMode else 0.15
-                        _combo_mult = 1.0 + min(_combo_cap, max(0, self._combo) * _combo_step)
-                        if _combo_mult > 1.0:
-                            _exp_gain = int(_exp_gain * _combo_mult)
-                            if self._combo >= 2:
-                                self._push_toast('+%d XP  (x%.1f combo bonus!)' % (_exp_gain, _combo_mult), duration=120, color=(255, 230, 140))
+                        _base_exp = monster.getExp()
+                        _hard_mult = 1.50 if self._hardMode else 1.0
+                        _combo_cap = 0.7 if self._hardMode else 1.0
+                        _combo_step = 0.07 if self._hardMode else 0.10
+                        _raw_combo_mult = 1.0 + min(_combo_cap, max(0, self._combo) * _combo_step)
+                        _stacked = _hard_mult * _raw_combo_mult
+                        if _stacked > 1.0:
+                            _soft_mult = 1.0 + (_stacked - 1.0) ** 0.65
+                        else:
+                            _soft_mult = _stacked
+                        _grind_bonus = 1.0
+                        if max(0, self._combo) <= 1 and self.newGamePlusLevel == 0 and not self._hardMode:
+                            _grind_bonus = 1.0 + min(0.50, self._kill_total / 250.0)
+                        _exp_gain = max(1, int(round(_base_exp * _soft_mult * _grind_bonus)))
                         bear.setCurrentExp(bear.getCurrentExp() + _exp_gain)
                         try:
-                            self._push_toast('exp %d' % _exp_gain, duration=80, color=(255, 245, 140))
+                            if self._combo >= 3 and _soft_mult > 1.15:
+                                self._push_toast('exp %d  (x%.2f combo)' % (_exp_gain, _soft_mult),
+                                                 duration=110, color=(255, 230, 140))
+                            elif _grind_bonus > 1.05:
+                                self._push_toast('exp %d  (x%.2f grind bonus)' % (_exp_gain, _grind_bonus),
+                                                 duration=110, color=(180, 255, 200))
+                            else:
+                                self._push_toast('exp %d' % _exp_gain, duration=80, color=(255, 245, 140))
                         except Exception:
                             pass
                         to_remove.append(monster)
 
             for monster in to_remove:
                 self._combo += 1
+                self._kill_total += 1
                 self._kills_since_beam_use += 1
                 try:
                     self._spawn_confetti(int(monster.getXPosition() + 40),
