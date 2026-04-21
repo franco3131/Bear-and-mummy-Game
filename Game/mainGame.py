@@ -433,6 +433,28 @@ class mainGame:
             self.mmx_dash_sound = _make_snd(_smp)
             self.mmx_dash_sound.set_volume(1.0)
 
+            # ── SLIDE SCRAPE: longer gritty floor scrape with whoosh ────
+            _n = int(_RATE * 0.55)
+            _smp = []
+            _prev = 0.0
+            _prev2 = 0.0
+            for _i in range(_n):
+                _t = _i / _RATE
+                _noise = _rnd.gauss(0, 1)
+                # band-pass-ish: two cascaded one-pole filters
+                _alpha = 0.35
+                _prev = _prev + _alpha * (_noise - _prev)
+                _prev2 = _prev2 + 0.55 * (_prev - _prev2)
+                _grit = (_prev - _prev2)
+                # falling whoosh swept down
+                _fhz = 480 - 380 * (_t / 0.55)
+                _whoosh = _math.sin(2*_math.pi*_fhz*_t) * 0.18
+                # envelope: quick attack, slow decay
+                _env = min(1.0, _i/(_RATE*0.012)) * max(0.0, 1.0 - _t/0.55) ** 1.4
+                _smp.append((_grit * 1.8 + _whoosh) * _env * 0.85)
+            self.slide_scrape_sound = _make_snd(_smp)
+            self.slide_scrape_sound.set_volume(0.85)
+
             # ── MMX CHARGED SHOT: rising whir + release boom ────────────
             _n = int(_RATE * 0.55)
             _smp = []
@@ -2078,18 +2100,6 @@ class mainGame:
                             if getattr(self, 'mmx_powerup_sound', None):
                                 try: self.mmx_powerup_sound.play()
                                 except Exception: pass
-                        if (not self._word_dash_unlocked
-                                and self._word_buffer.endswith('DASH')):
-                            self._word_dash_unlocked = True
-                            bear.has_speed_boots = True
-                            self._push_toast('\u2605 SECRET WORD: DASH! Free Speed Boots! Hold SPACE \u2605',
-                                             duration=360, color=(255, 230, 120))
-                            if getattr(self, 'level_up_sound', None):
-                                try: self.level_up_sound.play()
-                                except Exception: pass
-                            if getattr(self, 'mmx_powerup_sound', None):
-                                try: self.mmx_powerup_sound.play()
-                                except Exception: pass
                         if (not self._word_jump_unlocked
                                 and self._word_buffer.endswith('JUMP')):
                             self._word_jump_unlocked = True
@@ -2523,18 +2533,6 @@ class mainGame:
                 _target_step = min(_target_step, 12)
             bear._speed_lerp += (_target_step - bear._speed_lerp) * 0.22
             STEP = max(1, int(round(bear._speed_lerp)))
-            _dash_now = (getattr(bear, 'has_speed_boots', False)
-                         and pygame.key.get_pressed()[pygame.K_SPACE])
-            if _dash_now:
-                STEP *= 2
-                if not getattr(self, '_was_dashing', False):
-                    if getattr(self, 'mmx_dash_sound', None):
-                        try: self.mmx_dash_sound.play()
-                        except Exception: pass
-                self._was_dashing = True
-            else:
-                self._was_dashing = False
-
             # ---- Slide trigger (SPACE) -----------------------------------
             keys_slide = pygame.key.get_pressed()
             _space_now = keys_slide[pygame.K_SPACE]
@@ -2552,7 +2550,10 @@ class mainGame:
                 bear.setLeftDirection(bear.slide_dir < 0)
                 bear.slide_frames = 22
                 bear.slide_cooldown = 36
-                if getattr(self, 'mmx_dash_sound', None):
+                if getattr(self, 'slide_scrape_sound', None):
+                    try: self.slide_scrape_sound.play()
+                    except Exception: pass
+                elif getattr(self, 'mmx_dash_sound', None):
                     try: self.mmx_dash_sound.play()
                     except Exception: pass
             if bear.slide_cooldown > 0:
@@ -2609,17 +2610,6 @@ class mainGame:
                 self._zone_lock_toasted = True
                 self._push_toast('Zone barrier sealed! No turning back.',
                                  duration=240, color=(220, 200, 255))
-
-            if not self._boots_spawned and totalDistance >= 5500:
-                self._boots_spawned = True
-                import random as _br_rand
-                _boots_offset = _br_rand.randint(800, 2200)
-                _boots_y_choice = _br_rand.choice([180, 220, 320])
-                self.boot_pickups.append({
-                    'world_dist': totalDistance + _boots_offset,
-                    'y': _boots_y_choice,
-                    'bob': 0.0,
-                })
 
             _on_ground = (not bear.getJumpStatus() and not bear.getLeftJumpStatus())
             bear.update_coyote(_on_ground)
@@ -3389,13 +3379,14 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        _bob = self._get_walk_bob(bearAnimation)
-                        _lox, _loy = self._get_walk_offset(bearAnimation)
-                        self.screen.blit(self._get_bear_walk_frame(bearAnimation),
-                                         (bear.getXPosition() + _lox, bear.getYPosition() - 10 + _bob + _loy))
-                        self._footstep_counter += 1
-                        if self._footstep_counter % 11 == 0 and self.footstep_sound:
-                            self.footstep_sound.play()
+                        if bear.slide_frames == 0:
+                            _bob = self._get_walk_bob(bearAnimation)
+                            _lox, _loy = self._get_walk_offset(bearAnimation)
+                            self.screen.blit(self._get_bear_walk_frame(bearAnimation),
+                                             (bear.getXPosition() + _lox, bear.getYPosition() - 10 + _bob + _loy))
+                            self._footstep_counter += 1
+                            if self._footstep_counter % 11 == 0 and self.footstep_sound:
+                                self.footstep_sound.play()
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -3544,13 +3535,14 @@ class mainGame:
                             backgroundScrollX = bear.getXPosition()
                             background.setXPosition(backgroundScrollX)
 
-                        self._footstep_counter += 1
-                        if self._footstep_counter % 11 == 0 and self.footstep_sound:
-                            self.footstep_sound.play()
-                        _bob_l = self._get_walk_bob(bearAnimation)
-                        _lox_l, _loy_l = self._get_walk_offset(bearAnimation, facing_left=True)
-                        self.screen.blit(self._get_bear_walk_frame(bearAnimation, facing_left=True),
-                                         (bear.getXPosition() + _lox_l, bear.getYPosition() - 10 + _bob_l + _loy_l))
+                        if bear.slide_frames == 0:
+                            self._footstep_counter += 1
+                            if self._footstep_counter % 11 == 0 and self.footstep_sound:
+                                self.footstep_sound.play()
+                            _bob_l = self._get_walk_bob(bearAnimation)
+                            _lox_l, _loy_l = self._get_walk_offset(bearAnimation, facing_left=True)
+                            self.screen.blit(self._get_bear_walk_frame(bearAnimation, facing_left=True),
+                                             (bear.getXPosition() + _lox_l, bear.getYPosition() - 10 + _bob_l + _loy_l))
 
                         dangerousObjects = (self.mummys + self.fires + self.witches +
                                             self.greenBlobs + self.spikes + self.bossFires +
@@ -3647,6 +3639,10 @@ class mainGame:
                                     monster.setDamageReceived(bear.getDamageAttack())
                                     monster.setStunned(1)
                                     monster.setHealth(monster.getHealth() - _apply_defense(monster, bear.getDamageAttack()))
+                                    self._bigMummy_first_hit = True
+                                    self._head_alerts = [
+                                        _ha for _ha in getattr(self, '_head_alerts', [])
+                                        if _ha.get('tag') != 'bigmummy']
                                     if self.hit_sound: self.hit_sound.play()
                                 else:
                                     deflectTimer = 40
@@ -3726,17 +3722,15 @@ class mainGame:
 
             # ---- Slide pose (Mega-Man-X style) ---------------------------------
             if bear.slide_frames > 0:
-                _slide_y_off = 25  # lower the sprite to look low/sliding
-                if bear.slide_dir < 0:
-                    self.screen.blit(self.bearAttackingLeft,
-                                     (bear.getXPosition(), bear.getYPosition() + _slide_y_off))
-                else:
-                    self.screen.blit(self.bearAttacking,
-                                     (bear.getXPosition(), bear.getYPosition() + _slide_y_off))
+                _slide_sprite = (self.crouchBearLeft if bear.slide_dir < 0
+                                 else self.crouchBear)
+                _slide_y_off = self.standingBear.get_height() - _slide_sprite.get_height()
+                self.screen.blit(_slide_sprite,
+                                 (bear.getXPosition(), bear.getYPosition() + _slide_y_off))
                 # dust puffs behind the slide
                 for _i in range(3):
                     _dx = bear.getXPosition() + (50 - bear.slide_dir * (20 + _i * 8))
-                    _dy = bear.getYPosition() + 90 + _i * 2
+                    _dy = bear.getYPosition() + 105 + _i * 2
                     pygame.draw.circle(self.screen, (220, 210, 190),
                                        (int(_dx), int(_dy)), 6 - _i)
             # ---- Attack animation (always runs, fixes 1-frame flicker gap) ------
@@ -4024,6 +4018,16 @@ class mainGame:
                         self.coins.append(Coin(monster.getXPosition() + 10 + _ci * 28,
                                                monster.getYPosition() + 80, self.screen))
                     self._bigMummyDefeated = True
+                    self._bigMummy_first_hit = True
+                    self._head_alerts = [
+                        _ha for _ha in getattr(self, '_head_alerts', [])
+                        if _ha.get('tag') != 'bigmummy']
+                    self._head_alerts.append({
+                        'text': 'TO SLIDE PRESS SPACE',
+                        'life': 360,
+                        'max_life': 360,
+                        'color': (120, 220, 255),
+                        'tag': 'slide_hint'})
                     self._start_ambient_loop()
                     self._switch_music("normal")
 
@@ -4600,37 +4604,6 @@ class mainGame:
             for _hd in _hd_remove:
                 if _hd in self.heart_drops:
                     self.heart_drops.remove(_hd)
-
-            _boots_remove = []
-            for _bp in self.boot_pickups:
-                _bp['bob'] += 0.08
-                _bs_x = int(_bp['world_dist'] - totalDistance + 100)
-                _bs_y = int(_bp['y'] + math.sin(_bp['bob']) * 6)
-                if -60 <= _bs_x <= 960:
-                    _glow = pygame.Surface((60, 60), pygame.SRCALPHA)
-                    _gp = abs(math.sin(pygame.time.get_ticks() * 0.004))
-                    pygame.draw.circle(_glow, (255, 220, 100, int(60 + _gp * 60)), (30, 30), int(22 + _gp * 4))
-                    self.screen.blit(_glow, (_bs_x - 30, _bs_y - 30))
-                    pygame.draw.rect(self.screen, (90, 50, 30), (_bs_x - 14, _bs_y - 4, 28, 14), border_radius=3)
-                    pygame.draw.rect(self.screen, (130, 75, 40), (_bs_x - 14, _bs_y - 12, 18, 12), border_radius=2)
-                    pygame.draw.rect(self.screen, (60, 35, 20), (_bs_x - 14, _bs_y - 4, 28, 14), 2, border_radius=3)
-                    pygame.draw.rect(self.screen, (60, 35, 20), (_bs_x - 14, _bs_y - 12, 18, 12), 2, border_radius=2)
-                    pygame.draw.line(self.screen, (255, 215, 0), (_bs_x - 12, _bs_y), (_bs_x + 10, _bs_y), 2)
-                    pygame.draw.circle(self.screen, (255, 235, 100), (_bs_x + 8, _bs_y + 3), 2)
-                    pygame.draw.circle(self.screen, (180, 220, 255, 200), (_bs_x - 4, _bs_y - 16), 3)
-                    _bear_rect = pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)
-                    _boot_rect = pygame.Rect(_bs_x - 16, _bs_y - 16, 32, 32)
-                    if _bear_rect.colliderect(_boot_rect):
-                        bear.has_speed_boots = True
-                        _boots_remove.append(_bp)
-                        self._push_toast('SPEED BOOTS! Hold SPACE while moving for 2x speed',
-                                         duration=360, color=(255, 230, 120))
-                        if getattr(self, 'level_up_sound', None):
-                            try: self.level_up_sound.play()
-                            except Exception: pass
-            for _bp in _boots_remove:
-                if _bp in self.boot_pickups:
-                    self.boot_pickups.remove(_bp)
 
             if self._zone_min_distance > 0 and self._zone_wall_world_x > -9000:
                 _wall_world_x = self._zone_wall_world_x
