@@ -4681,12 +4681,14 @@ class mainGame:
                     _g_off = _bg_rand.randint(120, 360)
                     _gbx = max(40, min(860, _bear_gx + _side * _g_off))
                     _g_big = _bg_rand.random() < 0.18
-                    _g_secs = _bg_rand.choice([1, 2, 2, 3])
+                    # ~30% of gauntlet bombs detonate INSTANTLY on landing
+                    _g_instant = _bg_rand.random() < 0.30
+                    _g_secs = 0 if _g_instant else _bg_rand.choice([1, 2, 2, 3])
                     self.bombs.append({
                         'x': float(_gbx), 'y': -40.0, 'vy': 3.2,
                         'landed': False, 'timer': _g_secs * 60,
                         'exploding': False, 'explode_anim': 0,
-                        'big': _g_big,
+                        'big': _g_big, 'instant': _g_instant,
                     })
 
             if not getattr(self, '_bomb_wave_30', False) and backgroundScrollX >= 18000:
@@ -4723,12 +4725,13 @@ class mainGame:
                     _bear_bx = bear.getXPosition() + 50
                     _bx = max(30, min(870, _bear_bx + _br.randint(200, 500)))
                     _is_big = _br.random() < 0.20
-                    _timer_secs = _br.choice([1, 2, 3])
+                    _is_instant = _br.random() < 0.15
+                    _timer_secs = 0 if _is_instant else _br.choice([1, 2, 3])
                     self.bombs.append({
                         'x': float(_bx), 'y': -40.0, 'vy': 3.0,
                         'landed': False, 'timer': _timer_secs * 60,
                         'exploding': False, 'explode_anim': 0,
-                        'big': _is_big
+                        'big': _is_big, 'instant': _is_instant,
                     })
 
             _bombs_remove = []
@@ -4836,8 +4839,13 @@ class mainGame:
                     _fall_r = 24 if _b_big else 16
                     _fall_inner = 18 if _b_big else 12
                     _fall_fuse = 6 if _b_big else 4
-                    _fall_col = (60, 0, 80) if _b_big else (40, 40, 40)
-                    _fall_inner_col = (120, 60, 140) if _b_big else (80, 80, 80)
+                    if _bomb.get('instant', False):
+                        _flash_on = (pygame.time.get_ticks() // 60) % 2 == 0
+                        _fall_col = (255, 40, 40) if _flash_on else (180, 0, 0)
+                        _fall_inner_col = (255, 200, 60) if _flash_on else (255, 140, 30)
+                    else:
+                        _fall_col = (60, 0, 80) if _b_big else (40, 40, 40)
+                        _fall_inner_col = (120, 60, 140) if _b_big else (80, 80, 80)
                     pygame.draw.circle(self.screen, _fall_col, (_bx_i, _by_i), _fall_r)
                     pygame.draw.circle(self.screen, _fall_inner_col, (_bx_i, _by_i), _fall_inner)
                     pygame.draw.circle(self.screen, (200, 50, 50), (_bx_i, _by_i - _fall_r - 2), _fall_fuse)
