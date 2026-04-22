@@ -7765,7 +7765,7 @@ class Mummy():
         self._aggro_timer = 0
         # ── Chase fatigue: mummies tire after ~5s of chasing and disengage ──
         self._chase_duration = 0
-        self._chase_max = random.randint(240, 360)  # 4-6s
+        self._chase_max = random.randint(150, 240)  # 2.5-4s
         self._chase_cooldown = 0  # frames during which they refuse to chase
         self._sep_offset = 0.0
         self._personality = random.choice(['aggressive', 'cautious', 'flanker'])
@@ -8062,7 +8062,7 @@ class Mummy():
                 if self._chase_duration >= self._chase_max:
                     self._aggro = False
                     self._chase_duration = 0
-                    self._chase_cooldown = random.randint(150, 240)  # 2.5-4s rest
+                    self._chase_cooldown = random.randint(300, 480)  # 5-8s rest
 
             if self._aggro and _dist > 20:
                 if self._personality == 'cautious' and _dist < self._preferred_gap:
@@ -8180,7 +8180,7 @@ class Witch():
         self._aggro_range = random.randint(400, 600)
         # Chase fatigue
         self._chase_duration = 0
-        self._chase_max = random.randint(360, 540)  # 6-9s
+        self._chase_max = random.randint(180, 300)  # 3-5s
         self._chase_cooldown = 0
         self.startDestructionAnimation = False
 
@@ -8518,7 +8518,7 @@ class GreenBlob():
         self._personality = random.choice(['aggressive', 'aggressive', 'cautious', 'flanker'])
         # Chase fatigue
         self._chase_duration = 0
-        self._chase_max = random.randint(300, 480)  # 5-8s
+        self._chase_max = random.randint(180, 300)  # 3-5s
         self._chase_cooldown = 0
         self.jump = False
         self.comingDown = False
@@ -9693,7 +9693,7 @@ class ShadowShaman():
         self._sep_offset = 0.0
         # Chase fatigue (ShadowShaman): periodically pauses repositioning
         self._chase_duration = 0
-        self._chase_max = random.randint(360, 540)
+        self._chase_max = random.randint(180, 300)
         self._chase_cooldown = 0
         self.startDestructionAnimation = False
 
@@ -10034,7 +10034,7 @@ class MiniFrankenBear():
         self._turn_timer_scale = random.uniform(0.7, 1.5)
         # Chase fatigue
         self._chase_duration = 0
-        self._chase_max = random.randint(300, 480)
+        self._chase_max = random.randint(180, 300)
         self._chase_cooldown = 0
         
     def walk(self):
