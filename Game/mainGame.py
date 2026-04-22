@@ -2681,7 +2681,13 @@ class mainGame:
 
             # ---- Per-zone HP scaling: +15% per new zone for new monsters ----
             try:
-                _now_active = sum(1 for _b in self.activeMonsters if _b)
+                # Only main-path zones contribute (skip jungle [3]-when-monkey,
+                # and the FrankenBear boss arena [9]).
+                _MAIN_ZONES = (11, 1, 14, 10, 3, 2, 13, 4, 12, 5, 6, 7, 8, 15)
+                _now_active = sum(1 for _i in _MAIN_ZONES if self.activeMonsters[_i])
+                # If jungle (monkey level) currently owns flag [3], don't count it
+                if getattr(self, '_monkey_level_active', False) and self.activeMonsters[3]:
+                    _now_active -= 1
                 _prev = getattr(self, '_prev_active_zones', 0)
                 if _now_active > _prev:
                     self._zone_count = getattr(self, '_zone_count', 0) + (_now_active - _prev)
