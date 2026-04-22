@@ -1134,6 +1134,7 @@ class mainGame:
         self._combo = 0
         self._combo_timer = 0
         self._combo_max_session = 0
+        self._combo_bonus_display = None
         self._kill_total = 0
         self._intro_banner = None
         self._mummy_arrow_frames = 0
@@ -4254,13 +4255,16 @@ class mainGame:
                                 _baseline_soft = _baseline_stacked
                             _baseline_xp = max(1, int(round(_base_exp * _baseline_soft)))
                             _bonus_xp = max(0, _exp_gain - _baseline_xp)
-                            if self._combo >= 3 and _bonus_xp > 0:
-                                _txt = 'exp +%d  COMBO x%d (+%d)' % (
-                                    _exp_gain, max(1, self._combo + 1), _bonus_xp)
-                            else:
-                                _txt = 'exp +%d' % _exp_gain
+                            _txt = '+%d' % _exp_gain
                             self._xp_popups.append([float(_pop_x), float(_pop_y),
                                                     _txt, _pop_color, 70])
+                            # Stash combo bonus info for the upper-right HUD
+                            if self._combo >= 3 and _bonus_xp > 0:
+                                self._combo_bonus_display = {
+                                    'bonus': _bonus_xp,
+                                    'combo': max(1, self._combo + 1),
+                                    'frames': 90,
+                                }
                         except Exception:
                             pass
                         to_remove.append(monster)
@@ -5583,6 +5587,24 @@ class mainGame:
                 _bar_fill = pygame.Surface((int(_bar_w * _ct_frac), _bar_h), pygame.SRCALPHA)
                 _bar_fill.fill((*_ct_color, _ct_alpha))
                 self.screen.blit(_bar_fill, (_bar_x, _bar_y))
+            # ---- Combo bonus XP indicator (under the combo bar) ----
+            if self._combo_bonus_display is not None:
+                _cb = self._combo_bonus_display
+                _cb['frames'] -= 1
+                if _cb['frames'] <= 0:
+                    self._combo_bonus_display = None
+                else:
+                    _cb_alpha = int(255 * min(1.0, _cb['frames'] / 30.0))
+                    _cb_font = pygame.font.SysFont(None, 26, bold=True)
+                    _cb_text = 'COMBO x%d  bonus +%d xp' % (_cb['combo'], _cb['bonus'])
+                    _cb_surf = _cb_font.render(_cb_text, True, (255, 230, 120))
+                    _cb_shadow = _cb_font.render(_cb_text, True, (0, 0, 0))
+                    _cb_surf.set_alpha(_cb_alpha)
+                    _cb_shadow.set_alpha(_cb_alpha)
+                    _cb_x = 880 - _cb_surf.get_width()
+                    _cb_y = 90 + 60
+                    self.screen.blit(_cb_shadow, (_cb_x + 2, _cb_y + 2))
+                    self.screen.blit(_cb_surf, (_cb_x, _cb_y))
             if self._intro_banner is not None:
                 _ib = self._intro_banner
                 _ib['frames'] -= 1
