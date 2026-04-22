@@ -71,3 +71,51 @@ id = "2dgujrJutCcFZa9ssNIlm"
 uri = "file://Game/Sounds/samples/explode_6_magic_pop.wav"
 type = "audio"
 title = "6. Magic Pop — rising whistle + bell"
+
+[[outputs]]
+id = "2sBUmQZ9MmU53g-taps8y"
+uri = "file://Game/Sounds/samples/death_1_squish.wav"
+type = "audio"
+title = "1. Squish-Pop — cartoon goo splat"
+
+[[outputs]]
+id = "bwJvG35ALYYpJUPLU-rhA"
+uri = "file://Game/Sounds/samples/death_2_whistle_thud.wav"
+type = "audio"
+title = "2. Whistle + Thud — falling comic whistle"
+
+[[outputs]]
+id = "T3JzM_RXM_ANAyMCXJmKz"
+uri = "file://Game/Sounds/samples/death_3_8bit.wav"
+type = "audio"
+title = "3. 8-Bit Death — retro descending square"
+
+[[outputs]]
+id = "_ydJLDfGMRg2x72uGmpsa"
+uri = "file://Game/Sounds/samples/death_4_gurgle.wav"
+type = "audio"
+title = "4. Gurgle-Groan — witch/mummy croak"
+
+[[outputs]]
+id = "j3yYvxYzUSsFmvqR989sM"
+uri = "file://Game/Sounds/samples/death_5_glass.wav"
+type = "audio"
+title = "5. Crystal Break — glassy shatter"
+
+[[outputs]]
+id = "AOrlHTlZw6jDEZb906p__"
+uri = "file://Game/Sounds/samples/death_6_ghost.wav"
+type = "audio"
+title = "6. Ghost Dissolve — airy whoosh + falling chime"
+
+[[outputs]]
+id = "r2ybyXh2-ud-DN7X-HUoZ"
+uri = "file://Game/Sounds/samples/death_7_boing.wav"
+type = "audio"
+title = "7. Comic Boing — rubber stretch"
+
+[[outputs]]
+id = "l28RZ03TBnDcL1WtyKXH7"
+uri = "file://Game/Sounds/samples/death_8_pop.wav"
+type = "audio"
+title = "8. Bubble Pop — quick splash pop"
