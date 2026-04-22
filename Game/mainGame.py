@@ -978,16 +978,10 @@ class mainGame:
             self._tension_layers = [
                 {'sound': self._layer_heartbeat, 'channel': pygame.mixer.Channel(12),
                  'threshold': 500,  'max_vol': 0.18, 'current_vol': 0.0, 'active': False},
-                {'sound': self._layer_strings,   'channel': pygame.mixer.Channel(13),
-                 'threshold': 2000, 'max_vol': 0.14, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_drums,     'channel': pygame.mixer.Channel(14),
                  'threshold': 4000, 'max_vol': 0.32, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_choir,     'channel': pygame.mixer.Channel(15),
                  'threshold': 8000, 'max_vol': 0.13, 'current_vol': 0.0, 'active': False},
-                {'sound': self._layer_violin,    'channel': pygame.mixer.Channel(17),
-                 'threshold': 36000, 'max_vol': 0.15, 'current_vol': 0.0, 'active': False},
-                {'sound': self._layer_bells,     'channel': pygame.mixer.Channel(16),
-                 'threshold': 30000, 'max_vol': 0.12, 'current_vol': 0.0, 'active': False},
                 {'sound': self._layer_melody_drums, 'channel': pygame.mixer.Channel(19),
                  'threshold': 36000, 'max_vol': 0.18, 'current_vol': 0.0, 'active': False},
             ]
@@ -7350,11 +7344,13 @@ class mainGame:
             try: ch.fadeout(800)
             except Exception: pass
             return
-        # Pick a sound source from existing synth layers
-        _candidates = [getattr(self, '_layer_bells', None),
-                       getattr(self, '_layer_violin', None),
-                       getattr(self, '_layer_strings', None)]
-        _candidates = [s for s in _candidates if s is not None]
+        # The strings/violin/bells layers were removed (too wavy/grating).
+        # Bonus instrument layer is currently disabled until replacements
+        # are picked. Fade out anything still playing.
+        try: ch.fadeout(800)
+        except Exception: pass
+        return
+        _candidates = []
         if not _candidates:
             return
         import random as _brnd
