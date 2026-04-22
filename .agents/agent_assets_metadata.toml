@@ -227,3 +227,45 @@ id = "uI-rWhfZUobu20-dV_gho"
 uri = "file://Game/Sounds/samples/layer_choir_pad.wav"
 type = "audio"
 title = "F. Choir Pad — vowel-like soft humans"
+
+[[outputs]]
+id = "SiERn2Lft-FD-lJehEqlV"
+uri = "file://Game/Sounds/samples/layer_fkey_warm_pad.wav"
+type = "audio"
+title = "A. Warm Pad in F-major (F-A-C triad)"
+
+[[outputs]]
+id = "3EbmxCIC5uy_X49HnU7Yw"
+uri = "file://Game/Sounds/samples/layer_fkey_flute.wav"
+type = "audio"
+title = "B. Flute melody in F-major"
+
+[[outputs]]
+id = "wJgaAGdcfKQHMgiX2UsU1"
+uri = "file://Game/Sounds/samples/layer_fkey_cello.wav"
+type = "audio"
+title = "C. Cello drone in F-major (F2/C3 root)"
+
+[[outputs]]
+id = "jWgQxm33R376lJNXpbh0h"
+uri = "file://Game/Sounds/samples/layer_fkey_music_box.wav"
+type = "audio"
+title = "D. Music box arpeggio in F-major"
+
+[[outputs]]
+id = "-1S-8sj_iYfyup3QH4Pv3"
+uri = "file://Game/Sounds/samples/layer_fkey_marimba.wav"
+type = "audio"
+title = "E. Marimba melody in F-major"
+
+[[outputs]]
+id = "QdynZ9zVmfql3ljC80viA"
+uri = "file://Game/Sounds/samples/layer_fkey_choir.wav"
+type = "audio"
+title = "F. Choir pad (A3-C4-F4 voices)"
+
+[[outputs]]
+id = "RmCwgp-ew6jS8vQe9rVXn"
+uri = "file://Game/Sounds/samples/layer_fkey_pizz.wav"
+type = "audio"
+title = "G. Pizzicato strings in F-major"
