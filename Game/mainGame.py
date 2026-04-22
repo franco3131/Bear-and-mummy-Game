@@ -2705,7 +2705,24 @@ class mainGame:
                 # Scale HP for any newly-spawned monster that isn't an easy-start one
                 _zc = getattr(self, '_zone_count', 0)
                 if _zc > 0:
-                    _mult = 1.15 ** _zc
+                    # Smart scaling: base 15% per zone, but soften when the
+                    # player is under-leveled for how deep they are.
+                    try:
+                        _plvl = bear.getLevel()
+                    except Exception:
+                        _plvl = 1
+                    # Expect roughly 1 level per zone of progress; if the player
+                    # is behind that pace, drop the per-zone bump down to ~5%.
+                    _expected = max(1, _zc)
+                    if _plvl >= _expected + 2:
+                        _per_zone = 0.18      # over-leveled: ramp up a bit
+                    elif _plvl >= _expected:
+                        _per_zone = 0.15      # on pace: original behavior
+                    elif _plvl >= max(1, _expected - 2):
+                        _per_zone = 0.10      # slightly behind: gentler
+                    else:
+                        _per_zone = 0.05      # well behind: barely scale
+                    _mult = (1.0 + _per_zone) ** _zc
                     for _elist in (self.mummys, self.witches, self.greenBlobs,
                                    self.shadowShamans, self.miniFrankenBears,
                                    self.snakes, self.monkey_mummies, self.lions):
