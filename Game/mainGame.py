@@ -2054,10 +2054,8 @@ class mainGame:
         # Show intro toasts (non-blocking) once at game start
         if not self._intro_shown:
             self._intro_shown = True
-            self._push_toast('Welcome, brave bear!', duration=300, color=(255, 220, 140))
-            self._push_toast('Z:Attack  X:Fireball  DOWN:Crouch  ENTER:Shop', duration=360, color=(180, 240, 255))
-            self._push_toast('A+DOWN:Beam  Q:Lightning (once bought)', duration=360, color=(200, 255, 200))
-            self._push_toast('P:Pause  M:Mute', duration=360, color=(220, 200, 255))
+            self._push_toast('Welcome, brave bear! Z:Attack  X:Fireball  ENTER:Shop',
+                             duration=420, color=(255, 220, 140))
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -2678,6 +2676,19 @@ class mainGame:
                         self._easy_start_remaining -= 1
                     if self._easy_start_remaining <= 0:
                         break
+
+            # ---- Deferred slide-hint after big-mummy kill ----
+            if getattr(self, '_slide_hint_pending', 0) > 0:
+                self._slide_hint_pending -= 1
+                if self._slide_hint_pending == 0:
+                    if not hasattr(self, '_head_alerts') or self._head_alerts is None:
+                        self._head_alerts = []
+                    self._head_alerts.append({
+                        'text': 'TO SLIDE: PRESS SPACE  or  TAP RIGHT-RIGHT FAST',
+                        'life': 480,
+                        'max_life': 480,
+                        'color': (120, 220, 255),
+                        'tag': 'slide_hint'})
 
             # ---- Per-zone HP scaling: +15% per new zone for new monsters ----
             try:
@@ -4318,12 +4329,9 @@ class mainGame:
                     self._head_alerts = [
                         _ha for _ha in getattr(self, '_head_alerts', [])
                         if _ha.get('tag') != 'bigmummy']
-                    self._head_alerts.append({
-                        'text': 'TO SLIDE: PRESS SPACE  or  TAP RIGHT-RIGHT FAST',
-                        'life': 480,
-                        'max_life': 480,
-                        'color': (120, 220, 255),
-                        'tag': 'slide_hint'})
+                    # Delay the slide-tutorial popup so the player can savor
+                    # the kill before another tip pops up (~3s).
+                    self._slide_hint_pending = 180
                     self._start_ambient_loop()
                     self._switch_music("normal")
 
@@ -5584,7 +5592,9 @@ class mainGame:
                     _amy = _big_mummy.getYPosition()
                     if 0 < _amx < 900:
                         _bob = int(math.sin(pygame.time.get_ticks() * 0.008) * 8)
-                        _ay = max(40, _amy - 70 + _bob)
+                        # Clamp well below the upper UI so the FOREHEAD arrow
+                        # and label aren't hidden behind the HP bar / minimap.
+                        _ay = max(110, _amy - 70 + _bob)
                         _arrow_color = (255, 80, 80)
                         pygame.draw.polygon(self.screen, _arrow_color, [
                             (_amx, _ay + 30), (_amx - 18, _ay), (_amx - 8, _ay),
