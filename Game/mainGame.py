@@ -4157,17 +4157,63 @@ class mainGame:
                     monster.setStartDestructionAnimation(True)
                 elif monster.getStartDestructionAnimationStatus():
                     if monster.getDestructionAnimationCount() == 1:
+                        # Roll for a "fancy" death (~30%) — different sound + visual.
+                        # Bosses always use their normal big explosion.
+                        if not hasattr(monster, '_fancy_death'):
+                            monster._fancy_death = (
+                                monster.getName() != "bigMummy"
+                                and random.random() < 0.30)
                         if getattr(self, 'enemy_hit_sound', None):
                             self.enemy_hit_sound.play()
-                        if getattr(self, 'mmx_enemy_explode_sound', None):
-                            try: self.mmx_enemy_explode_sound.play()
-                            except Exception: pass
+                        if monster._fancy_death:
+                            _spk = getattr(self, 'mmx_spark_sound', None)
+                            if _spk:
+                                try: _spk.play()
+                                except Exception: pass
+                        else:
+                            if getattr(self, 'mmx_enemy_explode_sound', None):
+                                try: self.mmx_enemy_explode_sound.play()
+                                except Exception: pass
                     if monster.getDestructionAnimationCount() == 5:
                         _is_boss_monster = monster.getName() == "bigMummy"
                         if _is_boss_monster and getattr(self, 'boss_explosion_sound', None):
                             self.boss_explosion_sound.play()
+                        elif getattr(monster, '_fancy_death', False):
+                            # Use a different secondary sound for variety
+                            _alt = (getattr(self, 'mmx_charged_shot_sound', None)
+                                    or getattr(self, 'crit_sound', None))
+                            if _alt:
+                                try: _alt.play()
+                                except Exception: pass
                         elif self.explosion_sound:
                             self.explosion_sound.play()
+                    # ---- Fancy-death visual: expanding sparkle ring ----
+                    if getattr(monster, '_fancy_death', False):
+                        try:
+                            _dc = monster.getDestructionAnimationCount()
+                            _cx = monster.getXPosition() + 50
+                            _cy = monster.getYPosition() + 50
+                            # 2 expanding rings + center burst
+                            _r1 = 12 + _dc * 6
+                            _r2 = 4 + _dc * 4
+                            _alpha = max(0, 220 - _dc * 8)
+                            _ring = pygame.Surface((_r1*2+8, _r1*2+8), pygame.SRCALPHA)
+                            pygame.draw.circle(_ring, (255, 120, 220, _alpha),
+                                               (_r1+4, _r1+4), _r1, 3)
+                            pygame.draw.circle(_ring, (180, 240, 255, _alpha),
+                                               (_r1+4, _r1+4), _r2, 2)
+                            self.screen.blit(_ring, (_cx - _r1 - 4, _cy - _r1 - 4))
+                            # Sparkle particles (deterministic per monster)
+                            _seed = id(monster) & 0xFFFF
+                            for _i in range(6):
+                                _ang = ((_seed >> _i) & 0xFF) / 255.0 * 6.28318
+                                _spd = 4 + ((_seed >> (_i+3)) & 0x7)
+                                _px = _cx + int(math.cos(_ang) * _dc * _spd)
+                                _py = _cy + int(math.sin(_ang) * _dc * _spd)
+                                _pc = (255, 240, 120) if _i % 2 == 0 else (180, 255, 240)
+                                pygame.draw.circle(self.screen, _pc, (_px, _py), max(1, 4 - _dc // 6))
+                        except Exception:
+                            pass
                     _death_dmg = monster.getDamageReceived() if monster.getDamageReceived() > 0 else bear.getDamageAttack()
                     monster.drawDestruction(_death_dmg) if hasattr(monster, 'drawDestruction') else None
                     _destroy_limit = 60 if monster.getName() == "bigMummy" else 30
