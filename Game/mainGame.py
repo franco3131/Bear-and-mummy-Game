@@ -122,7 +122,7 @@ _MONSTER_SIZES = {
     "greenBlob":      (100, 100),
     "bigGreenBlob":   (300, 400),
     "spikes":         (600, 60),
-    "frankenbears":   (300, 300),
+    "frankenbears":   (240, 240),
     "shadowShaman":   (120, 120),
     "miniFrankenBear": (80,  80),
     "snake":          (220, 100),
@@ -192,7 +192,7 @@ def is_monster_hurt(bearXPosition, bearYPosition, mummyXPosition, mummyYPosition
                   facingLeft, monsterType):
     """Return True if the bear's attack hitbox overlaps with the monster."""
     if monsterType == "frankenbears":
-        m_w, m_h = 300, 300
+        m_w, m_h = 240, 240
     elif monsterType == "bigMummy":
         m_w, m_h = 200, 300
     elif monsterType == "miniFrankenBear":
@@ -4332,8 +4332,13 @@ class mainGame:
                     # Delay the slide-tutorial popup so the player can savor
                     # the kill before another tip pops up (~3s).
                     self._slide_hint_pending = 180
-                    self._start_ambient_loop()
-                    self._switch_music("normal")
+                    # Silence music until the player passes through the door
+                    try:
+                        pygame.mixer.music.fadeout(800)
+                    except Exception:
+                        pass
+                    self._current_music = None
+                    self._post_mummy_silence = True
 
             # ---- Mini FrankenBear laser generation and drawing ----------------
             if not _popup_active:
@@ -5299,7 +5304,7 @@ class mainGame:
 
                 if self.bossTimerAnimation > 170:
                     if self.showBoss:
-                        frankenbear = FrankenBear(1400, 40, self.screen)
+                        frankenbear = FrankenBear(1400, 100, self.screen)
                         self.frankenbear.append(frankenbear)
                         self._boss_hit_taken = False
                         self._boss_kill_no_hit_locked = False
@@ -5836,6 +5841,12 @@ class mainGame:
                             bear._level_up_text = 'DOOR LOCKED!'
                 else:
                     if self.isDoor1Open and bear.getXPosition() > door_x + 50:
+                        if not getattr(self, '_boss_door_passed', False):
+                            # Resume music now that the player has passed
+                            if getattr(self, '_post_mummy_silence', False):
+                                self._start_ambient_loop()
+                                self._switch_music("normal")
+                                self._post_mummy_silence = False
                         self._boss_door_passed = True
                     if (not self.triggerText2
                             and door_x - 150 <= bear.getXPosition()):
@@ -10235,11 +10246,11 @@ class FrankenBear():
         self._defense = random.randint(1, 10) / 100.0
         self.startDestructionAnimation = False
         self.boss1 = pygame.image.load("Game/Images/boss1.png")
-        self.boss1 = pygame.transform.scale(self.boss1, (300, 300))
+        self.boss1 = pygame.transform.scale(self.boss1, (240, 240))
         self.boss2 = pygame.image.load("Game/Images/boss2.png")
-        self.boss2 = pygame.transform.scale(self.boss2, (300, 300))
+        self.boss2 = pygame.transform.scale(self.boss2, (240, 240))
         self.boss3 = pygame.image.load("Game/Images/boss3.png")
-        self.boss3 = pygame.transform.scale(self.boss3, (300, 300))
+        self.boss3 = pygame.transform.scale(self.boss3, (240, 240))
         self.exp = 0
         self.boss3Flipped = pygame.transform.flip(self.boss3, True, False)
         self.flipped = random.randint(1, 2)
