@@ -5366,7 +5366,7 @@ class mainGame:
 
                 if self.bossTimerAnimation > 170:
                     if self.showBoss:
-                        frankenbear = FrankenBear(1400, 100, self.screen)
+                        frankenbear = FrankenBear(1400, 20, self.screen)
                         self.frankenbear.append(frankenbear)
                         self._boss_hit_taken = False
                         self._boss_kill_no_hit_locked = False
