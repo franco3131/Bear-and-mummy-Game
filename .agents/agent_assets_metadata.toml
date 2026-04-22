@@ -173,3 +173,21 @@ id = "iPcoKfSgYDCb1HceyqbrP"
 uri = "file://Game/Sounds/menu_theme.wav"
 type = "audio"
 title = "4. Menu Theme — plays on the start menu"
+
+[[outputs]]
+id = "uVojHOtNyBp_DavTHF792"
+uri = "file://Game/Sounds/samples/layer_violin.wav"
+type = "audio"
+title = "Violin layer (likely the wavy one — heavy vibrato on 440Hz)"
+
+[[outputs]]
+id = "bbScCPKpVF7L0WDYs9Pvz"
+uri = "file://Game/Sounds/samples/layer_strings.wav"
+type = "audio"
+title = "Strings layer (lighter vibrato on 196/294/370Hz)"
+
+[[outputs]]
+id = "neoWn28C6ydD6DJb9HOWm"
+uri = "file://Game/Sounds/samples/layer_bells.wav"
+type = "audio"
+title = "Bells layer (chimey, no vibrato)"
