@@ -119,3 +119,39 @@ id = "l28RZ03TBnDcL1WtyKXH7"
 uri = "file://Game/Sounds/samples/death_8_pop.wav"
 type = "audio"
 title = "8. Bubble Pop — quick splash pop"
+
+[[outputs]]
+id = "aJFVxRT8AYD-Fu7rO2zGE"
+uri = "file://Game/Sounds/samples/bang_1_kick.wav"
+type = "audio"
+title = "1. Deep Kick Boom — sub thump with body"
+
+[[outputs]]
+id = "z1q3aQQOiMFeT28Zmjlbp"
+uri = "file://Game/Sounds/samples/bang_2_cannon.wav"
+type = "audio"
+title = "2. Cannon BOOM — wide low explosion"
+
+[[outputs]]
+id = "FJlimQ2AYdd21lixtGG4g"
+uri = "file://Game/Sounds/samples/bang_3_punch.wav"
+type = "audio"
+title = "3. Punch + Crack — tight punchy snap"
+
+[[outputs]]
+id = "3wCtxWhUFzVF38ytEGMjf"
+uri = "file://Game/Sounds/samples/bang_4_tnt.wav"
+type = "audio"
+title = "4. TNT Pop — short blast with debris"
+
+[[outputs]]
+id = "yEoIAanGMBPKd9lTCGiVs"
+uri = "file://Game/Sounds/samples/bang_5_mortar.wav"
+type = "audio"
+title = "5. Mortar — deep 'whump'"
+
+[[outputs]]
+id = "H0AJhD3SScRo8yjJL0_5h"
+uri = "file://Game/Sounds/samples/bang_6_slam.wav"
+type = "audio"
+title = "6. Slam — hard impact + metallic ring"
