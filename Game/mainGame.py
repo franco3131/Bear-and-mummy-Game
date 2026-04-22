@@ -4243,8 +4243,17 @@ class mainGame:
                                 _pop_color = (255, 245, 140)
                             _pop_x = int(monster.getXPosition() + 40)
                             _pop_y = int(monster.getYPosition() - 10)
+                            # Show base xp + the combo bonus separately so the
+                            # player sees exactly how much extra they earned.
+                            _base_xp_int = max(1, int(round(_base_exp * _grind_bonus)))
+                            _bonus_xp = max(0, _exp_gain - _base_xp_int)
+                            if self._combo >= 3 and _bonus_xp > 0:
+                                _txt = 'exp +%d  COMBO x%d (+%d)' % (
+                                    _exp_gain, max(1, self._combo + 1), _bonus_xp)
+                            else:
+                                _txt = 'exp +%d' % _exp_gain
                             self._xp_popups.append([float(_pop_x), float(_pop_y),
-                                                    'exp +%d' % _exp_gain, _pop_color, 70])
+                                                    _txt, _pop_color, 70])
                         except Exception:
                             pass
                         to_remove.append(monster)
@@ -10287,7 +10296,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = int(1000 * 1.20)
+        self.health = int(1000 * 1.44)  # base 1000 * 1.20 (orig) * 1.20 (boost)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.startDestructionAnimation = False
