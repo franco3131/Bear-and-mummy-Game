@@ -305,3 +305,33 @@ id = "C5XfsAgjrN7X4OeZhJdyK"
 uri = "file://Game/Sounds/samples/layer_drum_timpani.wav"
 type = "audio"
 title = "6. Timpani — booming with low rumble underneath"
+
+[[outputs]]
+id = "phAqGKnV43jzjeRq1PcoV"
+uri = "file://Game/Sounds/samples/layer_drum_ceremonial.wav"
+type = "audio"
+title = "1. Ceremonial — 1 deep boom every 4 seconds"
+
+[[outputs]]
+id = "3ktCp3SPUI9sXtq6NCc0E"
+uri = "file://Game/Sounds/samples/layer_drum_pulse_3s.wav"
+type = "audio"
+title = "2. Pulse — 1 boom every 3 seconds"
+
+[[outputs]]
+id = "PK3BBYEXJaltsTtQJ3fpb"
+uri = "file://Game/Sounds/samples/layer_drum_slow_heart.wav"
+type = "audio"
+title = "3. Slow Heart — boom-boom (paired) then pause"
+
+[[outputs]]
+id = "oYJoN3jUsV2ulJbwiysnX"
+uri = "file://Game/Sounds/samples/layer_drum_slow_swell.wav"
+type = "audio"
+title = "4. Slow Swell — swelling boom every 2 seconds"
+
+[[outputs]]
+id = "n-fMw-w9tZzXc_53F57tI"
+uri = "file://Game/Sounds/samples/layer_drum_slow_taiko.wav"
+type = "audio"
+title = "5. Slow Taiko — 1 hit every 2 sec with tail"
