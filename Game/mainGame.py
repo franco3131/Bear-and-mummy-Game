@@ -973,6 +973,20 @@ class mainGame:
                 _smp.append(max(-1.0, min(1.0, _s * _fade)))
             self._layer_melody_drums = _make_snd(_smp)
 
+            # Replacement bonus drum layers (loaded from disk).
+            try:
+                self._layer_drum_pulse = pygame.mixer.Sound("Game/Sounds/layer_drum_pulse.wav")
+            except Exception:
+                self._layer_drum_pulse = None
+            try:
+                self._layer_drum_heart = pygame.mixer.Sound("Game/Sounds/layer_drum_heart.wav")
+            except Exception:
+                self._layer_drum_heart = None
+            try:
+                self._layer_drum_swell = pygame.mixer.Sound("Game/Sounds/layer_drum_swell.wav")
+            except Exception:
+                self._layer_drum_swell = None
+
             pygame.mixer.set_num_channels(21)
 
             self._tension_layers = [
@@ -7344,14 +7358,14 @@ class mainGame:
             try: ch.fadeout(800)
             except Exception: pass
             return
-        # The strings/violin/bells layers were removed (too wavy/grating).
-        # Bonus instrument layer is currently disabled until replacements
-        # are picked. Fade out anything still playing.
-        try: ch.fadeout(800)
-        except Exception: pass
-        return
-        _candidates = []
+        # Replacement: slow drum-style boom layers picked at random.
+        _candidates = [getattr(self, '_layer_drum_pulse', None),
+                       getattr(self, '_layer_drum_heart', None),
+                       getattr(self, '_layer_drum_swell', None)]
+        _candidates = [s for s in _candidates if s is not None]
         if not _candidates:
+            try: ch.fadeout(800)
+            except Exception: pass
             return
         import random as _brnd
         # 50% chance to activate this music phase
