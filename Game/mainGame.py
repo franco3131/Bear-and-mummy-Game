@@ -4245,8 +4245,15 @@ class mainGame:
                             _pop_y = int(monster.getYPosition() - 10)
                             # Show base xp + the combo bonus separately so the
                             # player sees exactly how much extra they earned.
-                            _base_xp_int = max(1, int(round(_base_exp * _grind_bonus)))
-                            _bonus_xp = max(0, _exp_gain - _base_xp_int)
+                            # Baseline = what they'd get with NO combo bonus
+                            # (still includes hard-mode and grind multipliers).
+                            _baseline_stacked = _hard_mult * _grind_bonus
+                            if _baseline_stacked > 1.0:
+                                _baseline_soft = 1.0 + (_baseline_stacked - 1.0) ** 0.65
+                            else:
+                                _baseline_soft = _baseline_stacked
+                            _baseline_xp = max(1, int(round(_base_exp * _baseline_soft)))
+                            _bonus_xp = max(0, _exp_gain - _baseline_xp)
                             if self._combo >= 3 and _bonus_xp > 0:
                                 _txt = 'exp +%d  COMBO x%d (+%d)' % (
                                     _exp_gain, max(1, self._combo + 1), _bonus_xp)
