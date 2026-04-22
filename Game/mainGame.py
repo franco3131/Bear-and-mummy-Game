@@ -607,7 +607,7 @@ class mainGame:
                 _env = min(1.0, _i/(_RATE*0.004)) * max(0.0, 1.0 - _t/0.22) ** 1.0
                 _smp.append(_s * _env * 0.40)
             self.mmx_low_health_sound = _make_snd(_smp)
-            self.mmx_low_health_sound.set_volume(1.0)
+            self.mmx_low_health_sound.set_volume(0.35)
 
             # ── MMX 1-UP / LIFE GAIN: bright ascending arpeggio ─────────
             _n = int(_RATE * 0.70)
@@ -4008,7 +4008,7 @@ class mainGame:
                         self._secret_attack_unlocked = True
                         bear.setArrayText([
                             'SECRET ATTACK UNLOCKED!',
-                            'Press "r" to unleash the shockwave.',
+                            'Press "d" to unleash the shockwave.',
                             'Greater range and stronger damage.',
                             'Press "s" to continue'])
                         bear.setEndText(False)
@@ -5587,10 +5587,9 @@ class mainGame:
                 _luf_max = getattr(bear, '_level_up_float_max', 150)
                 _luf_age = _luf_max - _luf
                 _luf_text = getattr(bear, '_level_up_text', 'LEVEL UP!')
-                # Center y position
-                _luf_cy = 240
-                # Base font (chunky)
-                _base_size = 78
+                # Position upper area, modest size — non-intrusive
+                _luf_cy = 150
+                _base_size = 52
                 _font = pygame.font.SysFont(None, _base_size, bold=True)
                 # Slide-in: text flies in from left during first 14 frames,
                 # then "punches" by overshooting and settling
@@ -5610,40 +5609,6 @@ class mainGame:
                     _luf_alpha = int(255 * (_luf / 25.0))
                 else:
                     _luf_alpha = 255
-
-                # ── Banner bars (Mega Man X-style) sweeping in behind text ──
-                if _luf_age < 30:
-                    _bar_t = min(1.0, _luf_age / 12.0)
-                    _bar_w = int(900 * _bar_t)
-                    _bar_h = 90
-                    _bar_y_top = _luf_cy - _bar_h - 6
-                    _bar_y_bot = _luf_cy + _bar_h + 6
-                    _bar_surf = pygame.Surface((_bar_w, 14), pygame.SRCALPHA)
-                    _bar_surf.fill((40, 220, 255, min(220, _luf_alpha)))
-                    self.screen.blit(_bar_surf, (450 - _bar_w // 2, _bar_y_top))
-                    self.screen.blit(_bar_surf, (450 - _bar_w // 2, _bar_y_bot))
-                    # Magenta accent line above the cyan bar
-                    _acc = pygame.Surface((_bar_w, 4), pygame.SRCALPHA)
-                    _acc.fill((255, 80, 200, min(200, _luf_alpha)))
-                    self.screen.blit(_acc, (450 - _bar_w // 2, _bar_y_top - 5))
-                    self.screen.blit(_acc, (450 - _bar_w // 2, _bar_y_bot + 16))
-                else:
-                    _bar_w = 900
-                    _bar_h = 90
-                    _bar_y_top = _luf_cy - _bar_h - 6
-                    _bar_y_bot = _luf_cy + _bar_h + 6
-                    _bar_surf = pygame.Surface((_bar_w, 14), pygame.SRCALPHA)
-                    _bar_surf.fill((40, 220, 255, min(220, _luf_alpha)))
-                    self.screen.blit(_bar_surf, (0, _bar_y_top))
-                    self.screen.blit(_bar_surf, (0, _bar_y_bot))
-
-                # ── Screen flash on the punch frame ──
-                if 13 <= _luf_age <= 17:
-                    _flash_a = max(0, 180 - (_luf_age - 13) * 40)
-                    _flash = pygame.Surface(self.screen.get_size(),
-                                            pygame.SRCALPHA)
-                    _flash.fill((255, 255, 255, _flash_a))
-                    self.screen.blit(_flash, (0, 0))
 
                 # ── Render the actual text: white core with thick black
                 # outline + cyan/magenta chromatic split ──
@@ -5674,20 +5639,6 @@ class mainGame:
                 # White core on top
                 self.screen.blit(_white_surf, (_tx, _ty))
 
-                # ── Speed-line streaks behind the text (X-style) ──
-                if 14 <= _luf_age < 40:
-                    _streak_t = (_luf_age - 14) / 26.0
-                    for _ssi in range(8):
-                        _sy = _luf_cy - 60 + _ssi * 16
-                        _sw = int(120 + _ssi * 40 * (1 - _streak_t))
-                        _sa = int(180 * (1 - _streak_t))
-                        _str_surf = pygame.Surface((_sw, 3),
-                                                   pygame.SRCALPHA)
-                        _str_surf.fill((255, 255, 255, _sa))
-                        # Streaks shoot off both sides
-                        self.screen.blit(_str_surf, (_tx - _sw - 10, _sy))
-                        self.screen.blit(_str_surf,
-                                         (_tx + _tw + 10, _sy))
             if (bear.getHp() > 0 and bear.getEndText()
                     and bear.getHp() < bear.getMaxHp() * 0.30
                     and bear.getCoins() >= 30
@@ -9381,14 +9332,6 @@ class Bear:
             self._level_up_float = 150
             self._level_up_float_max = 150
             self._level_up_text = 'LEVEL UP! Lv.' + str(self.level)
-            if self.level == 14:
-                self.setEndText(False)
-                self.textArray = []
-                self.showBearArray = []
-                self.textArray.append(['SILVER MODE ACTIVATED!', 'Speed increased by 50%!', 'Press "s" to continue'])
-                self.showBearArray.append(False)
-                self.textArray.append(['Firing rate MASSIVELY increased!', 'Rapid fire unlocked!', 'Press "s" to continue'])
-                self.showBearArray.append(False)
             self.line = 0
             self.tupleIndex = 0
             self.indexArray = 0
