@@ -2005,6 +2005,9 @@ class mainGame:
         self._z1_door        = Door(self.screen, 1650)
 
         self.activeMonsters = [False] * 16
+        # Per-zone HP scaling: each new zone bumps remaining monsters' HP by 15%
+        self._zone_count = 0
+        self._prev_active_zones = 0
 
         # Initial obstacle platforms – each clearly separated with ~80 px gaps
         block1 = Block(230,  340, 100, 60,  "red",     self.screen)
@@ -2675,6 +2678,58 @@ class mainGame:
                         self._easy_start_remaining -= 1
                     if self._easy_start_remaining <= 0:
                         break
+
+            # ---- Per-zone HP scaling: +15% per new zone for new monsters ----
+            try:
+                _now_active = sum(1 for _b in self.activeMonsters if _b)
+                _prev = getattr(self, '_prev_active_zones', 0)
+                if _now_active > _prev:
+                    self._zone_count = getattr(self, '_zone_count', 0) + (_now_active - _prev)
+                    self._prev_active_zones = _now_active
+                    # ── NG+: occasionally drop a wild lion or monkey on each new zone ──
+                    if getattr(self, 'newGamePlusLevel', 0) >= 1:
+                        try:
+                            _spawn_x = random.randint(1100, 2400)
+                            _ms = getattr(self, 'monkey_screech_sound', None)
+                            _lr = getattr(self, 'lion_roar_sound', None)
+                            if random.random() < 0.55:
+                                self.monkey_mummies.append(MonkeyMummy(
+                                    _spawn_x, 220, 180, 180,
+                                    self.mummy1, self.mummy2, self.screen, _ms))
+                            if random.random() < 0.45:
+                                self.lions.append(Lion(
+                                    random.randint(1100, 2400), 230,
+                                    self.screen, _lr))
+                        except Exception:
+                            pass
+                # Scale HP for any newly-spawned monster that isn't an easy-start one
+                _zc = getattr(self, '_zone_count', 0)
+                if _zc > 0:
+                    _mult = 1.15 ** _zc
+                    for _elist in (self.mummys, self.witches, self.greenBlobs,
+                                   self.shadowShamans, self.miniFrankenBears,
+                                   self.snakes, self.monkey_mummies, self.lions):
+                        for _enemy in _elist:
+                            if getattr(_enemy, '_zone_scaled', False):
+                                continue
+                            if getattr(_enemy, '_easy_applied', False):
+                                _enemy._zone_scaled = True
+                                continue
+                            _name = getattr(_enemy, 'getName', lambda: '')()
+                            if _name in ('bigMummy', 'frankenBear'):
+                                _enemy._zone_scaled = True
+                                continue
+                            for _attr in ('hp', 'health', 'max_health'):
+                                if hasattr(_enemy, _attr):
+                                    try:
+                                        _v = getattr(_enemy, _attr)
+                                        if isinstance(_v, (int, float)) and _v > 0:
+                                            setattr(_enemy, _attr, max(1, int(_v * _mult)))
+                                    except Exception:
+                                        pass
+                            _enemy._zone_scaled = True
+            except Exception:
+                pass
 
             # ---- Slide trigger (SPACE held = continuous, or double-tap LR/RR) ----
             keys_slide = pygame.key.get_pressed()
@@ -4581,7 +4636,7 @@ class mainGame:
                     _pf['timer'] -= 1
                     _alpha = max(0, int(255 * (_pf['timer'] / 55.0)))
                     if _fin_font:
-                        _fs = _fin_font.render('-2', True, (80, 230, 80))
+                        _fs = _fin_font.render('-4', True, (80, 230, 80))
                         _fs.set_alpha(_alpha)
                         self.screen.blit(_fs, (int(_pf['x']), int(_pf['y'])))
                 self._poison_floats = [f for f in self._poison_floats if f['timer'] > 0]
@@ -8841,9 +8896,9 @@ class Bear:
         if self.poison_timer > 0:
             self.poison_timer -= 1
             self.poison_damage_tick += 1
-            # Apply 2 damage every 2 seconds (120 frames)
+            # Apply 4 damage every 2 seconds (120 frames) — extra +2 bite
             if self.poison_damage_tick >= 120:
-                self.hp = max(0, self.hp - 2)
+                self.hp = max(0, self.hp - 4)
                 self.poison_damage_tick = 0
 
     def is_poisoned(self):
