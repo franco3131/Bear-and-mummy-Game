@@ -22,7 +22,7 @@ title = "generated_image"
 id = "9A9KBrivuvtGtctgqwmBm"
 uri = "file://Game/Sounds/spooky_peaceful.wav"
 type = "audio"
-title = "Spooky Peaceful (latest level music)"
+title = "1. Spooky Peaceful — plays from game start (early zones)"
 
 [[outputs]]
 id = "bdDIz78iiXIwiJidJYl-j"
@@ -155,3 +155,21 @@ id = "H0AJhD3SScRo8yjJL0_5h"
 uri = "file://Game/Sounds/samples/bang_6_slam.wav"
 type = "audio"
 title = "6. Slam — hard impact + metallic ring"
+
+[[outputs]]
+id = "-mET2X0QyE76XhyljpXzr"
+uri = "file://Game/Sounds/deep_crypt.wav"
+type = "audio"
+title = "2. Deep Crypt — plays in the crypt area (early-mid)"
+
+[[outputs]]
+id = "mrcbzUtUsFyCcQ53763dI"
+uri = "file://Game/Sounds/halfway_intense.wav"
+type = "audio"
+title = "3. Halfway Intense — plays starting around zone 4-5"
+
+[[outputs]]
+id = "iPcoKfSgYDCb1HceyqbrP"
+uri = "file://Game/Sounds/menu_theme.wav"
+type = "audio"
+title = "4. Menu Theme — plays on the start menu"
