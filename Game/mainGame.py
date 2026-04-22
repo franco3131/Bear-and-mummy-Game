@@ -1777,7 +1777,29 @@ class mainGame:
                         self._runTestRoom()
                         return None
 
-            self.screen.fill((18, 12, 28))
+            # Spookier title backdrop: deep blood-purple gradient + drifting fog
+            self.screen.fill((14, 6, 20))
+            # Vertical gradient (top deep purple → bottom near-black)
+            for _gy in range(0, 700, 4):
+                _gt = _gy / 700.0
+                _gr = int(20 - _gt * 12)
+                _gg = int(8 - _gt * 5)
+                _gb = int(28 - _gt * 18)
+                pygame.draw.rect(self.screen,
+                                 (max(0, _gr), max(0, _gg), max(0, _gb)),
+                                 (0, _gy, 900, 4))
+
+            # Drifting fog bands
+            _t_titlefog = anim_tick * 0.012
+            for _fi in range(8):
+                _fx = int((140 * _fi + math.sin(_t_titlefog + _fi) * 100) % 1100) - 100
+                _fy = 80 + _fi * 80 + int(math.sin(_t_titlefog * 1.4 + _fi) * 22)
+                _fa = 35 + int(18 * math.sin(_t_titlefog * 2.1 + _fi))
+                _fog_s = pygame.Surface((320, 80), pygame.SRCALPHA)
+                pygame.draw.ellipse(_fog_s,
+                                    (90, 60, 130, _fa),
+                                    (0, 0, 320, 80))
+                self.screen.blit(_fog_s, (_fx, _fy))
 
             for sp in _sparkles:
                 sp['y'] -= sp['speed']
@@ -1786,7 +1808,8 @@ class mainGame:
                     sp['x'] = random.randint(0, 900)
                 twinkle = abs(((anim_tick + sp['phase']) % 120) / 60.0 - 1.0)
                 brightness = int(100 + 155 * twinkle)
-                color = (brightness, brightness, int(min(255, brightness + 40)))
+                # Greenish-white spook stars instead of cool-blue
+                color = (int(brightness * 0.7), brightness, int(brightness * 0.6))
                 pygame.draw.circle(self.screen, color, (int(sp['x']), int(sp['y'])), sp['size'])
 
             pulse = abs(((anim_tick % 100) / 50.0) - 1.0)
@@ -2065,19 +2088,51 @@ class mainGame:
                                 pygame.mixer.unpause()
                 if self._paused_snapshot is not None:
                     self.screen.blit(self._paused_snapshot, (0, 0))
+                # Spookier pause: dim + green vignette tint + drifting fog
                 _pov = pygame.Surface((900, 700), pygame.SRCALPHA)
-                _pov.fill((0, 0, 0, 170))
+                _pov.fill((10, 5, 20, 200))
                 self.screen.blit(_pov, (0, 0))
-                _pf_big = pygame.font.SysFont(None, 110, bold=True)
+                # Drifting smoky fog ovals
+                _t_fog = pygame.time.get_ticks() * 0.0006
+                for _fi in range(7):
+                    _fx = int((150 * _fi + math.sin(_t_fog + _fi) * 80) % 1000) - 50
+                    _fy = 140 + _fi * 70 + int(math.sin(_t_fog * 1.3 + _fi) * 18)
+                    _fa = 55 + int(20 * math.sin(_t_fog * 2 + _fi))
+                    _fog_s = pygame.Surface((280, 90), pygame.SRCALPHA)
+                    pygame.draw.ellipse(_fog_s,
+                                        (140, 200, 160, _fa),
+                                        (0, 0, 280, 90))
+                    self.screen.blit(_fog_s, (_fx, _fy))
+                # Eerie green-cyan flicker title
+                _pf_big = pygame.font.SysFont(None, 130, bold=True)
                 _pf_sub = pygame.font.SysFont(None, 30, bold=True)
-                _pulse = abs(math.sin(pygame.time.get_ticks() * 0.003))
-                _pcol = (255, int(220 + 35 * _pulse), int(140 + 80 * _pulse))
+                _flicker = 1.0 + 0.15 * math.sin(pygame.time.get_ticks() * 0.04)
+                _gv = max(120, min(255, int(200 * _flicker)))
+                _pcol = (180, _gv, 140)
                 _ptxt = _pf_big.render('PAUSED', True, _pcol)
                 _shadow = _pf_big.render('PAUSED', True, (0, 0, 0))
-                self.screen.blit(_shadow, (450 - _ptxt.get_width() // 2 + 4, 244))
+                _glow = _pf_big.render('PAUSED', True, (40, 220, 120))
+                # Thick black outline
+                for _po_x, _po_y in [(-3,-3),(-3,3),(3,-3),(3,3),(-4,0),(4,0),(0,-4),(0,4)]:
+                    self.screen.blit(_shadow, (450 - _ptxt.get_width()//2 + _po_x, 240 + _po_y))
+                # Green outer glow
+                _glow.set_alpha(120)
+                for _go_x, _go_y in [(-2,0),(2,0),(0,-2),(0,2)]:
+                    self.screen.blit(_glow, (450 - _ptxt.get_width()//2 + _go_x, 240 + _go_y))
+                # Chromatic split (red/cyan)
+                _pred = _pf_big.render('PAUSED', True, (220, 50, 70))
+                _pcyan = _pf_big.render('PAUSED', True, (60, 220, 220))
+                _pred.set_alpha(160); _pcyan.set_alpha(160)
+                self.screen.blit(_pred, (450 - _ptxt.get_width()//2 - 4, 240))
+                self.screen.blit(_pcyan, (450 - _ptxt.get_width()//2 + 4, 240))
                 self.screen.blit(_ptxt, (450 - _ptxt.get_width() // 2, 240))
-                _stxt = _pf_sub.render('Press P to resume    M to ' + ('unmute' if self._muted else 'mute'), True, (220, 220, 240))
-                self.screen.blit(_stxt, (450 - _stxt.get_width() // 2, 380))
+                # Subtitle with creepy bracketing
+                _sub_text = ('[ Press P to awaken    M to ' +
+                             ('unmute' if self._muted else 'silence') + ' ]')
+                _stxt = _pf_sub.render(_sub_text, True, (180, 220, 200))
+                _sshadow = _pf_sub.render(_sub_text, True, (0, 0, 0))
+                self.screen.blit(_sshadow, (450 - _stxt.get_width()//2 + 2, 392))
+                self.screen.blit(_stxt, (450 - _stxt.get_width() // 2, 390))
                 pygame.display.flip()
                 self.clock.tick(60)
                 continue
@@ -5523,63 +5578,116 @@ class mainGame:
                          (_bgx + _bw // 2 + 8, _bgy + _bh),
                          (_bgx + _bw // 2, _bgy + _bh + 10)])
                 self._head_alerts = _ha_keep
+            # ── Mega-Man-X-style level-up text: slide-in from left, big chunky
+            # white-cyan glyphs with thick black outline, screen flash, chromatic
+            # split, and "VICTORY" banner bars sweeping across.
             _luf = getattr(bear, '_level_up_float', 0)
             if _luf > 0:
                 bear._level_up_float -= 1
                 _luf_max = getattr(bear, '_level_up_float_max', 150)
                 _luf_age = _luf_max - _luf
-                _bounce = math.sin(_luf_age * 0.18) * 6 if _luf_age < 30 else 0
-                _luf_y = int(180 - min(60, _luf_age * 0.4)) + int(_bounce)
-                if _luf_age < 12:
-                    _luf_scale = 0.4 + (_luf_age / 12.0) * 0.7
-                elif _luf_age < 18:
-                    _luf_scale = 1.1 - ((_luf_age - 12) / 6.0) * 0.1
+                _luf_text = getattr(bear, '_level_up_text', 'LEVEL UP!')
+                # Center y position
+                _luf_cy = 240
+                # Base font (chunky)
+                _base_size = 78
+                _font = pygame.font.SysFont(None, _base_size, bold=True)
+                # Slide-in: text flies in from left during first 14 frames,
+                # then "punches" by overshooting and settling
+                if _luf_age < 14:
+                    _slide_t = _luf_age / 14.0
+                    _slide_off = int(-700 * (1 - _slide_t) ** 2)
+                    _scale = 1.0
+                elif _luf_age < 22:
+                    _slide_off = 0
+                    _punch_t = (_luf_age - 14) / 8.0
+                    _scale = 1.25 - 0.25 * _punch_t  # punch from 1.25 → 1.0
                 else:
-                    _luf_scale = 1.0
-                if _luf < 30:
-                    _luf_alpha = int(255 * (_luf / 30.0))
+                    _slide_off = 0
+                    _scale = 1.0 + 0.04 * math.sin(_luf_age * 0.18)
+                # Fade out at end
+                if _luf < 25:
+                    _luf_alpha = int(255 * (_luf / 25.0))
                 else:
                     _luf_alpha = 255
-                _luf_text = getattr(bear, '_level_up_text', 'LEVEL UP!')
-                _base_size = int(56 * _luf_scale)
-                _font = pygame.font.SysFont(None, _base_size, bold=True)
-                _palette = [(255, 130, 200), (255, 180, 100), (255, 245, 140),
-                            (160, 255, 180), (140, 220, 255), (200, 170, 255)]
-                _spacing = max(2, int(_base_size * 0.05))
-                _renders = []
-                _total_w = 0
-                for _ci, _ch in enumerate(_luf_text):
-                    _wob = math.sin(_luf_age * 0.22 + _ci * 0.6) * 4
-                    _color = _palette[_ci % len(_palette)]
-                    _ch_surf = _font.render(_ch, True, _color)
-                    _renders.append((_ch_surf, _wob))
-                    _total_w += _ch_surf.get_width() + _spacing
-                _total_w -= _spacing
-                _start_x = 450 - _total_w // 2
-                _cx = _start_x
-                for _ch_surf, _wob in _renders:
-                    _outline_color = (255, 255, 255)
-                    _outline = pygame.font.SysFont(None, _base_size, bold=True).render(
-                        '', True, _outline_color)
-                    for _ox, _oy in [(-2, 0), (2, 0), (0, -2), (0, 2)]:
-                        _shadow = _ch_surf.copy()
-                        _shadow.fill((40, 30, 60), special_flags=pygame.BLEND_RGBA_MULT)
-                        _shadow.set_alpha(_luf_alpha)
-                        self.screen.blit(_shadow, (_cx + _ox, _luf_y + int(_wob) + _oy))
-                    _ch_surf.set_alpha(_luf_alpha)
-                    self.screen.blit(_ch_surf, (_cx, _luf_y + int(_wob)))
-                    _cx += _ch_surf.get_width() + _spacing
-                if _luf_age < 25 and _luf_age % 2 == 0:
-                    for _si in range(6):
-                        _sa = (_luf_age * 0.3) + _si * 1.05
-                        _sr = 30 + _luf_age * 4
-                        _sx = int(450 + math.cos(_sa) * _sr)
-                        _sy = int(_luf_y + 20 + math.sin(_sa) * _sr * 0.6)
-                        _sparkle = pygame.Surface((10, 10), pygame.SRCALPHA)
-                        _sc = _palette[_si % len(_palette)]
-                        pygame.draw.circle(_sparkle, (*_sc, _luf_alpha), (5, 5), 4)
-                        pygame.draw.circle(_sparkle, (255, 255, 255, _luf_alpha), (5, 5), 2)
-                        self.screen.blit(_sparkle, (_sx - 5, _sy - 5))
+
+                # ── Banner bars (Mega Man X-style) sweeping in behind text ──
+                if _luf_age < 30:
+                    _bar_t = min(1.0, _luf_age / 12.0)
+                    _bar_w = int(900 * _bar_t)
+                    _bar_h = 90
+                    _bar_y_top = _luf_cy - _bar_h - 6
+                    _bar_y_bot = _luf_cy + _bar_h + 6
+                    _bar_surf = pygame.Surface((_bar_w, 14), pygame.SRCALPHA)
+                    _bar_surf.fill((40, 220, 255, min(220, _luf_alpha)))
+                    self.screen.blit(_bar_surf, (450 - _bar_w // 2, _bar_y_top))
+                    self.screen.blit(_bar_surf, (450 - _bar_w // 2, _bar_y_bot))
+                    # Magenta accent line above the cyan bar
+                    _acc = pygame.Surface((_bar_w, 4), pygame.SRCALPHA)
+                    _acc.fill((255, 80, 200, min(200, _luf_alpha)))
+                    self.screen.blit(_acc, (450 - _bar_w // 2, _bar_y_top - 5))
+                    self.screen.blit(_acc, (450 - _bar_w // 2, _bar_y_bot + 16))
+                else:
+                    _bar_w = 900
+                    _bar_h = 90
+                    _bar_y_top = _luf_cy - _bar_h - 6
+                    _bar_y_bot = _luf_cy + _bar_h + 6
+                    _bar_surf = pygame.Surface((_bar_w, 14), pygame.SRCALPHA)
+                    _bar_surf.fill((40, 220, 255, min(220, _luf_alpha)))
+                    self.screen.blit(_bar_surf, (0, _bar_y_top))
+                    self.screen.blit(_bar_surf, (0, _bar_y_bot))
+
+                # ── Screen flash on the punch frame ──
+                if 13 <= _luf_age <= 17:
+                    _flash_a = max(0, 180 - (_luf_age - 13) * 40)
+                    _flash = pygame.Surface(self.screen.get_size(),
+                                            pygame.SRCALPHA)
+                    _flash.fill((255, 255, 255, _flash_a))
+                    self.screen.blit(_flash, (0, 0))
+
+                # ── Render the actual text: white core with thick black
+                # outline + cyan/magenta chromatic split ──
+                _scaled_size = max(20, int(_base_size * _scale))
+                _font_s = pygame.font.SysFont(None, _scaled_size, bold=True)
+                _white_surf = _font_s.render(_luf_text, True, (255, 255, 255))
+                _outline_surf = _font_s.render(_luf_text, True, (0, 0, 0))
+                _cyan_surf = _font_s.render(_luf_text, True, (60, 220, 255))
+                _mag_surf = _font_s.render(_luf_text, True, (255, 60, 200))
+                _tw, _th = _white_surf.get_size()
+                _tx = 450 - _tw // 2 + _slide_off
+                _ty = _luf_cy - _th // 2
+
+                _white_surf.set_alpha(_luf_alpha)
+                _outline_surf.set_alpha(_luf_alpha)
+                _cyan_surf.set_alpha(min(200, _luf_alpha))
+                _mag_surf.set_alpha(min(200, _luf_alpha))
+
+                # Thick black outline (8 directions, 3px)
+                for _ox in (-3, 0, 3):
+                    for _oy in (-3, 0, 3):
+                        if _ox == 0 and _oy == 0:
+                            continue
+                        self.screen.blit(_outline_surf, (_tx + _ox, _ty + _oy))
+                # Chromatic split offsets for that arcade CRT vibe
+                self.screen.blit(_cyan_surf, (_tx - 3, _ty))
+                self.screen.blit(_mag_surf, (_tx + 3, _ty))
+                # White core on top
+                self.screen.blit(_white_surf, (_tx, _ty))
+
+                # ── Speed-line streaks behind the text (X-style) ──
+                if 14 <= _luf_age < 40:
+                    _streak_t = (_luf_age - 14) / 26.0
+                    for _ssi in range(8):
+                        _sy = _luf_cy - 60 + _ssi * 16
+                        _sw = int(120 + _ssi * 40 * (1 - _streak_t))
+                        _sa = int(180 * (1 - _streak_t))
+                        _str_surf = pygame.Surface((_sw, 3),
+                                                   pygame.SRCALPHA)
+                        _str_surf.fill((255, 255, 255, _sa))
+                        # Streaks shoot off both sides
+                        self.screen.blit(_str_surf, (_tx - _sw - 10, _sy))
+                        self.screen.blit(_str_surf,
+                                         (_tx + _tw + 10, _sy))
             if (bear.getHp() > 0 and bear.getEndText()
                     and bear.getHp() < bear.getMaxHp() * 0.30
                     and bear.getCoins() >= 30
@@ -6198,24 +6306,45 @@ class mainGame:
                 except Exception:
                     pass
 
-            if self.newGamePlusLevel >= 1 or bear.getLevel() >= 8:
-                self._rainbow_tick = (self._rainbow_tick + 1) % 360
-                try:
-                    _bx = bear.getXPosition() + 50
-                    _by = bear.getYPosition() + 50
-                    if not self._rainbow_trail or \
-                            abs(self._rainbow_trail[-1][0] - _bx) > 6 or \
-                            abs(self._rainbow_trail[-1][1] - _by) > 6:
-                        self._rainbow_trail.append([_bx, _by, 30])
-                    if len(self._rainbow_trail) > 24:
-                        self._rainbow_trail = self._rainbow_trail[-24:]
-                except Exception:
-                    pass
+            # ── Rainbow trail: ALWAYS visible while sliding, plus persistent
+            # while walking once unlocked (level 8+ or NG+). Now bigger, brighter,
+            # and longer-lasting for much better visibility.
+            _is_sliding = getattr(bear, 'slide_frames', 0) > 0
+            _trail_unlocked = (self.newGamePlusLevel >= 1 or bear.getLevel() >= 8)
+            _is_moving = False
+            try:
+                _kp_rt = pygame.key.get_pressed()
+                _is_moving = _kp_rt[pygame.K_LEFT] or _kp_rt[pygame.K_RIGHT]
+            except Exception:
+                pass
+            # Spawn new trail points only while sliding or (unlocked and active)
+            _spawn_trail = _is_sliding or _trail_unlocked
+            if _spawn_trail or self._rainbow_trail:
+                self._rainbow_tick = (self._rainbow_tick + 3) % 360  # faster cycle
+                if _spawn_trail:
+                    try:
+                        _bx = bear.getXPosition() + 50
+                        _by = bear.getYPosition() + 60
+                        # Drop trail points more often (every 3px instead of 6px)
+                        if not self._rainbow_trail or \
+                                abs(self._rainbow_trail[-1][0] - _bx) > 3 or \
+                                abs(self._rainbow_trail[-1][1] - _by) > 3:
+                            # Slide trails live longer (55f) and are tagged 'slide'
+                            _life = 55 if _is_sliding else 38
+                            self._rainbow_trail.append([_bx, _by, _life,
+                                                        1 if _is_sliding else 0])
+                        if len(self._rainbow_trail) > 60:
+                            self._rainbow_trail = self._rainbow_trail[-60:]
+                    except Exception:
+                        pass
                 _rt_keep = []
                 for _i, _pt in enumerate(self._rainbow_trail):
                     _pt[2] -= 1
                     if _pt[2] > 0:
-                        _hue = (self._rainbow_tick + _i * 18) % 360
+                        _is_slide_pt = (len(_pt) > 3 and _pt[3] == 1)
+                        _life_max = 55 if _is_slide_pt else 38
+                        _t_age = _pt[2] / _life_max
+                        _hue = (self._rainbow_tick + _i * 14) % 360
                         _h6 = _hue / 60.0
                         _c = 1.0
                         _x_ = _c * (1 - abs(_h6 % 2 - 1))
@@ -6225,13 +6354,31 @@ class mainGame:
                         elif _h6 < 4: _r, _g, _b = 0, _x_, _c
                         elif _h6 < 5: _r, _g, _b = _x_, 0, _c
                         else: _r, _g, _b = _c, 0, _x_
-                        _alpha = int(160 * (_pt[2] / 30.0))
-                        _radius = max(3, int(10 * (_pt[2] / 30.0)))
-                        _surf = pygame.Surface((_radius * 2, _radius * 2), pygame.SRCALPHA)
+                        # Beefier: 220 alpha, radius up to 22 for slides / 16 walk
+                        _max_a = 230 if _is_slide_pt else 200
+                        _alpha = int(_max_a * _t_age)
+                        _max_r = 22 if _is_slide_pt else 16
+                        _radius = max(4, int(_max_r * _t_age))
+                        # Outer halo (soft, big, low alpha)
+                        _halo = pygame.Surface((_radius * 3, _radius * 3),
+                                               pygame.SRCALPHA)
+                        pygame.draw.circle(_halo,
+                            (int(_r * 255), int(_g * 255), int(_b * 255), _alpha // 3),
+                            (_radius * 3 // 2, _radius * 3 // 2), _radius * 3 // 2)
+                        self.screen.blit(_halo,
+                            (_pt[0] - _radius * 3 // 2, _pt[1] - _radius * 3 // 2))
+                        # Core (vivid, full alpha)
+                        _surf = pygame.Surface((_radius * 2, _radius * 2),
+                                               pygame.SRCALPHA)
                         pygame.draw.circle(_surf,
                             (int(_r * 255), int(_g * 255), int(_b * 255), _alpha),
                             (_radius, _radius), _radius)
-                        self.screen.blit(_surf, (_pt[0] - _radius, _pt[1] - _radius))
+                        # Bright white-hot center
+                        pygame.draw.circle(_surf,
+                            (255, 255, 255, min(255, _alpha + 30)),
+                            (_radius, _radius), max(1, _radius // 3))
+                        self.screen.blit(_surf,
+                            (_pt[0] - _radius, _pt[1] - _radius))
                         _rt_keep.append(_pt)
                 self._rainbow_trail = _rt_keep
 
@@ -7592,6 +7739,10 @@ class Mummy():
         self._aggro = False
         self._aggro_delay = random.randint(0, 90)
         self._aggro_timer = 0
+        # ── Chase fatigue: mummies tire after ~5s of chasing and disengage ──
+        self._chase_duration = 0
+        self._chase_max = random.randint(240, 360)  # 4-6s
+        self._chase_cooldown = 0  # frames during which they refuse to chase
         self._sep_offset = 0.0
         self._personality = random.choice(['aggressive', 'cautious', 'flanker'])
         self._preferred_gap = random.randint(50, 120)
@@ -7867,11 +8018,27 @@ class Mummy():
             _dist = abs(_dx)
 
             self._aggro_timer += 1
-            if _dist < self._chase_range and self._aggro_timer >= self._aggro_delay:
+            # Tick down the post-fatigue cooldown
+            if self._chase_cooldown > 0:
+                self._chase_cooldown -= 1
+            # Engage only when in range AND not on fatigue cooldown
+            if (_dist < self._chase_range
+                    and self._aggro_timer >= self._aggro_delay
+                    and self._chase_cooldown == 0):
+                if not self._aggro:
+                    self._chase_duration = 0
                 self._aggro = True
             elif _dist > self._chase_range + 150:
                 self._aggro = False
                 self._aggro_timer = 0
+                self._chase_duration = 0
+            # Disengage after chasing for too long — they "give up" and rest
+            if self._aggro:
+                self._chase_duration += 1
+                if self._chase_duration >= self._chase_max:
+                    self._aggro = False
+                    self._chase_duration = 0
+                    self._chase_cooldown = random.randint(150, 240)  # 2.5-4s rest
 
             if self._aggro and _dist > 20:
                 if self._personality == 'cautious' and _dist < self._preferred_gap:
