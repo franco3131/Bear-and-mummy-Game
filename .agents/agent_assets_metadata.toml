@@ -35,3 +35,39 @@ id = "zUwrRafZkX9Ov2U7Ct7cJ"
 uri = "file://Game/Sounds/final_push.wav"
 type = "audio"
 title = "Final Push (bell version restored)"
+
+[[outputs]]
+id = "mAg6wc8GjVoyAku7xRCeR"
+uri = "file://Game/Sounds/samples/explode_1_crystal.wav"
+type = "audio"
+title = "1. Crystal Shatter — high tinkly chimes"
+
+[[outputs]]
+id = "cMTDl2iJ-aZ3eJtNR15hQ"
+uri = "file://Game/Sounds/samples/explode_2_sparkle.wav"
+type = "audio"
+title = "2. Magic Sparkle — ascending shimmer arpeggio"
+
+[[outputs]]
+id = "Iu66H4BfZhADLOp3dz8ho"
+uri = "file://Game/Sounds/samples/explode_3_boom_pop.wav"
+type = "audio"
+title = "3. Boom-Pop — low thump + crackle"
+
+[[outputs]]
+id = "ZQ4ryq4h-te6TxsZyedid"
+uri = "file://Game/Sounds/samples/explode_4_zap.wav"
+type = "audio"
+title = "4. Electric Zap — sweeping square wave"
+
+[[outputs]]
+id = "c5ZebdAhZIlayDP6jHdI-"
+uri = "file://Game/Sounds/samples/explode_5_retro.wav"
+type = "audio"
+title = "5. Retro Arcade — noise burst + falling ring"
+
+[[outputs]]
+id = "2dgujrJutCcFZa9ssNIlm"
+uri = "file://Game/Sounds/samples/explode_6_magic_pop.wav"
+type = "audio"
+title = "6. Magic Pop — rising whistle + bell"
