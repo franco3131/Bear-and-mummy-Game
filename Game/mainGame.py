@@ -692,6 +692,11 @@ class mainGame:
             self.laser_zap_sound.set_volume(0.45)
             self.boss_hit_sound = pygame.mixer.Sound("Game/Sounds/boss_hit.wav")
             self.boss_hit_sound.set_volume(0.65)
+            try:
+                self.fancy_death_bang_sound = pygame.mixer.Sound("Game/Sounds/fancy_death_bang.wav")
+                self.fancy_death_bang_sound.set_volume(0.85)
+            except Exception:
+                self.fancy_death_bang_sound = None
 
             self.monkey_screech_sound = pygame.mixer.Sound("Game/Sounds/monkey_screech.wav")
             self.monkey_screech_sound.set_volume(0.35)
@@ -4167,9 +4172,9 @@ class mainGame:
                         if getattr(self, 'enemy_hit_sound', None):
                             self.enemy_hit_sound.play()
                         if monster._fancy_death:
-                            _spk = getattr(self, 'mmx_spark_sound', None)
-                            if _spk:
-                                try: _spk.play()
+                            _bang = getattr(self, 'fancy_death_bang_sound', None)
+                            if _bang:
+                                try: _bang.play()
                                 except Exception: pass
                         else:
                             if getattr(self, 'mmx_enemy_explode_sound', None):
@@ -4180,12 +4185,7 @@ class mainGame:
                         if _is_boss_monster and getattr(self, 'boss_explosion_sound', None):
                             self.boss_explosion_sound.play()
                         elif getattr(monster, '_fancy_death', False):
-                            # Use a different secondary sound for variety
-                            _alt = (getattr(self, 'mmx_charged_shot_sound', None)
-                                    or getattr(self, 'crit_sound', None))
-                            if _alt:
-                                try: _alt.play()
-                                except Exception: pass
+                            pass
                         elif self.explosion_sound:
                             self.explosion_sound.play()
                     # ---- Fancy-death visual: expanding sparkle ring ----
