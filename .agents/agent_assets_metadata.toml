@@ -29,3 +29,9 @@ id = "bdDIz78iiXIwiJidJYl-j"
 uri = "file://Game/Sounds/boss_spooky.wav"
 type = "audio"
 title = "Boss song (softer)"
+
+[[outputs]]
+id = "zUwrRafZkX9Ov2U7Ct7cJ"
+uri = "file://Game/Sounds/final_push.wav"
+type = "audio"
+title = "Final Push (last level music before boss)"
