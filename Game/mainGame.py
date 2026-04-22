@@ -5681,9 +5681,12 @@ class mainGame:
                     _amy = _big_mummy.getYPosition()
                     if 0 < _amx < 900:
                         _bob = int(math.sin(pygame.time.get_ticks() * 0.008) * 8)
-                        # Clamp well below the upper UI so the FOREHEAD arrow
-                        # and label aren't hidden behind the HP bar / minimap.
-                        _ay = max(110, _amy - 70 + _bob)
+                        # Anchor the arrow TIP directly on the forehead
+                        # (forehead rect starts at _amy and is 108 tall).
+                        # Place tip ~20px down into the forehead, keep label
+                        # safely below the upper HUD via a top clamp.
+                        _tip_y = max(80, _amy + 20 + _bob)
+                        _ay = _tip_y - 30
                         _arrow_color = (255, 80, 80)
                         pygame.draw.polygon(self.screen, _arrow_color, [
                             (_amx, _ay + 30), (_amx - 18, _ay), (_amx - 8, _ay),
