@@ -5922,8 +5922,8 @@ class mainGame:
                 if _df > 60:
                     _ko_font = pygame.font.SysFont(None, 120, bold=True)
                     _ko_a = min(255, (_df - 60) * 8)
-                    _ko_surf = _ko_font.render('K.O.!', True, (255, 230, 60))
-                    _ko_outline = _ko_font.render('K.O.!', True, (60, 0, 0))
+                    _ko_surf = _ko_font.render('You died', True, (255, 230, 60))
+                    _ko_outline = _ko_font.render('You died', True, (60, 0, 0))
                     _kw, _kh = _ko_surf.get_size()
                     _kx = self.screen.get_width() // 2 - _kw // 2
                     _ky = self.screen.get_height() // 2 - _kh // 2 - 30
