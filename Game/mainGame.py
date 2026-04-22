@@ -8068,7 +8068,10 @@ class Mummy():
                 if not self._aggro:
                     self._chase_duration = 0
                 self._aggro = True
-            elif _dist > self._chase_range + 150:
+            elif _dist > self._chase_range:
+                # Player escaped chase range → instantly disengage and rest
+                if self._aggro:
+                    self._chase_cooldown = random.randint(360, 600)  # 6-10s
                 self._aggro = False
                 self._aggro_timer = 0
                 self._chase_duration = 0
@@ -8078,7 +8081,7 @@ class Mummy():
                 if self._chase_duration >= self._chase_max:
                     self._aggro = False
                     self._chase_duration = 0
-                    self._chase_cooldown = random.randint(300, 480)  # 5-8s rest
+                    self._chase_cooldown = random.randint(480, 720)  # 8-12s rest
 
             if self._aggro and _dist > 20:
                 if self._personality == 'cautious' and _dist < self._preferred_gap:
@@ -8344,9 +8347,11 @@ class Witch():
             if self._chase_cooldown > 0:
                 self._chase_cooldown -= 1
             if _dist > self._aggro_range:
+                if self._state != 'idle':
+                    self._chase_cooldown = random.randint(360, 600)
                 self._state = 'idle'
                 self._chase_duration = 0
-            elif (self._state == 'idle' and _dist < self._aggro_range
+            elif (self._state == 'idle' and _dist < self._aggro_range * 0.7
                     and self._chase_cooldown == 0):
                 self._state = 'approach'
                 self._state_timer = 0
@@ -8357,7 +8362,7 @@ class Witch():
                 if self._chase_duration >= self._chase_max:
                     self._state = 'idle'
                     self._chase_duration = 0
-                    self._chase_cooldown = random.randint(180, 300)
+                    self._chase_cooldown = random.randint(480, 720)
 
             if self._state == 'approach':
                 _move_x = 1 if _dx > 0 else -1
@@ -8696,14 +8701,19 @@ class GreenBlob():
             _dist = abs(_dx)
             if self._chase_cooldown > 0:
                 self._chase_cooldown -= 1
-            _can_chase = (_dist < self._chase_range and self._chase_cooldown == 0)
+            # Hysteresis: must come closer than 70% of range to start chasing
+            _was_chasing = self._chase_duration > 0
+            _engage_dist = self._chase_range if _was_chasing else self._chase_range * 0.7
+            _can_chase = (_dist < _engage_dist and self._chase_cooldown == 0)
             if _can_chase:
                 self._chase_duration += 1
                 if self._chase_duration >= self._chase_max:
                     self._chase_duration = 0
-                    self._chase_cooldown = random.randint(180, 300)
+                    self._chase_cooldown = random.randint(480, 720)
                     _can_chase = False
             else:
+                if _was_chasing and self._chase_cooldown == 0:
+                    self._chase_cooldown = random.randint(360, 600)
                 self._chase_duration = 0
             if _can_chase:
                 if self._personality == 'cautious' and _dist < self._preferred_gap:
@@ -10058,15 +10068,19 @@ class MiniFrankenBear():
         _dist = abs(_dx)
         if self._chase_cooldown > 0:
             self._chase_cooldown -= 1
-        _engaged = (_dist < self._chase_range and _dist > 20
+        _was_chasing = self._chase_duration > 0
+        _engage_dist = self._chase_range if _was_chasing else self._chase_range * 0.7
+        _engaged = (_dist < _engage_dist and _dist > 20
                     and self._chase_cooldown == 0)
         if _engaged:
             self._chase_duration += 1
             if self._chase_duration >= self._chase_max:
                 self._chase_duration = 0
-                self._chase_cooldown = random.randint(180, 300)
+                self._chase_cooldown = random.randint(480, 720)
                 _engaged = False
         else:
+            if _was_chasing and self._chase_cooldown == 0:
+                self._chase_cooldown = random.randint(360, 600)
             self._chase_duration = 0
         if _engaged:
             if self._personality == 'cautious' and _dist < self._preferred_gap:
