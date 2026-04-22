@@ -8105,6 +8105,10 @@ class Witch():
         self._state_timer = 0
         self._dodge_dir = random.choice([-1, 1])
         self._aggro_range = random.randint(400, 600)
+        # Chase fatigue
+        self._chase_duration = 0
+        self._chase_max = random.randint(360, 540)  # 6-9s
+        self._chase_cooldown = 0
         self.startDestructionAnimation = False
 
     def setStartDestructionAnimation(self, v):
@@ -8248,11 +8252,23 @@ class Witch():
             self._strafe_timer += 1
             self._state_timer += 1
 
+            if self._chase_cooldown > 0:
+                self._chase_cooldown -= 1
             if _dist > self._aggro_range:
                 self._state = 'idle'
-            elif self._state == 'idle' and _dist < self._aggro_range:
+                self._chase_duration = 0
+            elif (self._state == 'idle' and _dist < self._aggro_range
+                    and self._chase_cooldown == 0):
                 self._state = 'approach'
                 self._state_timer = 0
+                self._chase_duration = 0
+            # Fatigue: after sustained pursuit, retreat to idle and rest
+            if self._state != 'idle':
+                self._chase_duration += 1
+                if self._chase_duration >= self._chase_max:
+                    self._state = 'idle'
+                    self._chase_duration = 0
+                    self._chase_cooldown = random.randint(180, 300)
 
             if self._state == 'approach':
                 _move_x = 1 if _dx > 0 else -1
@@ -8427,6 +8443,10 @@ class GreenBlob():
         self._chase_range = random.randint(300, 500)
         self._preferred_gap = random.randint(30, 100)
         self._personality = random.choice(['aggressive', 'aggressive', 'cautious', 'flanker'])
+        # Chase fatigue
+        self._chase_duration = 0
+        self._chase_max = random.randint(300, 480)  # 5-8s
+        self._chase_cooldown = 0
         self.jump = False
         self.comingDown = False
         self.nextJumpTimer = random.randint(80, 200)
@@ -8585,7 +8605,18 @@ class GreenBlob():
             self.screen.blit(self.greenBlob, (self.x, self.y + 10))
             _dx = self._bear_x - self.x
             _dist = abs(_dx)
-            if _dist < self._chase_range:
+            if self._chase_cooldown > 0:
+                self._chase_cooldown -= 1
+            _can_chase = (_dist < self._chase_range and self._chase_cooldown == 0)
+            if _can_chase:
+                self._chase_duration += 1
+                if self._chase_duration >= self._chase_max:
+                    self._chase_duration = 0
+                    self._chase_cooldown = random.randint(180, 300)
+                    _can_chase = False
+            else:
+                self._chase_duration = 0
+            if _can_chase:
                 if self._personality == 'cautious' and _dist < self._preferred_gap:
                     _want_dir = -1 if _dx > 0 else 1
                 elif self._personality == 'flanker' and _dist < 80:
@@ -9587,6 +9618,10 @@ class ShadowShaman():
         self._preferred_dist = random.randint(150, 280)
         self._strafe_timer = random.randint(0, 60)
         self._sep_offset = 0.0
+        # Chase fatigue (ShadowShaman): periodically pauses repositioning
+        self._chase_duration = 0
+        self._chase_max = random.randint(360, 540)
+        self._chase_cooldown = 0
         self.startDestructionAnimation = False
 
     def setStartDestructionAnimation(self, v):
@@ -9673,13 +9708,28 @@ class ShadowShaman():
             _dx = self._bear_x - self.x
             _dy_b = self._bear_y - self.y
             _dist = abs(_dx)
-            if _dist < self._preferred_dist - 30:
+            if self._chase_cooldown > 0:
+                self._chase_cooldown -= 1
+            _resting = self._chase_cooldown > 0
+            if not _resting:
+                self._chase_duration += 1
+                if self._chase_duration >= self._chase_max:
+                    self._chase_duration = 0
+                    self._chase_cooldown = random.randint(180, 300)
+                    _resting = True
+            if _resting:
+                _mx = 0
+                _my = 0
+            elif _dist < self._preferred_dist - 30:
                 _mx = -1 if _dx > 0 else 1
             elif _dist > self._preferred_dist + 30:
                 _mx = 1 if _dx > 0 else -1
             else:
                 _mx = 1 if self._strafe_timer % 100 < 50 else -1
-            _my = -1 if self.y > 80 and _dy_b < -30 else (1 if self.y < 300 and _dy_b > 30 else 0)
+            if _resting:
+                pass
+            else:
+                _my = -1 if self.y > 80 and _dy_b < -30 else (1 if self.y < 300 and _dy_b > 30 else 0)
             self.x += _mx * self.rand + self._sep_offset
             self._sep_offset *= 0.9
             self.y += _my * self.rand
@@ -9909,11 +9959,27 @@ class MiniFrankenBear():
         self._personality = random.choice(['aggressive', 'cautious', 'flanker'])
         self._preferred_gap = random.randint(40, 100)
         self._turn_timer_scale = random.uniform(0.7, 1.5)
+        # Chase fatigue
+        self._chase_duration = 0
+        self._chase_max = random.randint(300, 480)
+        self._chase_cooldown = 0
         
     def walk(self):
         _dx = self._bear_x - self.x
         _dist = abs(_dx)
-        if _dist < self._chase_range and _dist > 20:
+        if self._chase_cooldown > 0:
+            self._chase_cooldown -= 1
+        _engaged = (_dist < self._chase_range and _dist > 20
+                    and self._chase_cooldown == 0)
+        if _engaged:
+            self._chase_duration += 1
+            if self._chase_duration >= self._chase_max:
+                self._chase_duration = 0
+                self._chase_cooldown = random.randint(180, 300)
+                _engaged = False
+        else:
+            self._chase_duration = 0
+        if _engaged:
             if self._personality == 'cautious' and _dist < self._preferred_gap:
                 _want_dir = -1 if _dx > 0 else 1
             elif self._personality == 'flanker' and _dist < 80:
