@@ -4800,6 +4800,10 @@ class mainGame:
             fires_to_remove = []
             for fire in self.fires:
                 fire.drawFireBall()
+                if getattr(fire, '_falling_only', False):
+                    if getattr(fire, '_dead', False) or fire.getYPosition() > 700:
+                        fires_to_remove.append(fire)
+                    continue
                 if (fire.getXPosition() < 30 or fire.getXPosition() > 500
                         or fire.getYPosition() < 0):
                     self.triggerFire = True
@@ -5332,6 +5336,7 @@ class mainGame:
                 (25500, 29000),  # zone 7
                 (31500, 34000),  # zone 9 (calm)
                 (36500, 39500),  # zone 11
+                (42000, 43500),  # quiet zone 2 (calm)
                 (45000, 50500),  # zone 13
                 (53500, 56500),  # zone 15
             )
@@ -5339,7 +5344,8 @@ class mainGame:
             if not _popup_active and _is_bomb_zone:
                 self._bomb_spawn_timer += 1
                 # Calm zone gets more bombs, faster.
-                _in_calm = getattr(self, '_calm_zone_active', False) and not getattr(self, '_calm_zone_exited', False)
+                _in_calm = ((getattr(self, '_calm_zone_active', False) and not getattr(self, '_calm_zone_exited', False)) or
+                            (getattr(self, '_calm2_zone_active', False) and not getattr(self, '_calm2_zone_exited', False)))
                 _bomb_interval = 220 if _in_calm else 420
                 if self._bomb_spawn_timer >= _bomb_interval:
                     self._bomb_spawn_timer = 0
@@ -5364,6 +5370,23 @@ class mainGame:
                             'exploding': False, 'explode_anim': 0,
                             'big': _is_big, 'instant': _is_instant,
                         })
+
+            # ── Falling fireballs — exclusive to Quiet Zone 2 ─────────────
+            if (getattr(self, '_calm2_zone_active', False)
+                    and not getattr(self, '_calm2_zone_exited', False)
+                    and not _popup_active):
+                self._calm2_fb_timer = getattr(self, '_calm2_fb_timer', 0) + 1
+                if self._calm2_fb_timer >= 55:
+                    self._calm2_fb_timer = 0
+                    import random as _fr
+                    _bear_fbx = bear.getXPosition() + 50
+                    for _fi in range(_fr.randint(2, 3)):
+                        _fbx = max(40, min(860, _bear_fbx + _fr.randint(-300, 400)))
+                        _fb = FireBall(_fbx, -60, 0, _fr.uniform(7.0, 9.5),
+                                       self.fireBall, self.screen, size=(60, 60))
+                        try: _fb._falling_only = True
+                        except Exception: pass
+                        self.fires.append(_fb)
 
             _bombs_remove = []
             _bear_cx = bear.getXPosition() + 50
@@ -5808,6 +5831,42 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
             bear.displayBearCoins()
+
+            # ── Big Mummy boss bar — top-of-screen forefront UI ──────────────
+            _bm_ref = None
+            for _mu in self.mummys:
+                try:
+                    if _mu.getName() == "bigMummy" and _mu.getHp() > 0:
+                        _bm_ref = _mu; break
+                except Exception:
+                    pass
+            if _bm_ref is not None:
+                _bw = 720; _bh = 26
+                _bx = (900 - _bw) // 2
+                _by = 40
+                _maxhp = max(1, getattr(_bm_ref, 'max_health', getattr(_bm_ref, 'health', 1)))
+                _hp = max(0, getattr(_bm_ref, 'health', _maxhp))
+                _frac = _hp / _maxhp
+                # Outer frame + dark fill
+                pygame.draw.rect(self.screen, (0, 0, 0), (_bx - 4, _by - 4, _bw + 8, _bh + 8), border_radius=6)
+                pygame.draw.rect(self.screen, (40, 0, 0), (_bx, _by, _bw, _bh), border_radius=4)
+                # HP fill — pulsing crimson with hot orange tip
+                _pulse = 0.85 + 0.15 * math.sin(pygame.time.get_ticks() * 0.006)
+                _r = int(220 * _pulse); _g = int(40 + 60 * (1 - _frac))
+                pygame.draw.rect(self.screen, (_r, _g, 30), (_bx, _by, int(_bw * _frac), _bh), border_radius=4)
+                pygame.draw.rect(self.screen, (255, 220, 80),
+                                 (_bx + max(0, int(_bw * _frac) - 6), _by, 6, _bh), border_radius=2)
+                pygame.draw.rect(self.screen, (255, 255, 255), (_bx, _by, _bw, _bh), 2, border_radius=4)
+                # Title
+                _bf = pygame.font.SysFont(None, 28, bold=True)
+                _bt = _bf.render('BIG MUMMY — Tomb Guardian', True, (255, 230, 140))
+                _bts = _bf.render('BIG MUMMY — Tomb Guardian', True, (0, 0, 0))
+                _btx = (900 - _bt.get_width()) // 2
+                self.screen.blit(_bts, (_btx + 2, _by - 26 + 2))
+                self.screen.blit(_bt, (_btx, _by - 26))
+                _hf = pygame.font.SysFont(None, 20, bold=True)
+                _hpt = _hf.render(f'{_hp} / {_maxhp}', True, (255, 255, 255))
+                self.screen.blit(_hpt, (_bx + _bw - _hpt.get_width() - 6, _by + 4))
             _hp_ratio_v = bear.getHp() / max(1, bear.getMaxHp())
             if _hp_ratio_v < 0.25 and bear.getHp() > 0:
                 if not hasattr(self, '_vig_base'):
@@ -5923,15 +5982,7 @@ class mainGame:
                     self._mummy_hint_active = False
                     self._mummy_arrow_frames = 0
                 else:
-                    _hf = pygame.font.SysFont(None, 28, bold=True)
-                    _ht1 = _hf.render('Big mummy: hit the RED ring on its forehead!', True, (255, 230, 140))
-                    _ht1s = _hf.render('Big mummy: hit the RED ring on its forehead!', True, (0, 0, 0))
-                    _hbg = pygame.Surface((_ht1.get_width() + 24, 38), pygame.SRCALPHA)
-                    _hbg.fill((0, 0, 0, 170))
-                    _hx = 450 - _ht1.get_width() // 2
-                    self.screen.blit(_hbg, (_hx - 12, 555))
-                    self.screen.blit(_ht1s, (_hx + 1, 561))
-                    self.screen.blit(_ht1, (_hx, 560))
+                    pass  # bottom hint text removed — arrow + head_alert is enough
             if self._mummy_arrow_frames > 0:
                 self._mummy_arrow_frames -= 1
                 _big_mummy = None
@@ -6397,6 +6448,11 @@ class mainGame:
                 self._zone_count = 0
                 self._prev_active_zones = 0
                 self._z12_pending_witches = None
+                self._calm_zone_active = False
+                self._calm_zone_exited = False
+                self._calm2_zone_active = False
+                self._calm2_zone_exited = False
+                self._calm2_fb_timer = 0
 
                 bear = Bear(150, 300, self.screen, self.thud_sound)
                 self._bear_ref = bear
@@ -7291,6 +7347,52 @@ class mainGame:
             mini1 = MiniFrankenBear(1500, 160, self.screen)
             mini2 = MiniFrankenBear(1900, 200, self.screen)
             self.miniFrankenBears.extend([mini1, mini2])
+
+        # ── Quiet Zone 2 @ 42 000 – longer silent stretch with creative ──────
+        # blocks, only bombs + falling fireballs (no music, no enemies).
+        elif (not self._monkey_level_active
+              and backgroundScrollX > 42000
+              and not getattr(self, '_calm2_zone_active', False)):
+            self._calm2_zone_active = True
+            self._calm2_zone_exited = False
+            self._pre_calm2_music = getattr(self, '_current_music', None)
+            self.mummys = []; self.witches = []; self.greenBlobs = []
+            self.fires = []; self.miniFrankenBears = []; self.shadowShamans = []
+            self.snakes = []; self.lasers = []; self.blocks = []
+            self._switch_music(None)
+            # Creative staircase + floating-island layout — invites jumping
+            # while bombs and fireballs rain down.
+            stair = [
+                (1100, 360, 220, 40, "greyRock"),
+                (1400, 320, 220, 40, "checkered"),
+                (1700, 280, 220, 40, "striped"),
+                (2050, 240, 260, 40, "stripedFlip"),
+                (2400, 200, 260, 40, "checkered"),
+                (2800, 250, 220, 40, "greyRock"),
+                (3150, 300, 260, 40, "striped"),
+                (3500, 260, 260, 40, "checkered"),
+                (3900, 220, 240, 40, "greyRock"),
+                (4250, 290, 320, 40, "striped"),
+                (4700, 340, 260, 40, "checkered"),
+            ]
+            for _bx, _by, _bw, _bh, _bt in stair:
+                self.blocks.append(Block(_bx, _by, _bw, _bh, _bt, self.screen))
+            # Hearts placed along the path for survivability
+            for _hx, _hy in [(1500, 290), (2200, 210), (2900, 220),
+                             (3600, 230), (4350, 260), (4800, 310)]:
+                self.heart_drops.append({
+                    'x': float(_hx), 'y': float(_hy),
+                    'vy': 0.0, 'landed': True, 'life': 99999
+                })
+            self._calm2_fb_timer = 0
+
+        # ── Quiet Zone 2 exit @ 43 500 – resume previous track ───────────────
+        if (getattr(self, '_calm2_zone_active', False)
+                and not getattr(self, '_calm2_zone_exited', False)
+                and backgroundScrollX > 43500):
+            self._calm2_zone_exited = True
+            _resume2 = getattr(self, '_pre_calm2_music', None) or "deep_crypt"
+            self._switch_music(_resume2)
 
         # ── Zone 7 @ 45 000 – 75% mark, enemies 100% harder ────────
         elif not self._monkey_level_active and backgroundScrollX > 45000 and not self.activeMonsters[7]:
@@ -8242,6 +8344,7 @@ class Mummy():
         self.hurtLeftMummy = pygame.transform.scale(self.hurtLeftMummy, (width, height))
         self.damageAttack = 11
         self.hp = 120
+        self.max_hp = self.hp
         self.height = height
         self.width = width
         self.hurtTimer = 0
@@ -8264,6 +8367,7 @@ class Mummy():
             self.damageAttack = 13
             self.exp = 20
             self.health = int(24 * 1.20 * 1.05)
+            self.max_health = self.health
             raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
             raw_hurt = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
             # Use the same art for both walk frames (flipped) so the character
@@ -8380,6 +8484,8 @@ class Mummy():
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
@@ -8735,6 +8841,8 @@ class Witch():
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
@@ -8940,7 +9048,13 @@ class FireBall():
         return self.health
 
     def drawFireBall(self):
-        if self.y < 370:
+        if getattr(self, '_falling_only', False):
+            # Pure straight downward fall — no bounce. Marked dead off-screen.
+            self.y += abs(self.vel_y)
+            self.x += self.vel_x
+            if self.y > 460:
+                self._dead = True
+        elif self.y < 370:
             self.y -= self.vel_y
             self.x += self.vel_x
         else:
@@ -9119,6 +9233,8 @@ class GreenBlob():
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
@@ -9249,7 +9365,7 @@ class Bear:
         self.talkingNoBear = pygame.transform.scale(self.talkingNoBear, (900, 250))
         self.bearJumping1 = pygame.image.load("Game/Images/Bear/bearJump1.png")
         self.bearJumping1 = pygame.transform.scale(self.bearJumping1, (120, 105))
-        self.endText = False
+        self.endText = True
         self.maxHp = 100
         self.attack = 10
         self.hp = 100
@@ -9258,13 +9374,7 @@ class Bear:
         self.text1 = ""
         self.text2 = ""
         self.text3 = ""
-        self.textArray = [
-            ['To jump press "z"', 'To attack press "a"',
-             'Press "s" to continue'],
-            ['Press "ESC" to end game',
-             'Defeat Frankenbear at end of castle!',
-             'Press "s" to continue']
-        ]
+        self.textArray = []
         self.tupleIndex = 0
         # False = no bear face (tutorial msgs), True = show bear face (story msgs)
         self.showBearArray = [False, False]
@@ -9989,10 +10099,38 @@ class KeyItem:
         self.screen = screen
         self.x = xPosition
         self.y = yPosition
-        self.key = pygame.image.load("Game/Images/key.png")
-        self.key = pygame.transform.scale(self.key, (50, 50))
+        self.key = self._build_silver_key()
         self.isOpen = False
         self.initialHeight = yPosition
+
+    @staticmethod
+    def _build_silver_key():
+        """Procedural cartoon silver key — round bow, slim shaft, two teeth."""
+        w, h = 64, 64
+        s = pygame.Surface((w, h), pygame.SRCALPHA)
+        # soft shadow
+        pygame.draw.circle(s, (0, 0, 0, 70), (20, 34), 14)
+        pygame.draw.rect(s, (0, 0, 0, 60), (28, 28, 30, 10), border_radius=3)
+        # bow (round head) — silver gradient via concentric circles
+        for i, col in enumerate([(110, 115, 125), (160, 165, 175),
+                                 (200, 205, 215), (235, 240, 250)]):
+            pygame.draw.circle(s, col, (20, 32), 13 - i * 2)
+        pygame.draw.circle(s, (60, 65, 75), (20, 32), 13, 2)
+        # inner hole
+        pygame.draw.circle(s, (40, 45, 55), (20, 32), 5)
+        pygame.draw.circle(s, (20, 25, 35), (20, 32), 3)
+        # shaft
+        pygame.draw.rect(s, (180, 185, 195), (32, 29, 26, 7))
+        pygame.draw.rect(s, (220, 225, 235), (32, 29, 26, 2))
+        pygame.draw.rect(s, (60, 65, 75), (32, 29, 26, 7), 1)
+        # teeth
+        pygame.draw.rect(s, (180, 185, 195), (50, 36, 4, 7))
+        pygame.draw.rect(s, (60, 65, 75), (50, 36, 4, 7), 1)
+        pygame.draw.rect(s, (180, 185, 195), (44, 36, 4, 5))
+        pygame.draw.rect(s, (60, 65, 75), (44, 36, 4, 5), 1)
+        # specular highlight
+        pygame.draw.circle(s, (255, 255, 255, 200), (16, 28), 3)
+        return pygame.transform.scale(s, (50, 50))
 
     def setXPosition(self, x):
         self.x = x
@@ -10311,6 +10449,8 @@ class ShadowShaman():
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.getXPosition() + 60, self.getYPosition() - 60,
                             alpha=alpha)
@@ -10725,6 +10865,8 @@ class MiniFrankenBear():
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                             self.x + 40, self.y - 40,
                             alpha=alpha)
@@ -11160,6 +11302,8 @@ class Snake:
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                          self.getXPosition() + 40, self.getYPosition() - 40,
                          alpha=alpha)
@@ -11659,6 +11803,8 @@ class MonkeyMummy:
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                          self.getXPosition() + 40, self.getYPosition() - 40,
                          alpha=alpha)
@@ -11945,6 +12091,8 @@ class Lion:
             s = 1
         fade_frames = 8
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        if getattr(self, 'destructionAnimation', 0) > 0 or getattr(self, 'startDestructionAnimation', False):
+            alpha = 255
         render_damage_text(self.screen, _FONT_DAMAGE, damage,
                          self.getXPosition() + 45, self.getYPosition() - 30,
                          alpha=alpha)
