@@ -5836,7 +5836,13 @@ class mainGame:
                 _by = 40
                 _maxhp = max(1, getattr(_bm_ref, 'max_health', getattr(_bm_ref, 'health', 1)))
                 _hp = max(0, getattr(_bm_ref, 'health', _maxhp))
-                _frac = _hp / _maxhp
+                # NG+ buffs raise current health above the originally-stored
+                # max_health — keep the bar in sync rather than overflowing.
+                if _hp > _maxhp:
+                    _maxhp = _hp
+                    try: _bm_ref.max_health = _hp
+                    except Exception: pass
+                _frac = max(0.0, min(1.0, _hp / _maxhp))
                 # Outer frame + dark fill
                 pygame.draw.rect(self.screen, (0, 0, 0), (_bx - 4, _by - 4, _bw + 8, _bh + 8), border_radius=6)
                 pygame.draw.rect(self.screen, (40, 0, 0), (_bx, _by, _bw, _bh), border_radius=4)
