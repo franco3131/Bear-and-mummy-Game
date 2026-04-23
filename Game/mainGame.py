@@ -4534,7 +4534,7 @@ class mainGame:
                             else:
                                 _pop_color = (255, 245, 140)
                             _pop_x = int(monster.getXPosition() + 40)
-                            _pop_y = int(monster.getYPosition() - 10)
+                            _pop_y = int(monster.getYPosition() - 70)
                             # Show base xp + the combo bonus separately so the
                             # player sees exactly how much extra they earned.
                             # Baseline = what they'd get with NO combo bonus
