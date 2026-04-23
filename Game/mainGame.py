@@ -6234,9 +6234,19 @@ class mainGame:
             _bc_x, _bc_y, _bc_w, _bc_h = 624, 6, 180, 28
             _bc_ratio = min(1.0, beamCharge / 100.0)
             if _bc_ratio >= 1.0:
-                _flash = 0.55 + 0.45 * abs(math.sin(pygame.time.get_ticks() * 0.012))
-                _bc_col = (int(120 + 120 * _flash), int(180 + 60 * _flash), 255)
-                _panel_col = (int(40 + 60 * _flash), int(80 + 80 * _flash), 180)
+                _flash = 0.55 + 0.45 * abs(math.sin(pygame.time.get_ticks() * 0.018))
+                _bc_col = (int(140 + 115 * _flash), int(200 + 55 * _flash), 255)
+                _panel_col = (int(60 + 90 * _flash), int(100 + 100 * _flash), 220)
+                # Big pulsing outer glow around the beam panel
+                _glow_pad = int(6 + 8 * _flash)
+                _glow_surf = pygame.Surface(
+                    (_bc_w + _glow_pad * 2, _bc_h + _glow_pad * 2), pygame.SRCALPHA)
+                _glow_alpha = int(120 + 100 * _flash)
+                pygame.draw.rect(_glow_surf,
+                                 (255, 240, 80, _glow_alpha),
+                                 (0, 0, _bc_w + _glow_pad * 2, _bc_h + _glow_pad * 2),
+                                 border_radius=10)
+                self.screen.blit(_glow_surf, (_bc_x - _glow_pad, _bc_y - _glow_pad))
             else:
                 _bc_col = (60, 100, 180)
                 _panel_col = (30, 50, 100)
@@ -6245,26 +6255,35 @@ class mainGame:
             render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "BEAM",
                                _bc_x + 6, _bc_y + 4, (100, 200, 255))
             if _bc_ratio >= 1.0:
+                # Bright flashing border on the beam panel itself
+                _bw = 2 + int(2 * _flash)
+                pygame.draw.rect(self.screen,
+                                 (255, int(230 + 25 * _flash), 60),
+                                 (_bc_x - 2, _bc_y - 2, _bc_w + 4, _bc_h + 4),
+                                 _bw, border_radius=6)
+            _row_y = _bc_y + _bc_h + 4
+            if _bc_ratio >= 1.0:
                 _rdy_font = pygame.font.SysFont(None, 18, bold=True)
                 _rdy_col = (255, int(220 + 35 * _flash), 80)
                 _rdy = _rdy_font.render("PRESS C  or  DOWN+A", True, _rdy_col)
                 _rdy_sh = _rdy_font.render("PRESS C  or  DOWN+A", True, (0, 0, 0))
-                _rdy_x = _bc_x - _rdy.get_width() - 12
-                _rdy_y = _bc_y + (_bc_h - _rdy.get_height()) // 2
+                _rdy_x = _bc_x + (_bc_w - _rdy.get_width()) // 2
+                _rdy_y = _row_y
                 _rdy_bg = pygame.Surface((_rdy.get_width() + 10, _rdy.get_height() + 6),
                                           pygame.SRCALPHA)
-                _rdy_bg.fill((10, 10, 30, 180))
+                _rdy_bg.fill((10, 10, 30, 200))
                 self.screen.blit(_rdy_bg, (_rdy_x - 5, _rdy_y - 3))
                 self.screen.blit(_rdy_sh, (_rdy_x + 1, _rdy_y + 1))
                 self.screen.blit(_rdy, (_rdy_x, _rdy_y))
+                _row_y += _rdy.get_height() + 6
             # ---- Lightning charge pips HUD (2 charges) ------------------
             if getattr(bear, 'has_lightning', False):
-                _lc_x, _lc_y, _lc_w, _lc_h = 624, 70, 180, 26
+                _lc_x, _lc_y, _lc_w, _lc_h = 624, _row_y, 180, 26
                 render_hud_panel(self.screen, _lc_x, _lc_y, _lc_w, _lc_h, (30, 50, 100))
-                render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "Q:ZAP",
+                render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "ZAP",
                                    _lc_x + 4, _lc_y + 3, (180, 240, 100))
-                _pip_w, _pip_h, _pip_gap = 55, 14, 6
-                _pip_start = _lc_x + 62
+                _pip_w, _pip_h, _pip_gap = 65, 14, 6
+                _pip_start = _lc_x + 44
                 for _pi in range(2):
                     _px = _pip_start + _pi * (_pip_w + _pip_gap)
                     _py = _lc_y + 5
@@ -6278,6 +6297,23 @@ class mainGame:
                         _pc = (40, 60, 30)
                     pygame.draw.rect(self.screen, _pc, (_px, _py, _pip_w, _pip_h), border_radius=4)
                     pygame.draw.rect(self.screen, (80, 120, 60), (_px, _py, _pip_w, _pip_h), 1, border_radius=4)
+                # Press hint below lightning bars
+                if self.lightning_charge >= 1:
+                    _zap_flash = 0.55 + 0.45 * abs(math.sin(pygame.time.get_ticks() * 0.018))
+                    _zap_col = (180, int(230 + 25 * _zap_flash), 80)
+                else:
+                    _zap_col = (160, 200, 120)
+                _zap_font = pygame.font.SysFont(None, 18, bold=True)
+                _zap = _zap_font.render("PRESS UP+A FOR ZAP", True, _zap_col)
+                _zap_sh = _zap_font.render("PRESS UP+A FOR ZAP", True, (0, 0, 0))
+                _zap_x = _lc_x + (_lc_w - _zap.get_width()) // 2
+                _zap_y = _lc_y + _lc_h + 4
+                _zap_bg = pygame.Surface((_zap.get_width() + 10, _zap.get_height() + 6),
+                                         pygame.SRCALPHA)
+                _zap_bg.fill((10, 30, 10, 200))
+                self.screen.blit(_zap_bg, (_zap_x - 5, _zap_y - 3))
+                self.screen.blit(_zap_sh, (_zap_x + 1, _zap_y + 1))
+                self.screen.blit(_zap, (_zap_x, _zap_y))
             if self.newGamePlusLevel > 0:
                 _ng_txt = _FONT_DAMAGE.render(
                     "NG+" + str(self.newGamePlusLevel), True, (255, 215, 0))
