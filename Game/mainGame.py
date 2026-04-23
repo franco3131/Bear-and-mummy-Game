@@ -1985,6 +1985,13 @@ class mainGame:
         continueLoop = True
         bear = Bear(150, 300, self.screen, self.thud_sound)
         self._bear_ref = bear
+        SpikeBlock._bear_ref = bear
+        # Reset spike sprite cache so the new procedural design is used
+        if hasattr(SpikeBlock, '_cached_sprite'):
+            try: del SpikeBlock._cached_sprite
+            except Exception: pass
+        # Cheat-code buffer for "777" -> god mode
+        self._cheat_seq = []
         bear.grunt_sound = self.grunt_sound
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
         bear._mmx_jump_sound = getattr(self, 'mmx_jump_sound', None)
@@ -2222,6 +2229,18 @@ class mainGame:
                         continue
                 if event.type == pygame.KEYDOWN:
                     _kk = event.key
+                    # ----- 777 god-mode cheat -------------------------------
+                    if _kk == pygame.K_7:
+                        self._cheat_seq.append('7')
+                        if len(self._cheat_seq) > 5:
+                            self._cheat_seq = self._cheat_seq[-5:]
+                        if not getattr(bear, '_god_mode', False) and ''.join(self._cheat_seq[-3:]) == '777':
+                            bear._god_mode = True
+                            bear.setHp(bear.getMaxHp())
+                            self._push_toast('GOD MODE ACTIVATED - UNLIMITED HEALTH', duration=300, color=(255, 220, 100))
+                    else:
+                        # Reset cheat buffer on any non-7 keypress so '777' must be consecutive
+                        self._cheat_seq = []
                     _ksym = None
                     if _kk == pygame.K_UP: _ksym = 'U'
                     elif _kk == pygame.K_DOWN: _ksym = 'D'
@@ -9507,6 +9526,8 @@ class Bear:
         return getattr(self, 'has_aimer', False)
 
     def applyDamage(self, amount):
+        if getattr(self, '_god_mode', False):
+            return 0
         if getattr(self, 'has_50pct_protection', False):
             amount = max(1, int(round(amount * 0.5)))
         elif getattr(self, 'has_shield', False):
@@ -9721,6 +9742,52 @@ class KeyItem:
 
 # ---------------------------------------------------------------------------
 class SpikeBlock():
+    _bear_ref = None  # set once at game start so spikes can scale damage to bear's max HP
+
+    @staticmethod
+    def _build_sprite(w=100, h=60):
+        """Cartoon Banjo-Kazooie style spike trap: wooden plank base with iron spikes."""
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        # Wooden plank base (warm brown with grain)
+        plank_y = h - 18
+        pygame.draw.rect(surf, (110, 70, 40), (0, plank_y, w, 18), border_radius=3)
+        pygame.draw.rect(surf, (140, 95, 55), (0, plank_y, w, 4), border_radius=2)
+        pygame.draw.rect(surf, (70, 42, 22), (0, h - 4, w, 4), border_radius=2)
+        # Wood grain lines
+        for gx in range(8, w, 18):
+            pygame.draw.line(surf, (80, 50, 28), (gx, plank_y + 5), (gx + 6, h - 5), 1)
+        # Iron rivets at corners
+        for rx in (5, w - 6):
+            for ry in (plank_y + 4, h - 6):
+                pygame.draw.circle(surf, (60, 60, 70), (rx, ry), 2)
+                pygame.draw.circle(surf, (180, 180, 190), (rx - 1, ry - 1), 1)
+        # Spikes - 5 cartoon iron triangles with highlights
+        spike_w = w // 5
+        for i in range(5):
+            cx = i * spike_w + spike_w // 2
+            tip_y = 4
+            base_y = plank_y + 2
+            # Black outline
+            outline = [(cx - spike_w // 2 - 1, base_y + 1),
+                       (cx, tip_y - 2),
+                       (cx + spike_w // 2 + 1, base_y + 1)]
+            pygame.draw.polygon(surf, (15, 15, 20), outline)
+            # Spike body — gradient look via two polygons
+            left_face = [(cx - spike_w // 2, base_y),
+                         (cx, tip_y),
+                         (cx, base_y)]
+            right_face = [(cx, base_y),
+                          (cx, tip_y),
+                          (cx + spike_w // 2, base_y)]
+            pygame.draw.polygon(surf, (180, 185, 200), left_face)   # bright left face
+            pygame.draw.polygon(surf, (110, 115, 130), right_face)  # darker right face
+            # Highlight streak
+            pygame.draw.line(surf, (235, 240, 250),
+                             (cx - 2, tip_y + 4), (cx - 4, base_y - 6), 2)
+            # Tip glint
+            pygame.draw.circle(surf, (255, 255, 255), (cx, tip_y + 2), 1)
+        return surf
+
     def __init__(self, x, y, screen):
         self.x = x
         self.y = y
@@ -9728,8 +9795,9 @@ class SpikeBlock():
         self.stunned = False
         self.health = 1
         self.damageAttack = random.randint(13, 26)
-        self.spike = pygame.image.load("Game/Images/spikes.png")
-        self.spike = pygame.transform.scale(self.spike, (100, 60))
+        if not hasattr(SpikeBlock, '_cached_sprite'):
+            SpikeBlock._cached_sprite = SpikeBlock._build_sprite(100, 60)
+        self.spike = SpikeBlock._cached_sprite
         self.isHurtAnimationStarted = False
         self.isHurtTimer = 0
 
@@ -9749,6 +9817,13 @@ class SpikeBlock():
         self.damageAttack = v
 
     def getDamageAttack(self):
+        # Spikes hurt for 5% of player's max HP (rounded, min 1).
+        _bear = SpikeBlock._bear_ref
+        if _bear is not None:
+            try:
+                return max(1, int(round(_bear.getMaxHp() * 0.05)))
+            except Exception:
+                pass
         return self.damageAttack // 2
 
     def setXPosition(self, x):
