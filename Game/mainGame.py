@@ -7136,6 +7136,36 @@ class mainGame:
             mini3 = MiniFrankenBear(2000, 200, self.screen)
             self.miniFrankenBears.extend([mini1, mini2, mini3])
 
+        # ── Calm Zone @ 31 500 – silent breather, only bombs + hearts ─────────
+        # Inserted in the 5 000-unit gap between the @29 000 mini-frankens zone
+        # and the @34 000 striped-platform zone. Sits ~56 % through the run.
+        elif (not self._monkey_level_active
+              and backgroundScrollX > 31500
+              and not getattr(self, '_calm_zone_active', False)):
+            self._calm_zone_active = True
+            self._calm_zone_exited = False
+            self._pre_calm_music = getattr(self, '_current_music', None)
+            self.mummys = []; self.witches = []; self.greenBlobs = []
+            self.fires = []; self.miniFrankenBears = []; self.shadowShamans = []
+            self.snakes = []; self.lasers = []; self.blocks = []
+            # Silence the music — bombs falling on a quiet stage
+            self._switch_music(None)
+            # A few hearts laid out at platform / floor heights
+            for _hx, _hy in [(500, 360), (900, 360), (1300, 360),
+                             (1700, 360), (2100, 360)]:
+                self.heart_drops.append({
+                    'x': float(_hx), 'y': float(_hy),
+                    'vy': 0.0, 'landed': True, 'life': 99999
+                })
+
+        # ── Calm Zone exit @ 33 500 – resume the previous track ───────────────
+        if (getattr(self, '_calm_zone_active', False)
+                and not getattr(self, '_calm_zone_exited', False)
+                and backgroundScrollX > 33500):
+            self._calm_zone_exited = True
+            _resume = getattr(self, '_pre_calm_music', None) or "deep_crypt"
+            self._switch_music(_resume)
+
         # ── Zone 5 @ 34 000 – striped platforms, mummies + 2 witches ─────────
         elif not self._monkey_level_active and backgroundScrollX > 34000 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
@@ -7679,6 +7709,18 @@ class mainGame:
             self._update_bonus_instrument_layer(track)
         except Exception:
             pass
+        if track is None:
+            try:
+                pygame.mixer.music.fadeout(600)
+            except Exception:
+                pass
+            try:
+                self._stop_tension_layers()
+            except Exception:
+                pass
+            if self._ambient_playing and self._ambient_channel:
+                self._ambient_channel.set_volume(0.0)
+            return
         if track in ("boss_mummy", "boss_final", "jungle", "post_boss_normal"):
             self._stop_tension_layers()
         _files = {
