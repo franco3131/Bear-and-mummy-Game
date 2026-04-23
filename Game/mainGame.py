@@ -5585,6 +5585,16 @@ class mainGame:
                                    'Press "s" to continue'])
                 bear.setEndText(False)
 
+            if (totalDistance > 45050 and not getattr(self, '_checkpoint2_saved', False)
+                    and bear.getEndText() and not self.escape
+                    and not getattr(self, '_monkey_level_active', False)):
+                self._checkpoint2_saved = True
+                self._save_checkpoint(backgroundScrollX, totalDistance, bear)
+                bear.setArrayText(['GAME SAVED!', '',
+                                   'Checkpoint reached at 80%.',
+                                   'Press "s" to continue'])
+                bear.setEndText(False)
+
             if bear.getCoins() == 42 and not self._easter_egg_42 and bear.getEndText():
                 self._easter_egg_42 = True
                 bear.setArrayText(['Nice, 42 coins!',
@@ -6562,6 +6572,7 @@ class mainGame:
                 self._fireball_tutorial_shown = True
                 self._clear_poison(bear)
                 self._checkpoint_saved = False
+                self._checkpoint2_saved = False
                 self._checkpoint_used = False
                 self._checkpoint_data = None
                 self._critical_hp_popup_shown = False
