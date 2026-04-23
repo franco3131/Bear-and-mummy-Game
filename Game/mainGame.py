@@ -4528,10 +4528,21 @@ class mainGame:
                 else:
                     _heart_chance = 0.85 if _hp_ratio < 0.15 else (0.60 if _hp_ratio < 0.30 else (0.40 if _hp_ratio < 0.50 else 0.18))
                 if random.random() < _heart_chance:
+                    # After 50% of the run, hearts have a chance to be SUPER hearts.
+                    _heal_amt = 25
+                    if totalDistance >= 28250:
+                        _hr = random.random()
+                        if _hr < 0.05:
+                            _heal_amt = 150
+                        elif _hr < 0.35:
+                            _heal_amt = 100
+                        elif _hr < 0.70:
+                            _heal_amt = 75
                     self.heart_drops.append({
                         'x': float(monster.getXPosition() + 40),
                         'y': float(monster.getYPosition()),
-                        'vy': -2.0, 'landed': False, 'life': 420
+                        'vy': -2.0, 'landed': False, 'life': 420,
+                        'heal': _heal_amt,
                     })
                 if monster in self.mummys:
                     self.mummys.remove(monster)
@@ -5195,7 +5206,8 @@ class mainGame:
                 pygame.draw.polygon(_heart_s, (255, 50, 80, 220), [
                     (_hcx - _hr, _hcy - 1), (_hcx, _hcy + _hr), (_hcx + _hr, _hcy - 1)])
                 _plus_font = pygame.font.SysFont(None, 28, bold=True)
-                _plus_txt = _plus_font.render('+25', True, (255, 255, 255))
+                _heal_disp = _hd.get('heal', 25)
+                _plus_txt = _plus_font.render('+' + str(_heal_disp), True, (255, 255, 255))
                 _heart_s.blit(_plus_txt, (_hcx - _plus_txt.get_width()//2, _hcy - _plus_txt.get_height()//2 - 2))
                 self.screen.blit(_heart_s, (_hx - _hcx, _hy - _hcy))
                 if _hd['life'] <= 0:
@@ -5203,7 +5215,7 @@ class mainGame:
                 elif _hd['landed']:
                     _hd_rect = pygame.Rect(_hx - 15, _hy - 15, 30, 30)
                     if _hd_rect.colliderect(pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)):
-                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + 25))
+                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + _hd.get('heal', 25)))
                         bear.setCoins(bear.getCoins() + 1)
                         if getattr(self, 'coin_sound', None):
                             self.coin_sound.play()
@@ -5302,30 +5314,8 @@ class mainGame:
                         'big': _g_big, 'instant': _g_instant,
                     })
 
-            if not getattr(self, '_bomb_wave_30', False) and backgroundScrollX >= 18000:
-                self._bomb_wave_30 = True
-                import random as _br30
-                _bear_cx30 = bear.getXPosition() + 50
-                for _bwi in range(4):
-                    _bwx = max(30, min(870, _bear_cx30 + _br30.randint(100, 600) * (_br30.choice([-1, 1]))))
-                    self.bombs.append({
-                        'x': float(_bwx), 'y': -40.0 - _bwi * 30, 'vy': 3.0,
-                        'landed': False, 'timer': _br30.choice([2, 3]) * 60,
-                        'exploding': False, 'explode_anim': 0,
-                        'big': _bwi == 0
-                    })
-            if not getattr(self, '_bomb_wave_60', False) and backgroundScrollX >= 36000:
-                self._bomb_wave_60 = True
-                import random as _br60
-                _bear_cx60 = bear.getXPosition() + 50
-                for _bwi in range(5):
-                    _bwx = max(30, min(870, _bear_cx60 + _br60.randint(100, 600) * (_br60.choice([-1, 1]))))
-                    self.bombs.append({
-                        'x': float(_bwx), 'y': -40.0 - _bwi * 25, 'vy': 3.5,
-                        'landed': False, 'timer': _br60.choice([1, 2, 3]) * 60,
-                        'exploding': False, 'explode_anim': 0,
-                        'big': _bwi < 2
-                    })
+            # Removed legacy 30%/60% bomb wave bursts — they fired in zones
+            # that aren't bomb zones, breaking the every-other-zone policy.
 
             # Every-other-zone bomb policy: each zone's [start, end) range
             # below is a "bomb zone". Scroll outside these ranges = no bombs.
@@ -7333,20 +7323,19 @@ class mainGame:
             block4 = Block(1100, 200, 1000, 60, "greyRock",  self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
+            # Reduced density + spread out — less overwhelming
             greenBlob  = GreenBlob(1030, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob2 = GreenBlob(1450, 300, 100, 100, self.screen, self.blob_jump_sound)
-            greenBlob3 = GreenBlob(1900, 300, 100, 100, self.screen, self.blob_jump_sound)
-            self.greenBlobs.extend([greenBlob, greenBlob2, greenBlob3])
+            greenBlob2 = GreenBlob(2400, 300, 100, 100, self.screen, self.blob_jump_sound)
+            self.greenBlobs.extend([greenBlob, greenBlob2])
 
-            x = 1350
-            for _ in range(4):
+            x = 1500
+            for _ in range(3):
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-                x += 500
+                x += 700
 
-            mini1 = MiniFrankenBear(1500, 160, self.screen)
-            mini2 = MiniFrankenBear(1900, 200, self.screen)
-            self.miniFrankenBears.extend([mini1, mini2])
+            mini1 = MiniFrankenBear(2000, 160, self.screen)
+            self.miniFrankenBears.append(mini1)
 
         # ── Quiet Zone 2 @ 42 000 – longer silent stretch with creative ──────
         # blocks, only bombs + falling fireballs (no music, no enemies).
@@ -7407,12 +7396,11 @@ class mainGame:
             block3 = Block(1580, 280, 100, 60, "checkered", self.screen)
             self.blocks.extend([block1, block2, block3])
 
-            witch1 = Witch(1900, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1600, 250, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(2200, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch4 = Witch(1400, 120, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2, witch3, witch4])
-            for x in [1050, 1450, 1850]:
+            # Reduced + spread — was 4 witches + 3 mummies
+            witch1 = Witch(1500, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(2400, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            self.witches.extend([witch1, witch2])
+            for x in [1050, 1900, 2700]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
 
@@ -7437,18 +7425,16 @@ class mainGame:
             self.spikes.append(SpikeBlock(1600, 340, self.screen))
             self.spikes.append(SpikeBlock(1900, 340, self.screen))
 
-            for x in [1000, 1400, 1800]:
+            # Reduced + spread — was 3 mummies + 2 witches + 2 blobs + 2 minis
+            for x in [1000, 1900, 2800]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-            witch1 = Witch(1400, 180, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1700, 120, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2])
-            self.greenBlobs.append(GreenBlob(1150, 300, 100, 100, self.screen, self.blob_jump_sound))
-            self.greenBlobs.append(GreenBlob(1650, 300, 100, 100, self.screen, self.blob_jump_sound))
+            witch1 = Witch(2300, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            self.witches.extend([witch1])
+            self.greenBlobs.append(GreenBlob(1500, 300, 100, 100, self.screen, self.blob_jump_sound))
 
-            mini1 = MiniFrankenBear(1200, 140, self.screen)
-            mini2 = MiniFrankenBear(1700, 100, self.screen)
-            self.miniFrankenBears.extend([mini1, mini2])
+            mini1 = MiniFrankenBear(2500, 120, self.screen)
+            self.miniFrankenBears.extend([mini1])
             self.triggerFire = True
 
         # ── Zone 8.5 @ 53 500 – "Shadow Ambush" ──────────────────────────────
@@ -7466,21 +7452,20 @@ class mainGame:
             self.spikes.append(SpikeBlock(1200, 340, self.screen))
             self.spikes.append(SpikeBlock(1500, 340, self.screen))
 
+            # Reduced + spread — was 2 shamans + 2 minis + 2 mummies + 2 blobs
             self.shadowShamans.extend([
                 ShadowShaman(1100, 180, self.witch, self.witch2, self.screen),
-                ShadowShaman(1600, 140, self.witch, self.witch2, self.screen),
+                ShadowShaman(2400, 140, self.witch, self.witch2, self.screen),
             ])
-            mini1 = MiniFrankenBear(1300, 120, self.screen)
-            mini2 = MiniFrankenBear(1800, 160, self.screen)
-            self.miniFrankenBears.extend([mini1, mini2])
+            mini1 = MiniFrankenBear(1900, 120, self.screen)
+            self.miniFrankenBears.extend([mini1])
 
             self.mummys.extend([
-                Mummy(1050, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
-                Mummy(1550, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(1500, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
+                Mummy(2800, 300, 100, 100, self.mummy1, self.mummy2, self.screen),
             ])
             self.greenBlobs.extend([
-                GreenBlob(1300, 300, 100, 100, self.screen, self.blob_jump_sound),
-                GreenBlob(1800, 300, 100, 100, self.screen, self.blob_jump_sound),
+                GreenBlob(2200, 300, 100, 100, self.screen, self.blob_jump_sound),
             ])
             self.triggerFire = True
 
