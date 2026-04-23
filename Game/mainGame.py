@@ -5323,7 +5323,20 @@ class mainGame:
                         'big': _bwi < 2
                     })
 
-            if not _popup_active and totalDistance < 56000 and totalDistance > 500:
+            # Every-other-zone bomb policy: each zone's [start, end) range
+            # below is a "bomb zone". Scroll outside these ranges = no bombs.
+            _BOMB_RANGES = (
+                ( 5000,  8000),  # zone 1
+                (11000, 14500),  # zone 3
+                (18500, 22000),  # zone 5
+                (25500, 29000),  # zone 7
+                (31500, 34000),  # zone 9 (calm)
+                (36500, 39500),  # zone 11
+                (45000, 50500),  # zone 13
+                (53500, 56500),  # zone 15
+            )
+            _is_bomb_zone = any(_lo <= totalDistance < _hi for _lo, _hi in _BOMB_RANGES)
+            if not _popup_active and _is_bomb_zone:
                 self._bomb_spawn_timer += 1
                 # Calm zone gets more bombs, faster.
                 _in_calm = getattr(self, '_calm_zone_active', False) and not getattr(self, '_calm_zone_exited', False)
