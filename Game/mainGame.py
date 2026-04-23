@@ -8039,6 +8039,11 @@ class Background():
         self.bgX1 = 0
         self.bgY2 = 0
         self.bgX2 = self.rectBGimg.width
+        # Per-tile variant: 0 = regular sway pair, 1 = alt (coffin) tile.
+        # Slots start opposite so the alt is visible right away, then they
+        # flip every time a tile wraps off-screen — alternating forever.
+        self._bg1_variant = 0
+        self._bg2_variant = 1
         self.surface = surface
         # Reduced from 10 → 3 to match the slower STEP-based world movement
         self.moving_speed = 3
@@ -8101,8 +8106,13 @@ class Background():
                 if self._sway_timer >= self._sway_period:
                     self._sway_timer = 0
                     self._sway_frame = 1 - self._sway_frame
-                self.bgimage = self.bg_pairs[bg_idx][self._sway_frame]
-                self.bgimage_alt = self.bg_pairs[bg_idx][1 - self._sway_frame]
+                # Pick image per tile based on its current variant so the
+                # regular and alt (coffin) backgrounds alternate as the
+                # world scrolls — not just once at the start.
+                _reg = self.bg_pairs[bg_idx][self._sway_frame]
+                _alt = self.bg_alt_pairs[bg_idx]
+                self.bgimage     = _alt if self._bg1_variant == 1 else _reg
+                self.bgimage_alt = _alt if self._bg2_variant == 1 else self.bg_pairs[bg_idx][1 - self._sway_frame]
 
         if getattr(self, '_ng_blue', False):
             self.surface.fill((15, 25, 60))
@@ -8160,16 +8170,20 @@ class Background():
             self.bgX2 -= self.moving_speed
             if self.bgX1 <= -self.rectBGimg.width:
                 self.bgX1 = self.rectBGimg.width
+                self._bg1_variant = 1 - self._bg1_variant
             if self.bgX2 <= -self.rectBGimg.width:
                 self.bgX2 = self.rectBGimg.width
+                self._bg2_variant = 1 - self._bg2_variant
         elif characterPosition <= 180:
             self.totalX -= STEP
             self.bgX1 += self.moving_speed
             self.bgX2 += self.moving_speed
             if self.bgX1 >= self.rectBGimg.width:
                 self.bgX1 = -self.rectBGimg.width
+                self._bg1_variant = 1 - self._bg1_variant
             if self.bgX2 >= self.rectBGimg.width:
                 self.bgX2 = -self.rectBGimg.width
+                self._bg2_variant = 1 - self._bg2_variant
 
 
 # ---------------------------------------------------------------------------
