@@ -7416,10 +7416,10 @@ class mainGame:
             return
         import random as _brnd
         snd = _brnd.choice(_candidates)
-        _vol = 0.32 if track in ("normal", "post_boss_normal") else 0.38
+        _vol = 0.85 if track in ("normal", "post_boss_normal") else 0.95
         try:
             ch.stop()
-            ch.play(snd, loops=-1, fade_ms=1500)
+            ch.play(snd, loops=-1, fade_ms=800)
             ch.set_volume(_vol)
         except Exception:
             pass
