@@ -3066,6 +3066,9 @@ class mainGame:
                                  _fb_img,
                                  self.screen,
                                  size=(78, 78) if getattr(bear, 'has_big_fireball', False) else (60, 60)))
+                    # Enable fiery trail; length grows 3% per bear level
+                    self.playerFires[-1]._trail_enabled = True
+                    self.playerFires[-1]._trail_max_len = max(3, int(round(8 * (1 + 0.03 * bear.getLevel()))))
                     if getattr(self, 'mmx_lemon_shot_sound', None):
                         try: self.mmx_lemon_shot_sound.play()
                         except Exception: pass
@@ -4106,12 +4109,42 @@ class mainGame:
                     bear.leftJump(self.blocks)
 
             # ---- Slide pose (Mega-Man-X style) ---------------------------------
+            if bear.slide_frames <= 0 and getattr(bear, '_slide_trail', None):
+                bear._slide_trail = []  # reset between slides
             if bear.slide_frames > 0:
                 # Floor anchor: bottom of standing sprite = bear.y + 115
                 _attack_h = self.bearAttacking.get_height()  # 105
                 # Sit attack sprite flush with the floor (its bottom = standing bottom)
                 _slide_y = bear.getYPosition() + 115 - _attack_h
                 _slide_x = bear.getXPosition() - (90 if bear.slide_dir < 0 else 0)
+                # ----- Rainbow slide trail (length scales 3% per level) -----
+                if not hasattr(bear, '_slide_trail'):
+                    bear._slide_trail = []
+                bear._slide_trail.append((bear.getXPosition(), bear.getYPosition()))
+                _slide_max = max(6, int(round(12 * (1 + 0.03 * bear.getLevel()))))
+                if len(bear._slide_trail) > _slide_max:
+                    bear._slide_trail = bear._slide_trail[-_slide_max:]
+                _rainbow = [
+                    (255, 60,  60),   # red
+                    (255, 150, 50),   # orange
+                    (255, 230, 60),   # yellow
+                    (80,  220, 90),   # green
+                    (60,  160, 255),  # blue
+                    (160, 80,  220),  # purple
+                ]
+                _n = len(bear._slide_trail)
+                for _i, (_tx, _ty) in enumerate(bear._slide_trail[:-1]):
+                    _frac = (_i + 1) / _n
+                    _alpha = int(220 * _frac)
+                    _radius = max(4, int(22 * _frac))
+                    _col = _rainbow[_i % len(_rainbow)]
+                    _gs = pygame.Surface((_radius * 2, _radius * 2), pygame.SRCALPHA)
+                    pygame.draw.circle(_gs, (*_col, _alpha),
+                                       (_radius, _radius), _radius)
+                    pygame.draw.circle(_gs, (255, 255, 255, min(255, _alpha + 30)),
+                                       (_radius, _radius), max(1, _radius // 3))
+                    self.screen.blit(_gs, (_tx + 50 - _radius,
+                                           _ty + 80 - _radius))
                 if bear.slide_dir < 0:
                     self.screen.blit(self.bearAttackingLeft, (_slide_x, _slide_y))
                 else:
@@ -8683,6 +8716,27 @@ class FireBall():
             self.y -= self.vel_y
             _bs = getattr(self, '_bounce_sound', None)
             if _bs: _bs.play()
+        # ----- Optional fiery trail (player fireballs only) -----
+        if getattr(self, '_trail_enabled', False):
+            if not hasattr(self, '_trail_pts'):
+                self._trail_pts = []
+            self._trail_pts.append((self.x, self.y))
+            _max_len = max(3, getattr(self, '_trail_max_len', 8))
+            if len(self._trail_pts) > _max_len:
+                self._trail_pts = self._trail_pts[-_max_len:]
+            _fw = self.fire.get_width(); _fh = self.fire.get_height()
+            for _i, (_tx, _ty) in enumerate(self._trail_pts[:-1]):
+                _frac = (_i + 1) / len(self._trail_pts)
+                _radius = max(3, int(_fw * 0.35 * _frac))
+                _alpha = int(180 * _frac * _frac)
+                # Outer glow (orange)
+                _gs = pygame.Surface((_radius*2, _radius*2), pygame.SRCALPHA)
+                pygame.draw.circle(_gs, (255, 140, 30, _alpha),
+                                   (_radius, _radius), _radius)
+                pygame.draw.circle(_gs, (255, 220, 120, min(255, _alpha+40)),
+                                   (_radius, _radius), max(1, _radius // 2))
+                self.screen.blit(_gs, (_tx + _fw//2 - _radius,
+                                       _ty + _fh//2 - _radius))
         self.screen.blit(self.fire, (self.x, self.y))
 
     def drawFireBallFrozen(self):
