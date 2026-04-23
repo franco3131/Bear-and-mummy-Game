@@ -377,3 +377,39 @@ id = "7qBy6xt4EU72bzqgck3jw"
 uri = "file://Game/Sounds/samples/coin_magic_shimmer.wav"
 type = "audio"
 title = "7. Magic Shimmer — rising magical sweep"
+
+[[outputs]]
+id = "yhQHFR35vCzoG28V8ugwu"
+uri = "file://Game/Sounds/samples/jump_cartoon_boing.wav"
+type = "audio"
+title = "1. Cartoon Boing — classic V-shape sweep"
+
+[[outputs]]
+id = "DnlI_GcrDYVoWhsmBZ6K-"
+uri = "file://Game/Sounds/samples/jump_squeak.wav"
+type = "audio"
+title = "2. Squeak — squeaky toy chirp"
+
+[[outputs]]
+id = "k-DWN-o1rDLuQNxNpXo3g"
+uri = "file://Game/Sounds/samples/jump_anime_hyup.wav"
+type = "audio"
+title = "3. Anime Hyup — short vocal-ish blip"
+
+[[outputs]]
+id = "xzk0f0ny8vYdHfM55F0mI"
+uri = "file://Game/Sounds/samples/jump_spring_sproing.wav"
+type = "audio"
+title = "4. Spring Sproing — vibrato spring sound"
+
+[[outputs]]
+id = "5Jsa_a9iIJoiMSjOOY6Wx"
+uri = "file://Game/Sounds/samples/jump_whoosh_pop.wav"
+type = "audio"
+title = "5. Whoosh + Pop — air rush ending in soft pop"
+
+[[outputs]]
+id = "3rRXUO5kLVOiu1IXlTQwj"
+uri = "file://Game/Sounds/samples/jump_arpeggio.wav"
+type = "audio"
+title = "6. Arpeggio — 3-note ascending uplift"
