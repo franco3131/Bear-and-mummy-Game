@@ -5298,21 +5298,32 @@ class mainGame:
 
             if not _popup_active and totalDistance < 56000 and totalDistance > 500:
                 self._bomb_spawn_timer += 1
-                _bomb_interval = 900
+                # Calm zone gets more bombs, faster.
+                _in_calm = getattr(self, '_calm_zone_active', False) and not getattr(self, '_calm_zone_exited', False)
+                _bomb_interval = 220 if _in_calm else 420
                 if self._bomb_spawn_timer >= _bomb_interval:
                     self._bomb_spawn_timer = 0
                     import random as _br
                     _bear_bx = bear.getXPosition() + 50
-                    _bx = max(30, min(870, _bear_bx + _br.randint(200, 500)))
-                    _is_big = _br.random() < 0.20
-                    _is_instant = _br.random() < 0.15
-                    _timer_secs = 0 if _is_instant else _br.choice([1, 2, 3])
-                    self.bombs.append({
-                        'x': float(_bx), 'y': -40.0, 'vy': 3.0,
-                        'landed': False, 'timer': _timer_secs * 60,
-                        'exploding': False, 'explode_anim': 0,
-                        'big': _is_big, 'instant': _is_instant,
-                    })
+                    # Drop a small cluster, not just one
+                    _cluster = _br.randint(2, 4) if _in_calm else _br.randint(1, 3)
+                    for _ci in range(_cluster):
+                        _bx = max(30, min(870, _bear_bx + _br.randint(-250, 500)))
+                        _is_big = _br.random() < 0.25
+                        _is_instant = _br.random() < 0.40
+                        # Fewer "long fuse" bombs — most go off in 1s
+                        _timer_secs = 0 if _is_instant else _br.choice([1, 1, 1, 2])
+                        # Angled toss: random horizontal velocity ±
+                        _vx = _br.uniform(-2.8, 2.8)
+                        # Faster vertical drop
+                        _vy = _br.uniform(5.5, 7.5)
+                        self.bombs.append({
+                            'x': float(_bx), 'y': -40.0 - _ci * 30,
+                            'vx': _vx, 'vy': _vy,
+                            'landed': False, 'timer': _timer_secs * 60,
+                            'exploding': False, 'explode_anim': 0,
+                            'big': _is_big, 'instant': _is_instant,
+                        })
 
             _bombs_remove = []
             _bear_cx = bear.getXPosition() + 50
@@ -5409,11 +5420,20 @@ class mainGame:
                                 self.bear_hurt_sound.play()
                 else:
                     _bomb['y'] += _bomb['vy']
-                    _bomb['vy'] += 0.15
+                    _bomb['vy'] += 0.28
+                    _bomb['x'] += _bomb.get('vx', 0.0)
+                    # Bounce off the screen edges so angled bombs stay in play
+                    if _bomb['x'] < 20:
+                        _bomb['x'] = 20.0
+                        _bomb['vx'] = abs(_bomb.get('vx', 0.0)) * 0.7
+                    elif _bomb['x'] > 880:
+                        _bomb['x'] = 880.0
+                        _bomb['vx'] = -abs(_bomb.get('vx', 0.0)) * 0.7
                     if _bomb['y'] >= 385:
                         _bomb['y'] = 385.0
                         _bomb['landed'] = True
                         _bomb['vy'] = 0.0
+                        _bomb['vx'] = 0.0
                     _bx_i = int(_bomb['x'])
                     _by_i = int(_bomb['y'])
                     # ─── QoL: landing-shadow telegraph on the ground ───
