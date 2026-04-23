@@ -3249,13 +3249,11 @@ class mainGame:
                 if beamCharge >= 100.0 and not beamReadyPopupShown:
                     beamReadyPopupShown = True
                     self._beam_ever_shown = True
-                    _show_beam_hint = (self._beam_uses_total == 0 or self._kills_since_beam_use >= 10)
-                    if _show_beam_hint:
-                        self._push_toast('\u26A1 BEAM READY! Press A+DOWN \u26A1', duration=240, color=(180, 255, 220))
-                        bear._level_up_float = 210
-                        bear._level_up_float_max = 210
-                        bear._level_up_text = 'BEAM READY! PRESS A + DOWN'
-                        self._kills_since_beam_use = 0
+                    _ready_snd = (getattr(self, 'mmx_powerup_sound', None)
+                                  or getattr(self, 'level_up_sound', None))
+                    if _ready_snd:
+                        try: _ready_snd.play()
+                        except Exception: pass
                 _beam_combo = (keys[pygame.K_a] and keys[pygame.K_DOWN])
                 if (keys[pygame.K_c] or _beam_combo) and beamCharge >= 100.0 and beamCooldown == 0:
                     beamCharge = 0.0
@@ -6202,18 +6200,27 @@ class mainGame:
                 _hm_surf = _hm_font.render('HARD MODE', True, (255, 80, 80))
                 self.screen.blit(_hm_surf, (810 - _hm_surf.get_width(), 680))
             _bc_x, _bc_y, _bc_w, _bc_h = 624, 6, 180, 28
-            render_hud_panel(self.screen, _bc_x, _bc_y, _bc_w, _bc_h, (30, 50, 100))
             _bc_ratio = min(1.0, beamCharge / 100.0)
             if _bc_ratio >= 1.0:
-                _bc_col = (100, 200, 255)
+                _flash = 0.55 + 0.45 * abs(math.sin(pygame.time.get_ticks() * 0.012))
+                _bc_col = (int(120 + 120 * _flash), int(180 + 60 * _flash), 255)
+                _panel_col = (int(40 + 60 * _flash), int(80 + 80 * _flash), 180)
             else:
                 _bc_col = (60, 100, 180)
+                _panel_col = (30, 50, 100)
+            render_hud_panel(self.screen, _bc_x, _bc_y, _bc_w, _bc_h, _panel_col)
             render_hud_bar(self.screen, _bc_x + 50, _bc_y + 5, _bc_w - 58, 14, _bc_ratio, _bc_col)
             render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "BEAM",
                                _bc_x + 6, _bc_y + 4, (100, 200, 255))
             if _bc_ratio >= 1.0:
-                _rdy = _FONT_HUD_VAL.render("C:READY", True, (255, 255, 100))
-                self.screen.blit(_rdy, (_bc_x + 52, _bc_y + 14))
+                _rdy_font = pygame.font.SysFont(None, 18, bold=True)
+                _rdy_col = (255, int(220 + 35 * _flash), 80)
+                _rdy = _rdy_font.render("PRESS C  or  DOWN+A", True, _rdy_col)
+                _rdy_sh = _rdy_font.render("PRESS C  or  DOWN+A", True, (0, 0, 0))
+                _rdy_x = _bc_x - _rdy.get_width() - 8
+                _rdy_y = _bc_y + (_bc_h - _rdy.get_height()) // 2
+                self.screen.blit(_rdy_sh, (_rdy_x + 1, _rdy_y + 1))
+                self.screen.blit(_rdy, (_rdy_x, _rdy_y))
             # ---- Lightning charge pips HUD (2 charges) ------------------
             if getattr(bear, 'has_lightning', False):
                 _lc_x, _lc_y, _lc_w, _lc_h = 624, 38, 180, 26
