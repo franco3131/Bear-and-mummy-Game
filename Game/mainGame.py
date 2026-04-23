@@ -6217,13 +6217,17 @@ class mainGame:
                 _rdy_col = (255, int(220 + 35 * _flash), 80)
                 _rdy = _rdy_font.render("PRESS C  or  DOWN+A", True, _rdy_col)
                 _rdy_sh = _rdy_font.render("PRESS C  or  DOWN+A", True, (0, 0, 0))
-                _rdy_x = _bc_x - _rdy.get_width() - 8
+                _rdy_x = _bc_x - _rdy.get_width() - 12
                 _rdy_y = _bc_y + (_bc_h - _rdy.get_height()) // 2
+                _rdy_bg = pygame.Surface((_rdy.get_width() + 10, _rdy.get_height() + 6),
+                                          pygame.SRCALPHA)
+                _rdy_bg.fill((10, 10, 30, 180))
+                self.screen.blit(_rdy_bg, (_rdy_x - 5, _rdy_y - 3))
                 self.screen.blit(_rdy_sh, (_rdy_x + 1, _rdy_y + 1))
                 self.screen.blit(_rdy, (_rdy_x, _rdy_y))
             # ---- Lightning charge pips HUD (2 charges) ------------------
             if getattr(bear, 'has_lightning', False):
-                _lc_x, _lc_y, _lc_w, _lc_h = 624, 38, 180, 26
+                _lc_x, _lc_y, _lc_w, _lc_h = 624, 70, 180, 26
                 render_hud_panel(self.screen, _lc_x, _lc_y, _lc_w, _lc_h, (30, 50, 100))
                 render_hud_text_outlined(self.screen, _FONT_HUD_VAL, "Q:ZAP",
                                    _lc_x + 4, _lc_y + 3, (180, 240, 100))
