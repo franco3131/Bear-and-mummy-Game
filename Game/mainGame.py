@@ -2169,7 +2169,7 @@ class mainGame:
         self._current_music = "normal"
         self._footstep_counter = 0
         self._mummy_groan_timer = 0
-        beamCharge = 0.0
+        beamCharge = 50.0
         beamCooldown = 0
         beamReadyPopupShown = False
         _q_key_prev = False
