@@ -6371,9 +6371,6 @@ class mainGame:
                     if (not self.triggerText2
                             and door_x - 150 <= bear.getXPosition()):
                         self.triggerText2 = True
-                        bear._level_up_float = 180
-                        bear._level_up_float_max = 180
-                        bear._level_up_text = 'DOOR OPENED!'
 
             if not bear.getEndText():
                 bear.displayTextBox()
@@ -7349,6 +7346,13 @@ class mainGame:
             self._secret_box_spawned = True
             secret_block = DestroyableBlock(1550, 110, 80, 80, self.screen, secret=True)
             self.destroyable_blocks.append(secret_block)
+
+        # ── Mid-game Mini FrankenBear ambush @ 27 500 (~50%) ──────────────────
+        elif (not self._monkey_level_active
+              and backgroundScrollX > 27500
+              and not getattr(self, '_mid_mini_spawned', False)):
+            self._mid_mini_spawned = True
+            self.miniFrankenBears.append(MiniFrankenBear(1500, 200, self.screen))
 
         # ── Zone 4.2 @ 29 000 – mini frankenbeares with rainbow lasers ────────
         elif not self._monkey_level_active and backgroundScrollX > 29000 and not self.activeMonsters[12]:
@@ -9177,20 +9181,22 @@ class FireBall():
             if not hasattr(self, '_trail_pts'):
                 self._trail_pts = []
             self._trail_pts.append((self.x, self.y))
-            _max_len = max(3, getattr(self, '_trail_max_len', 8))
+            _max_len = max(3, getattr(self, '_trail_max_len', 16))
             if len(self._trail_pts) > _max_len:
                 self._trail_pts = self._trail_pts[-_max_len:]
             _fw = self.fire.get_width(); _fh = self.fire.get_height()
             for _i, (_tx, _ty) in enumerate(self._trail_pts[:-1]):
                 _frac = (_i + 1) / len(self._trail_pts)
-                _radius = max(3, int(_fw * 0.35 * _frac))
-                _alpha = int(180 * _frac * _frac)
+                _radius = max(4, int(_fw * 0.55 * _frac))
+                _alpha = int(220 * _frac * _frac)
                 # Outer glow (orange)
                 _gs = pygame.Surface((_radius*2, _radius*2), pygame.SRCALPHA)
-                pygame.draw.circle(_gs, (255, 140, 30, _alpha),
+                pygame.draw.circle(_gs, (255, 90, 20, _alpha),
                                    (_radius, _radius), _radius)
-                pygame.draw.circle(_gs, (255, 220, 120, min(255, _alpha+40)),
-                                   (_radius, _radius), max(1, _radius // 2))
+                pygame.draw.circle(_gs, (255, 170, 60, min(255, _alpha + 40)),
+                                   (_radius, _radius), max(2, int(_radius * 0.7)))
+                pygame.draw.circle(_gs, (255, 240, 180, min(255, _alpha + 80)),
+                                   (_radius, _radius), max(1, int(_radius * 0.35)))
                 self.screen.blit(_gs, (_tx + _fw//2 - _radius,
                                        _ty + _fh//2 - _radius))
         self.screen.blit(self.fire, (self.x, self.y))
