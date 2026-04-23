@@ -6259,7 +6259,8 @@ class mainGame:
                             break
                     except Exception:
                         pass
-                if _bm_visible and not getattr(self, '_bigMummy_alert_shown', False):
+                if (_bm_visible and not getattr(self, '_bigMummy_alert_shown', False)
+                        and self._intro_banner is None):
                     self._bigMummy_alert_shown = True
                     self.triggerText1 = True
                     self._mummy_hint_active = True
