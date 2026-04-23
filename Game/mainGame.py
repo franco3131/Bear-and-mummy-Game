@@ -2309,7 +2309,12 @@ class mainGame:
                         if not getattr(bear, '_god_mode', False) and ''.join(self._cheat_seq[-3:]) == '777':
                             bear._god_mode = True
                             bear.setHp(bear.getMaxHp())
-                            self._push_toast('GOD MODE ACTIVATED - UNLIMITED HEALTH', duration=300, color=(255, 220, 100))
+                            bear.setDamageAttack(9999)
+                            try:
+                                bear.fireballDamage = 9999
+                            except Exception:
+                                pass
+                            self._push_toast('GOD MODE ACTIVATED - UNLIMITED HEALTH + 9999 ATK', duration=300, color=(255, 220, 100))
                     else:
                         # Reset cheat buffer on any non-7 keypress so '777' must be consecutive
                         self._cheat_seq = []
