@@ -1182,6 +1182,33 @@ class mainGame:
             pygame.draw.circle(s, mid + (255,), (c, c), size // 3)
             pygame.draw.circle(s, core + (220,), (c, c), size // 6)
             return s
+        # Tier-1 RED fireball — comet-style: tapered tail, hot white core,
+        # crimson outer glow with scalloped flame edges.
+        def _redFireball(size=54):
+            import math as _m
+            s = pygame.Surface((size, size), pygame.SRCALPHA)
+            cx, cy = size // 2, size // 2
+            # Soft outer halo
+            for _r, _a in [(size//2, 60), (size//2 - 4, 110), (size//2 - 8, 170)]:
+                _g = pygame.Surface((size, size), pygame.SRCALPHA)
+                pygame.draw.circle(_g, (255, 60, 20, _a), (cx, cy), _r)
+                s.blit(_g, (0, 0))
+            # Flame petals around the body for a flickery silhouette
+            for _ang in range(0, 360, 30):
+                _rad = _m.radians(_ang)
+                _px = cx + int((size//2 - 6) * _m.cos(_rad))
+                _py = cy + int((size//2 - 6) * _m.sin(_rad))
+                pygame.draw.circle(s, (255, 110, 30, 220), (_px, _py), 6)
+            # Mid body — bright orange
+            pygame.draw.circle(s, (255, 150,  40, 255), (cx, cy), size // 3)
+            # Hot inner core — yellow→white
+            pygame.draw.circle(s, (255, 230, 120, 255), (cx, cy), size // 5)
+            pygame.draw.circle(s, (255, 255, 240, 255), (cx, cy), size // 9)
+            # Tiny dark crescent for that cartoon "shaded" look
+            pygame.draw.circle(s, (180,  20,  10, 120),
+                               (cx + size//8, cy + size//8), size // 7)
+            return s
+        self.fireBossBall = _redFireball()
         self.fireballYellow = _fireball_surf((220, 200,   0), (255, 255,  80))
         self.fireballGreen  = _fireball_surf((  0, 160,  30), ( 80, 255, 100))
         self.fireballBlue   = _fireball_surf((  0,  80, 220), ( 80, 180, 255))
