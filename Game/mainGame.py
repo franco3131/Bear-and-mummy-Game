@@ -2237,8 +2237,8 @@ class mainGame:
                     _border_col = (90, 90, 120)
                     _border_w = 1
                 _info_lines = [
-                    'Z: Attack    X: Fireball    SPACE: Jump    DOWN+SPACE: Slide',
-                    'ENTER: Shop    P: Pause/Menu    I (x3): Show Progress %',
+                    'Z: Attack    X: Fireball    C or DOWN+A: Beam',
+                    'SPACE: Jump/Slide    ENTER: Shop    P: Pause/Menu',
                 ]
                 _line_h = _font_info.get_height() + 2
                 _strip_h = _line_h * len(_info_lines) + 10
@@ -5882,7 +5882,7 @@ class mainGame:
             if _bm_ref is not None:
                 _bw = 720; _bh = 26
                 _bx = (900 - _bw) // 2
-                _by = 40
+                _by = 470
                 _maxhp = max(1, getattr(_bm_ref, 'max_health', getattr(_bm_ref, 'health', 1)))
                 _hp = max(0, getattr(_bm_ref, 'health', _maxhp))
                 # NG+ buffs raise current health above the originally-stored
@@ -7123,6 +7123,7 @@ class mainGame:
                 (2200, 150),
             ]
             self.snakes.append(Snake(1500, 220, self.screen))
+            self.miniFrankenBears.append(MiniFrankenBear(2400, 180, self.screen))
 
         # ── Zone 1.2 reinforcements @ 9 500 – the other two witches arrive ────
         # Spawn just off-screen to the right (screen ≈ 900 wide) so they
@@ -7857,7 +7858,7 @@ class mainGame:
         if not getattr(self, '_toasts', None):
             return
         _toast_font = pygame.font.SysFont(None, 34, bold=True)
-        _y_base = 660
+        _y_base = 590
         _alive = []
         for i, _t in enumerate(self._toasts):
             _t['life'] -= 1
