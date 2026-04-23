@@ -2212,28 +2212,14 @@ class mainGame:
                 # ---------- READY banner (first 180 frames only) ----------
                 if _ready_state['timer'] > 0:
                     _f = 180 - _ready_state['timer']
-                    _font_main = pygame.font.SysFont(None, 140, bold=True)
+                    _font_main = pygame.font.SysFont(None, 56, bold=True)
                     _pulse = 1.0 + 0.18 * math.sin(_f * 0.30)
                     _g = max(180, min(255, int(220 * _pulse)))
-                    _scale = 1.0 + 0.10 * math.sin(_f * 0.18)
                     _txt = _font_main.render('READY!', True, (255, _g, 120))
                     _sh  = _font_main.render('READY!', True, (0, 0, 0))
-                    if abs(_scale - 1.0) > 0.01:
-                        _tw = max(1, int(_txt.get_width() * _scale))
-                        _th = max(1, int(_txt.get_height() * _scale))
-                        _txt = pygame.transform.scale(_txt, (_tw, _th))
-                        _sh = pygame.transform.scale(_sh, (_tw, _th))
                     _cx = (900 - _txt.get_width()) // 2
-                    _cy = (700 - _txt.get_height()) // 2 - 40
-                    # Glow halo behind the text
-                    _halo = pygame.Surface((_txt.get_width() + 80, _txt.get_height() + 80), pygame.SRCALPHA)
-                    _halo_alpha = int(120 + 60 * math.sin(_f * 0.20))
-                    pygame.draw.ellipse(_halo, (255, 220, 100, max(40, _halo_alpha)),
-                                        _halo.get_rect())
-                    self.screen.blit(_halo, (_cx - 40, _cy - 40))
-                    # Thick black outline by blitting shadow at 8 offsets
-                    for _ox, _oy in ((-3,0),(3,0),(0,-3),(0,3),(-2,-2),(2,2),(-2,2),(2,-2)):
-                        self.screen.blit(_sh, (_cx + _ox, _cy + _oy))
+                    _cy = 12
+                    self.screen.blit(_sh, (_cx + 2, _cy + 2))
                     self.screen.blit(_txt, (_cx, _cy))
                     _ready_state['timer'] -= 1
                 # ---------- Controls strip (always visible at bottom) -----
