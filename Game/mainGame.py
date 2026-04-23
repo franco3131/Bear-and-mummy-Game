@@ -1468,6 +1468,54 @@ class mainGame:
     _idle_blink_frames = 0
     _idle_hair_timer = 0
 
+    def _update_and_draw_bear_trail(self, bear):
+        """Render a rainbow afterimage trail behind the bear whenever it
+        moves (walking, sliding, jumping, etc).  Length scales 3% per level."""
+        if not hasattr(bear, '_move_trail'):
+            bear._move_trail = []
+            bear._last_trail_x = bear.getXPosition()
+            bear._last_trail_y = bear.getYPosition()
+        _bx = bear.getXPosition(); _by = bear.getYPosition()
+        _moved = (abs(_bx - bear._last_trail_x) > 0.5 or
+                  abs(_by - bear._last_trail_y) > 0.5)
+        if _moved:
+            bear._move_trail.append((_bx, _by))
+        else:
+            # Bear is standing still — let the trail decay so it disappears.
+            if bear._move_trail:
+                bear._move_trail.pop(0)
+        bear._last_trail_x = _bx; bear._last_trail_y = _by
+        try:
+            _lvl = bear.getLevel()
+        except Exception:
+            _lvl = 0
+        _max_len = max(8, int(round(16 * (1 + 0.03 * _lvl))))
+        if len(bear._move_trail) > _max_len:
+            bear._move_trail = bear._move_trail[-_max_len:]
+        if not bear._move_trail:
+            return
+        _rainbow = [
+            (255, 60,  60),
+            (255, 150, 50),
+            (255, 230, 60),
+            (80,  220, 90),
+            (60,  160, 255),
+            (160, 80,  220),
+        ]
+        _n = len(bear._move_trail)
+        for _i, (_tx, _ty) in enumerate(bear._move_trail[:-1]):
+            _frac = (_i + 1) / _n
+            _alpha = int(200 * _frac)
+            _radius = max(5, int(20 * _frac))
+            _col = _rainbow[_i % len(_rainbow)]
+            _gs = pygame.Surface((_radius * 2, _radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(_gs, (*_col, _alpha),
+                               (_radius, _radius), _radius)
+            pygame.draw.circle(_gs, (255, 255, 255, min(255, _alpha + 40)),
+                               (_radius, _radius), max(1, _radius // 3))
+            # Center the circle on the bear's torso area
+            self.screen.blit(_gs, (_tx + 60 - _radius, _ty + 60 - _radius))
+
     def _draw_idle_bear(self, bear):
         if getattr(self, '_death_anim_frame', -1) >= 0:
             return
@@ -2109,31 +2157,39 @@ class mainGame:
         except Exception:
             pass
 
-        # ----- "READY" overlay (text only, drawn over normal gameplay) ------
+        # ----- "READY" + essential controls (plain text, no popup) ----------
         if not getattr(self, '_ready_banner_shown', False):
             self._ready_banner_shown = True
-            self._ready_banner_timer = 130
             _orig_flip = pygame.display.flip
             _orig_update = pygame.display.update
-            _ready_state = {'timer': 130}
+            _ready_state = {'timer': 180}
 
-            def _draw_ready_overlay():
-                _f = 130 - _ready_state['timer']
-                _font = pygame.font.SysFont(None, 110, bold=True)
-                _sub_font = pygame.font.SysFont(None, 28, bold=True)
-                _pulse = 1.0 + 0.12 * math.sin(_f * 0.32)
-                _g = max(160, min(255, int(220 * _pulse)))
-                _txt = _font.render('READY', True, (255, _g, 120))
-                _shadow = _font.render('READY', True, (0, 0, 0))
+            def _draw_ready_text():
+                _f = 180 - _ready_state['timer']
+                _font_main = pygame.font.SysFont(None, 48, bold=True)
+                _font_info = pygame.font.SysFont(None, 22, bold=True)
+                _pulse = 1.0 + 0.18 * math.sin(_f * 0.30)
+                _g = max(180, min(255, int(220 * _pulse)))
+                # READY in the top center, small
+                _txt = _font_main.render('READY', True, (255, _g, 120))
+                _sh  = _font_main.render('READY', True, (0, 0, 0))
                 _cx = (900 - _txt.get_width()) // 2
-                _cy = 180
-                for _ox in (-3, 0, 3):
-                    for _oy in (-3, 0, 3):
-                        self.screen.blit(_shadow, (_cx + _ox, _cy + _oy))
+                _cy = 14
+                self.screen.blit(_sh, (_cx + 2, _cy + 2))
                 self.screen.blit(_txt, (_cx, _cy))
-                _sub = _sub_font.render('Get set, brave bear...', True, (240, 220, 180))
-                self.screen.blit(_sub, ((900 - _sub.get_width()) // 2,
-                                        _cy + _txt.get_height() + 8))
+                # Essential controls just below
+                _info_lines = [
+                    'Z: Attack    X: Fireball    SPACE: Jump    DOWN+SPACE: Slide',
+                    'ENTER: Shop    P: Pause/Menu',
+                ]
+                _y = _cy + _txt.get_height() + 4
+                for _line in _info_lines:
+                    _ts = _font_info.render(_line, True, (255, 255, 255))
+                    _sx = _font_info.render(_line, True, (0, 0, 0))
+                    _ix = (900 - _ts.get_width()) // 2
+                    self.screen.blit(_sx, (_ix + 1, _y + 1))
+                    self.screen.blit(_ts, (_ix, _y))
+                    _y += _ts.get_height() + 2
                 _ready_state['timer'] -= 1
                 if _ready_state['timer'] <= 0:
                     pygame.display.flip = _orig_flip
@@ -2141,12 +2197,12 @@ class mainGame:
 
             def _ready_flip(*a, **kw):
                 if _ready_state['timer'] > 0:
-                    _draw_ready_overlay()
+                    _draw_ready_text()
                 return _orig_flip(*a, **kw)
 
             def _ready_update(*a, **kw):
                 if _ready_state['timer'] > 0:
-                    _draw_ready_overlay()
+                    _draw_ready_text()
                 return _orig_update(*a, **kw)
 
             pygame.display.flip = _ready_flip
@@ -4123,6 +4179,9 @@ class mainGame:
                     bear.jump(self.blocks)
                 elif bear.getLeftJumpStatus():
                     bear.leftJump(self.blocks)
+
+            # ---- Movement rainbow trail (always-on while moving) -----------
+            self._update_and_draw_bear_trail(bear)
 
             # ---- Slide pose (Mega-Man-X style) ---------------------------------
             if bear.slide_frames <= 0 and getattr(bear, '_slide_trail', None):
@@ -10644,8 +10703,10 @@ class FrankenBear():
             s = 1
         fade_frames = 12
         alpha = int(255 * min(max(0, s), fade_frames) / float(fade_frames))
+        # Pinned near the floor so the number is always readable on top of
+        # the busy boss sprite/background. (boss position is unaffected.)
         render_damage_text(self.screen, _FONT_BOSS_DAMAGE, damage,
-                            int(self.x) + 120, int(self.y) - 30,
+                            int(self.x) + 120, 380,
                             alpha=alpha)
 
     def _draw_boss_details(self):
