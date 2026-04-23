@@ -2086,62 +2086,48 @@ class mainGame:
         except Exception:
             pass
 
-        # ----- "READY" banner (shows for ~2.3 seconds before action begins) -
+        # ----- "READY" overlay (text only, drawn over normal gameplay) ------
         if not getattr(self, '_ready_banner_shown', False):
             self._ready_banner_shown = True
-            _ready_font = pygame.font.SysFont(None, 220, bold=True)
-            _ready_sub = pygame.font.SysFont(None, 38, bold=True)
-            _go_font = pygame.font.SysFont(None, 260, bold=True)
-            _clock = pygame.time.Clock()
-            _ready_frames = 110
-            _go_frames = 28
-            for _f in range(_ready_frames + _go_frames):
-                for ev in pygame.event.get():
-                    if ev.type == pygame.QUIT:
-                        pygame.quit()
-                        return
-                # Background
-                self.screen.fill((15, 8, 24))
-                # Drifting fog
-                _t_fog = pygame.time.get_ticks() * 0.0008
-                for _fi in range(8):
-                    _fx = int((140 * _fi + math.sin(_t_fog + _fi) * 90) % 1000) - 60
-                    _fy = 120 + _fi * 65 + int(math.sin(_t_fog * 1.2 + _fi) * 22)
-                    _fa = 50 + int(22 * math.sin(_t_fog * 2 + _fi))
-                    _fog_s = pygame.Surface((300, 90), pygame.SRCALPHA)
-                    pygame.draw.ellipse(_fog_s, (130, 200, 160, _fa), (0, 0, 300, 90))
-                    self.screen.blit(_fog_s, (_fx, _fy))
-                if _f < _ready_frames:
-                    _pulse = 1.0 + 0.10 * math.sin(_f * 0.35)
-                    _g = max(160, min(255, int(220 * _pulse)))
-                    _col = (255, _g, 120)
-                    _txt = _ready_font.render('READY', True, _col)
-                    _shadow = _ready_font.render('READY', True, (0, 0, 0))
-                    _glow = _ready_font.render('READY', True, (255, 240, 100))
-                    _tw = _txt.get_width(); _th = _txt.get_height()
-                    _cx = (900 - _tw) // 2; _cy = (700 - _th) // 2 - 30
-                    for _ox in (-4, -2, 0, 2, 4):
-                        for _oy in (-4, -2, 0, 2, 4):
-                            self.screen.blit(_shadow, (_cx + _ox, _cy + _oy))
-                    self.screen.blit(_glow, (_cx, _cy))
-                    self.screen.blit(_txt, (_cx, _cy))
-                    _sub = _ready_sub.render('Get set, brave bear...', True, (240, 220, 180))
-                    self.screen.blit(_sub, ((900 - _sub.get_width()) // 2, _cy + _th + 18))
-                else:
-                    _gf = _f - _ready_frames
-                    _scale = 1.0 + 0.08 * (_go_frames - _gf) / _go_frames
-                    _txt = _go_font.render('GO!', True, (120, 255, 140))
-                    _shadow = _go_font.render('GO!', True, (0, 0, 0))
-                    _w = int(_txt.get_width() * _scale); _h = int(_txt.get_height() * _scale)
-                    _txt = pygame.transform.scale(_txt, (_w, _h))
-                    _shadow = pygame.transform.scale(_shadow, (_w, _h))
-                    _cx = (900 - _w) // 2; _cy = (700 - _h) // 2 - 30
-                    for _ox in (-4, -2, 0, 2, 4):
-                        for _oy in (-4, -2, 0, 2, 4):
-                            self.screen.blit(_shadow, (_cx + _ox, _cy + _oy))
-                    self.screen.blit(_txt, (_cx, _cy))
-                pygame.display.update()
-                _clock.tick(60)
+            self._ready_banner_timer = 130
+            _orig_flip = pygame.display.flip
+            _orig_update = pygame.display.update
+            _ready_state = {'timer': 130}
+
+            def _draw_ready_overlay():
+                _f = 130 - _ready_state['timer']
+                _font = pygame.font.SysFont(None, 110, bold=True)
+                _sub_font = pygame.font.SysFont(None, 28, bold=True)
+                _pulse = 1.0 + 0.12 * math.sin(_f * 0.32)
+                _g = max(160, min(255, int(220 * _pulse)))
+                _txt = _font.render('READY', True, (255, _g, 120))
+                _shadow = _font.render('READY', True, (0, 0, 0))
+                _cx = (900 - _txt.get_width()) // 2
+                _cy = 180
+                for _ox in (-3, 0, 3):
+                    for _oy in (-3, 0, 3):
+                        self.screen.blit(_shadow, (_cx + _ox, _cy + _oy))
+                self.screen.blit(_txt, (_cx, _cy))
+                _sub = _sub_font.render('Get set, brave bear...', True, (240, 220, 180))
+                self.screen.blit(_sub, ((900 - _sub.get_width()) // 2,
+                                        _cy + _txt.get_height() + 8))
+                _ready_state['timer'] -= 1
+                if _ready_state['timer'] <= 0:
+                    pygame.display.flip = _orig_flip
+                    pygame.display.update = _orig_update
+
+            def _ready_flip(*a, **kw):
+                if _ready_state['timer'] > 0:
+                    _draw_ready_overlay()
+                return _orig_flip(*a, **kw)
+
+            def _ready_update(*a, **kw):
+                if _ready_state['timer'] > 0:
+                    _draw_ready_overlay()
+                return _orig_update(*a, **kw)
+
+            pygame.display.flip = _ready_flip
+            pygame.display.update = _ready_update
 
         # ===================================================================
         # Main game loop
