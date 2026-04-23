@@ -5575,6 +5575,16 @@ class mainGame:
                 if _bomb in self.bombs:
                     self.bombs.remove(_bomb)
 
+            if (totalDistance > 14550 and not getattr(self, '_checkpoint0_saved', False)
+                    and bear.getEndText() and not self.escape
+                    and not getattr(self, '_monkey_level_active', False)):
+                self._checkpoint0_saved = True
+                self._save_checkpoint(backgroundScrollX, totalDistance, bear)
+                bear.setArrayText(['GAME SAVED!', '',
+                                   'Checkpoint reached at 25%.',
+                                   'Press "s" to continue'])
+                bear.setEndText(False)
+
             if (totalDistance > 29050 and not getattr(self, '_checkpoint_saved', False)
                     and bear.getEndText() and not self.escape
                     and not getattr(self, '_monkey_level_active', False)):
@@ -6571,6 +6581,7 @@ class mainGame:
                 self._post_boss_platform_popup_shown = False
                 self._fireball_tutorial_shown = True
                 self._clear_poison(bear)
+                self._checkpoint0_saved = False
                 self._checkpoint_saved = False
                 self._checkpoint2_saved = False
                 self._checkpoint_used = False
