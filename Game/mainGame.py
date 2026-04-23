@@ -5576,6 +5576,17 @@ class mainGame:
                 if _bomb in self.bombs:
                     self.bombs.remove(_bomb)
 
+            if (totalDistance > 4200 and totalDistance < 5200
+                    and not getattr(self, '_fireball_ever_shot', False)
+                    and not getattr(self, '_fireball_reminder_shown', False)
+                    and not getattr(self, '_bigMummyDefeated', False)):
+                self._fireball_reminder_shown = True
+                self._head_alerts.append({
+                    'text': 'TIP: PRESS X TO THROW FIREBALLS!',
+                    'life': 480, 'max_life': 480,
+                    'color': (255, 200, 60),
+                    'tag': 'fireball_tip'})
+
             if (totalDistance > 14550 and not getattr(self, '_checkpoint0_saved', False)
                     and bear.getEndText() and not self.escape
                     and not getattr(self, '_monkey_level_active', False)):
@@ -6295,14 +6306,6 @@ class mainGame:
                         'life': 99999, 'max_life': 99999,
                         'color': (255, 90, 90),
                         'tag': 'bigmummy'})
-                    if (not getattr(self, '_fireball_ever_shot', False)
-                            and not getattr(self, '_fireball_reminder_shown', False)):
-                        self._fireball_reminder_shown = True
-                        self._head_alerts.append({
-                            'text': 'TIP: PRESS X TO THROW FIREBALLS!',
-                            'life': 360, 'max_life': 360,
-                            'color': (255, 200, 60),
-                            'tag': 'fireball_tip'})
 
             for spike in self.spikes:
                 spike.draw()
