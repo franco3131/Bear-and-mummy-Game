@@ -405,6 +405,13 @@ class mainGame:
                 _smp.append(_s * _env * 0.85)
             self.mmx_jump_sound = _make_snd(_smp)
             self.mmx_jump_sound.set_volume(1.0)
+            # Alternate jump sound (cartoon boing) — plays 30% of the time
+            try:
+                self.mmx_jump_sound_alt = pygame.mixer.Sound(
+                    "Game/Sounds/samples/jump_cartoon_boing.wav")
+                self.mmx_jump_sound_alt.set_volume(1.0)
+            except Exception:
+                self.mmx_jump_sound_alt = None
 
             # ── MMX LAND TAP: low click + soft thump ────────────────────
             _n = int(_RATE * 0.13)
@@ -552,6 +559,13 @@ class mainGame:
                 _smp.append(_s * _env * 0.85)
             self.mmx_coin_sound = _make_snd(_smp)
             self.mmx_coin_sound.set_volume(1.0)
+            # Alternate coin sound (cha-ching) — plays 30% of the time
+            try:
+                self.mmx_coin_sound_alt = pygame.mixer.Sound(
+                    "Game/Sounds/samples/coin_chaching.wav")
+                self.mmx_coin_sound_alt.set_volume(1.0)
+            except Exception:
+                self.mmx_coin_sound_alt = None
 
             # ── MMX LEMON SHOT: short "pew" pellet ──────────────────────
             _n = int(_RATE * 0.09)
@@ -1606,6 +1620,7 @@ class mainGame:
         bear.grunt_sound = self.grunt_sound
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
         bear._mmx_jump_sound = getattr(self, 'mmx_jump_sound', None)
+        bear._mmx_jump_sound_alt = getattr(self, 'mmx_jump_sound_alt', None)
         bear._mmx_land_sound = getattr(self, 'mmx_land_sound', None)
         bear._mmx_dash_sound = getattr(self, 'mmx_dash_sound', None)
         bear._mmx_powerup_sound = getattr(self, 'mmx_powerup_sound', None)
@@ -1995,6 +2010,7 @@ class mainGame:
         bear.grunt_sound = self.grunt_sound
         bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
         bear._mmx_jump_sound = getattr(self, 'mmx_jump_sound', None)
+        bear._mmx_jump_sound_alt = getattr(self, 'mmx_jump_sound_alt', None)
         bear._mmx_land_sound = getattr(self, 'mmx_land_sound', None)
         bear._mmx_dash_sound = getattr(self, 'mmx_dash_sound', None)
         bear._mmx_powerup_sound = getattr(self, 'mmx_powerup_sound', None)
@@ -4645,7 +4661,10 @@ class mainGame:
                     bear.setCoins(bear.getCoins() + 1)
                     if getattr(self, 'coin_sound', None):
                         self.coin_sound.play()
-                    if getattr(self, 'mmx_coin_sound', None):
+                    _alt = getattr(self, 'mmx_coin_sound_alt', None)
+                    if _alt and random.random() < 0.30:
+                        _alt.play()
+                    elif getattr(self, 'mmx_coin_sound', None):
                         self.mmx_coin_sound.play()
                     if bear.getCoins() >= 100 and not self._lucky_100_unlocked:
                         self._lucky_100_unlocked = True
@@ -5082,7 +5101,10 @@ class mainGame:
                         bear.setCoins(bear.getCoins() + 1)
                         if getattr(self, 'coin_sound', None):
                             self.coin_sound.play()
-                        if getattr(self, 'mmx_coin_sound', None):
+                        _alt = getattr(self, 'mmx_coin_sound_alt', None)
+                        if _alt and random.random() < 0.30:
+                            _alt.play()
+                        elif getattr(self, 'mmx_coin_sound', None):
                             self.mmx_coin_sound.play()
                         _hd_remove.append(_hd)
             for _hd in _hd_remove:
@@ -6243,6 +6265,7 @@ class mainGame:
                 bear.grunt_sound = self.grunt_sound
                 bear.jump_scream_sound = getattr(self, 'jump_scream_sound', None)
                 bear._mmx_jump_sound = getattr(self, 'mmx_jump_sound', None)
+                bear._mmx_jump_sound_alt = getattr(self, 'mmx_jump_sound_alt', None)
                 bear._mmx_land_sound = getattr(self, 'mmx_land_sound', None)
                 bear._mmx_dash_sound = getattr(self, 'mmx_dash_sound', None)
                 bear._mmx_powerup_sound = getattr(self, 'mmx_powerup_sound', None)
@@ -9251,8 +9274,11 @@ class Bear:
         except:
             pass
         try:
+            _alt = getattr(self, '_mmx_jump_sound_alt', None)
             _mmx = getattr(self, '_mmx_jump_sound', None)
-            if _mmx:
+            if _alt and random.random() < 0.30:
+                _alt.play()
+            elif _mmx:
                 _mmx.play()
         except Exception:
             pass
