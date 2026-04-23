@@ -6817,10 +6817,9 @@ class mainGame:
         # Zones are ordered in ascending scroll distance with ~4 000+ unit gaps
         # so they never overlap or interfere with one another.
 
-        # ── Fireball tutorial popup @ 400 ──────────────────────────────────────
+        # ── Fireball tutorial — silent: controls are listed in READY text. ────
         if backgroundScrollX > 400 and not self._fireball_tutorial_shown:
             self._fireball_tutorial_shown = True
-            self._push_toast('Press X to shoot fireballs!', duration=240, color=(255, 200, 140))
 
         # ── Zone 1 pre-load @ 2 500 – quietly position Zone 1 objects ────────
         # Objects are given offset positions so they scroll naturally into place
@@ -6951,13 +6950,26 @@ class mainGame:
             plat5 = Block(1850, 220, 110, 50, "striped",   self.screen)
             self.blocks.extend([plat1, plat2, plat3, plat4, plat5])
 
-            # Witch-heavy zone — no mummies
+            # Witch-heavy zone — no mummies. Spawn one witch up front so the
+            # player isn't swarmed; the other two arrive later in the zone.
             witch1 = Witch(1500, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(1850, 280, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(2200, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch4 = Witch(2550, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2, witch3, witch4])
+            self.witches.append(witch1)
+            self._z12_pending_witches = [
+                (1850, 280),
+                (2200, 150),
+            ]
             self.snakes.append(Snake(1500, 220, self.screen))
+
+        # ── Zone 1.2 reinforcements @ 9 500 – the other two witches arrive ────
+        # Spawn just off-screen to the right (screen ≈ 900 wide) so they
+        # walk into view rather than appearing on top of the player.
+        if (getattr(self, '_z12_pending_witches', None)
+                and backgroundScrollX > 9500):
+            for _wx, _wy in [(1100, 200), (1400, 280)]:
+                self.witches.append(
+                    Witch(_wx, _wy, self.witch, self.witch2,
+                          self.screen, self.fireball_sound))
+            self._z12_pending_witches = None
 
         # ── Zone 1.5 @ 11 000 – "Crumbling Ruins" gauntlet ───────────────────
         elif not self._monkey_level_active and backgroundScrollX > 11000 and not self.activeMonsters[10]:
