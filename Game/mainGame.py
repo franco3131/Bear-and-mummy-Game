@@ -7008,7 +7008,7 @@ class mainGame:
             hurtTimer = -30
             if getattr(self, 'enemy_spawn_sound', None): self.enemy_spawn_sound.play()
             self._switch_music("boss_mummy")
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             self.blocks.extend([self._z1_block_left, self._z1_block_right])
@@ -7036,7 +7036,7 @@ class mainGame:
             self._switch_music("jungle")
             if hasattr(self, '_bg_ref') and self._bg_ref:
                 self._bg_ref._jungle_mode = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
             self.monkey_mummies = []; self.snakes = []; self.lions = []
             self.venom_balls = []
@@ -7072,7 +7072,7 @@ class mainGame:
             _j1_left = len(self.monkey_mummies) + len(self.snakes) + len(self.lions)
             if _j1_left == 0:
                 self._jungle_zone2_active = True
-                self.blocks = []; self.coins = []
+                self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]; self.coins = []
                 self.monkey_mummies = []; self.snakes = []; self.lions = []
 
                 self.blocks.extend([
@@ -7103,7 +7103,7 @@ class mainGame:
             self.activeMonsters[14] = True
             hurtTimer = -30
             self._switch_music("enchanted_tomb")
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.snakes = []
 
             # Mystical floating platforms at varied heights
@@ -7140,7 +7140,7 @@ class mainGame:
         elif not self._monkey_level_active and backgroundScrollX > 11000 and not self.activeMonsters[10]:
             self.activeMonsters[10] = True
             hurtTimer = -30
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []
 
             # ── Pyramid staircase – all platforms have y+h ≤ 310 so floor
@@ -7182,7 +7182,7 @@ class mainGame:
         elif not self._monkey_level_active and backgroundScrollX > 14500 and not self.activeMonsters[3]:
             self.activeMonsters[3] = True
             hurtTimer = -30
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []
 
             block1 = Block(1000, 340, 900,  60, "greyRock", self.screen)
@@ -7209,7 +7209,7 @@ class mainGame:
             self.activeMonsters[2] = True
             hurtTimer = -30
             if getattr(self, 'enemy_spawn_sound', None): self.enemy_spawn_sound.play()
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
 
             block1 = Block(1100, 340, 100, 60,  "greyRock", self.screen)
@@ -7231,7 +7231,7 @@ class mainGame:
         elif not self._monkey_level_active and backgroundScrollX > 22000 and not self.activeMonsters[13]:
             self.activeMonsters[13] = True
             hurtTimer = -30
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.shadowShamans = []
             self.miniFrankenBears = []; self.lasers = []; self.waterfalls = []
 
@@ -7257,7 +7257,7 @@ class mainGame:
             self._hardMode = True
             if hasattr(self, '_bg_ref') and self._bg_ref:
                 self._bg_ref.setHardModeFloor()
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.waterfalls = []
 
             block1 = Block(1100, 280, 200, 50, "greyRock", self.screen)
@@ -7280,7 +7280,7 @@ class mainGame:
         # ── Zone 4.2 @ 29 000 – mini frankenbeares with rainbow lasers ────────
         elif not self._monkey_level_active and backgroundScrollX > 29000 and not self.activeMonsters[12]:
             self.activeMonsters[12] = True
-            self.miniFrankenBears = []; self.blocks = []
+            self.miniFrankenBears = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.mummys = []; self.witches = []; self.greenBlobs = []; self.fires = []
             self.lasers = []
 
@@ -7305,7 +7305,7 @@ class mainGame:
             self._pre_calm_music = getattr(self, '_current_music', None)
             self.mummys = []; self.witches = []; self.greenBlobs = []
             self.fires = []; self.miniFrankenBears = []; self.shadowShamans = []
-            self.snakes = []; self.lasers = []; self.blocks = []
+            self.snakes = []; self.lasers = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             # Silence the music — bombs falling on a quiet stage
             self._switch_music(None)
             # A few hearts laid out at platform / floor heights
@@ -7327,7 +7327,7 @@ class mainGame:
         # ── Zone 5 @ 34 000 – striped platforms, mummies + 2 witches ─────────
         elif not self._monkey_level_active and backgroundScrollX > 34000 and not self.activeMonsters[5]:
             self.activeMonsters[5] = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             block1 = Block(1050, 240, 3000, 60, "striped",     self.screen)
@@ -7348,7 +7348,7 @@ class mainGame:
         # ── Zone 5.5 @ 36 500 – snake encounter with platform gauntlet ────────
         elif not self._monkey_level_active and backgroundScrollX > 36500 and not getattr(self, '_zone55_active', False):
             self._zone55_active = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.miniFrankenBears = []; self.lasers = []
 
             block1 = Block(1050, 280, 1500, 60, "monster", self.screen)
@@ -7365,7 +7365,7 @@ class mainGame:
         # ── Zone 6 @ 39 500 – checkered gauntlet, blobs + mummies + miniFranken
         elif not self._monkey_level_active and backgroundScrollX > 39500 and not self.activeMonsters[6]:
             self.activeMonsters[6] = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []
             self.miniFrankenBears = []; self.lasers = []
 
@@ -7399,7 +7399,7 @@ class mainGame:
             self._pre_calm2_music = getattr(self, '_current_music', None)
             self.mummys = []; self.witches = []; self.greenBlobs = []
             self.fires = []; self.miniFrankenBears = []; self.shadowShamans = []
-            self.snakes = []; self.lasers = []; self.blocks = []
+            self.snakes = []; self.lasers = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self._switch_music(None)
             # Creative staircase + floating-island layout — invites jumping
             # while bombs and fireballs rain down.
@@ -7440,7 +7440,7 @@ class mainGame:
             self.activeMonsters[7] = True
             if getattr(self, 'wave_warning_sound', None): self.wave_warning_sound.play()
             self._hardMode75 = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []
 
             block1 = Block(1020, 340, 100, 60, "checkered", self.screen)
@@ -7459,7 +7459,7 @@ class mainGame:
         # ── Zone 8 @ 50 500 – spike gauntlet + miniFranken ────────────────────
         elif not self._monkey_level_active and backgroundScrollX > 50500 and not self.activeMonsters[8]:
             self.activeMonsters[8] = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []
             self.miniFrankenBears = []; self.lasers = []
             self._switch_music("final_push")
@@ -7492,7 +7492,7 @@ class mainGame:
         # ── Zone 8.5 @ 53 500 – "Shadow Ambush" ──────────────────────────────
         elif not self._monkey_level_active and backgroundScrollX > 53500 and not getattr(self, '_zone85_active', False):
             self._zone85_active = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.spikes = []
             self.miniFrankenBears = []; self.lasers = []
 
@@ -7524,7 +7524,7 @@ class mainGame:
         # ── Zone 9 @ 49 500 – "Floating Gauntlet" mixed challenge ──────────────
         elif not self._monkey_level_active and backgroundScrollX > 56500 and not self.activeMonsters[15]:
             self.activeMonsters[15] = True
-            self.mummys = []; self.witches = []; self.blocks = []
+            self.mummys = []; self.witches = []; self.blocks = [_b for _b in self.blocks if _b.x + _b.width > 0 and _b.x < 900]
             self.greenBlobs = []; self.fires = []; self.spikes = []
 
             # Floating platforms arranged at varied heights
