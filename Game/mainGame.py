@@ -7217,18 +7217,13 @@ class mainGame:
             block4 = Block(950,  340, 600, 60,  "greyRock", self.screen)
             self.blocks.extend([block1, block2, block3, block4])
 
-            witch1 = Witch(1600, 100, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch2 = Witch(2000, 200, self.witch, self.witch2, self.screen, self.fireball_sound)
-            witch3 = Witch(2400, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
-            self.witches.extend([witch1, witch2, witch3])
-            
-            shaman = ShadowShaman(1400, 60, self.witch, self.witch2, self.screen)
-            self.shadowShamans.append(shaman)
-            
-            for x in [1030, 1500, 1900]:
+            witch1 = Witch(1800, 150, self.witch, self.witch2, self.screen, self.fireball_sound)
+            witch2 = Witch(2600, 180, self.witch, self.witch2, self.screen, self.fireball_sound)
+            self.witches.extend([witch1, witch2])
+
+            for x in [1100, 2100]:
                 self.mummys.append(
                     Mummy(x, 300, 100, 100, self.mummy1, self.mummy2, self.screen))
-            self.miniFrankenBears.append(MiniFrankenBear(2300, 140, self.screen))
             self.triggerFire = True
 
         # ── Zone 3.5 @ 22 000 – waterfall passage ─────────────────────────────
