@@ -6334,6 +6334,9 @@ class mainGame:
                 self.activeMonsters = [False] * 16
                 self._monkey_level_active = False
                 self._jungle_zone2_active = False
+                self._zone_count = 0
+                self._prev_active_zones = 0
+                self._z12_pending_witches = None
 
                 bear = Bear(150, 300, self.screen, self.thud_sound)
                 self._bear_ref = bear
