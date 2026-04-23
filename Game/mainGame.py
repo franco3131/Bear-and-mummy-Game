@@ -2194,57 +2194,96 @@ class mainGame:
         except Exception:
             pass
 
-        # ----- "READY" + essential controls (plain text, no popup) ----------
+        # ----- "READY" + persistent controls strip (always visible) ---------
         if not getattr(self, '_ready_banner_shown', False):
             self._ready_banner_shown = True
+            self._i_press_count = 0
+            self._percent_show_until = 0
+            self._hud_total_distance = 60
+            self._hud_total_max = 56500
             _orig_flip = pygame.display.flip
             _orig_update = pygame.display.update
-            _ready_state = {'timer': 180}
+            _ready_state = {'timer': 180, 'frame': 0}
+            _BRIGHT_FRAMES = 900  # 15 s at 60 fps – ultra-visible intro
 
-            def _draw_ready_text():
-                _f = 180 - _ready_state['timer']
-                _font_main = pygame.font.SysFont(None, 36, bold=True)
-                _font_info = pygame.font.SysFont(None, 20, bold=True)
-                _pulse = 1.0 + 0.18 * math.sin(_f * 0.30)
-                _g = max(180, min(255, int(220 * _pulse)))
-                # "READY!" at the very top, small inline text (no popup box)
-                _txt = _font_main.render('READY!', True, (255, _g, 120))
-                _sh  = _font_main.render('READY!', True, (0, 0, 0))
-                _cx = (900 - _txt.get_width()) // 2
-                _cy = 8
-                self.screen.blit(_sh, (_cx + 2, _cy + 2))
-                self.screen.blit(_txt, (_cx, _cy))
-                # Floating control hints at the BOTTOM of the screen
-                # (screen height = 500 -> y=470 stays clear of the floor art)
+            def _draw_overlay():
+                _ready_state['frame'] += 1
+                _ff = _ready_state['frame']
+                # ---------- READY banner (first 180 frames only) ----------
+                if _ready_state['timer'] > 0:
+                    _f = 180 - _ready_state['timer']
+                    _font_main = pygame.font.SysFont(None, 36, bold=True)
+                    _pulse = 1.0 + 0.18 * math.sin(_f * 0.30)
+                    _g = max(180, min(255, int(220 * _pulse)))
+                    _txt = _font_main.render('READY!', True, (255, _g, 120))
+                    _sh  = _font_main.render('READY!', True, (0, 0, 0))
+                    _cx = (900 - _txt.get_width()) // 2
+                    self.screen.blit(_sh, (_cx + 2, 10))
+                    self.screen.blit(_txt, (_cx, 8))
+                    _ready_state['timer'] -= 1
+                # ---------- Controls strip (always visible at bottom) -----
+                _bright = _ff < _BRIGHT_FRAMES
+                if _bright:
+                    _font_info = pygame.font.SysFont(None, 26, bold=True)
+                    _bg_alpha = 200
+                    _txt_col = (255, 255, 200)
+                    _pulse = 0.6 + 0.4 * abs(math.sin(_ff * 0.08))
+                    _border_col = (255, int(220 * _pulse), 80)
+                    _border_w = 3
+                else:
+                    _font_info = pygame.font.SysFont(None, 18, bold=True)
+                    _bg_alpha = 130
+                    _txt_col = (235, 235, 245)
+                    _border_col = (90, 90, 120)
+                    _border_w = 1
                 _info_lines = [
                     'Z: Attack    X: Fireball    SPACE: Jump    DOWN+SPACE: Slide',
-                    'ENTER: Shop    P: Pause/Menu',
+                    'ENTER: Shop    P: Pause/Menu    I (x3): Show Progress %',
                 ]
-                _y = 470 - (len(_info_lines) * (_font_info.get_height() + 2))
+                _line_h = _font_info.get_height() + 2
+                _strip_h = _line_h * len(_info_lines) + 10
+                _strip_y = 700 - _strip_h - 4
+                _strip = pygame.Surface((900, _strip_h), pygame.SRCALPHA)
+                _strip.fill((10, 10, 25, _bg_alpha))
+                self.screen.blit(_strip, (0, _strip_y))
+                pygame.draw.rect(self.screen, _border_col,
+                                 (0, _strip_y, 900, _strip_h), _border_w)
+                _y = _strip_y + 5
                 for _line in _info_lines:
-                    _ts = _font_info.render(_line, True, (255, 255, 255))
+                    _ts = _font_info.render(_line, True, _txt_col)
                     _sx = _font_info.render(_line, True, (0, 0, 0))
                     _ix = (900 - _ts.get_width()) // 2
                     self.screen.blit(_sx, (_ix + 1, _y + 1))
                     self.screen.blit(_ts, (_ix, _y))
-                    _y += _ts.get_height() + 2
-                _ready_state['timer'] -= 1
-                if _ready_state['timer'] <= 0:
-                    pygame.display.flip = _orig_flip
-                    pygame.display.update = _orig_update
+                    _y += _line_h
+                # ---------- Progress percentage popup (when triggered) ----
+                if pygame.time.get_ticks() < self._percent_show_until:
+                    _td = max(0, getattr(self, '_hud_total_distance', 60) - 60)
+                    _tm = max(1, self._hud_total_max - 60)
+                    _pct = max(0, min(100, int(_td * 100 / _tm)))
+                    _pf = pygame.font.SysFont(None, 56, bold=True)
+                    _pt = _pf.render(f'PROGRESS: {_pct}%', True, (255, 240, 120))
+                    _ps = _pf.render(f'PROGRESS: {_pct}%', True, (0, 0, 0))
+                    _px = (900 - _pt.get_width()) // 2
+                    _py = 320
+                    _box = pygame.Surface((_pt.get_width() + 40, _pt.get_height() + 20), pygame.SRCALPHA)
+                    _box.fill((10, 10, 30, 220))
+                    self.screen.blit(_box, (_px - 20, _py - 10))
+                    pygame.draw.rect(self.screen, (255, 220, 100),
+                                     (_px - 20, _py - 10, _pt.get_width() + 40, _pt.get_height() + 20), 3)
+                    self.screen.blit(_ps, (_px + 2, _py + 2))
+                    self.screen.blit(_pt, (_px, _py))
 
-            def _ready_flip(*a, **kw):
-                if _ready_state['timer'] > 0:
-                    _draw_ready_text()
+            def _wrap_flip(*a, **kw):
+                _draw_overlay()
                 return _orig_flip(*a, **kw)
 
-            def _ready_update(*a, **kw):
-                if _ready_state['timer'] > 0:
-                    _draw_ready_text()
+            def _wrap_update(*a, **kw):
+                _draw_overlay()
                 return _orig_update(*a, **kw)
 
-            pygame.display.flip = _ready_flip
-            pygame.display.update = _ready_update
+            pygame.display.flip = _wrap_flip
+            pygame.display.update = _wrap_update
 
         # ===================================================================
         # Main game loop
@@ -2422,6 +2461,15 @@ class mainGame:
                             if getattr(self, 'mmx_powerup_sound', None):
                                 try: self.mmx_powerup_sound.play()
                                 except Exception: pass
+                    if event.key == pygame.K_i:
+                        _now_ms = pygame.time.get_ticks()
+                        if _now_ms - getattr(self, '_i_last_press_ms', 0) > 1500:
+                            self._i_press_count = 0
+                        self._i_last_press_ms = _now_ms
+                        self._i_press_count = getattr(self, '_i_press_count', 0) + 1
+                        if self._i_press_count >= 3:
+                            self._i_press_count = 0
+                            self._percent_show_until = _now_ms + 2500
                     if event.key == pygame.K_p and not shop_open:
                         self._paused = True
                         try:
@@ -2823,6 +2871,7 @@ class mainGame:
                 self.clock.tick(60)
                 continue
 
+            self._hud_total_distance = totalDistance
             render_water(self.screen, waterOffset)
             waterOffset = (waterOffset + 2) % 60
 
