@@ -694,7 +694,7 @@ class mainGame:
             self.boss_hit_sound.set_volume(0.65)
             try:
                 self.fancy_death_bang_sound = pygame.mixer.Sound("Game/Sounds/fancy_death_bang.wav")
-                self.fancy_death_bang_sound.set_volume(0.85)
+                self.fancy_death_bang_sound.set_volume(1.0)
             except Exception:
                 self.fancy_death_bang_sound = None
 
@@ -1683,7 +1683,7 @@ class mainGame:
                         if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          enemy.getXPosition(), enemy.getYPosition(),
                                          bear.getLeftDirection(), enemy.getName()):
-                            _dmg = bear.getDamageAttack()
+                            _dmg = self._roll_attack_bonus(bear.getDamageAttack())
                             enemy.setDamageReceived(_dmg)
                             enemy.setStunned(1)
                             enemy.setHealth(enemy.getHealth() - _apply_defense(enemy, _dmg))
@@ -2079,6 +2079,69 @@ class mainGame:
         self.spikes = []
 
         triggerWitchFireBallAnimation = 0
+
+        # Kick off the slow drum layer so it plays from the very start.
+        try:
+            self._update_bonus_instrument_layer(self._current_music)
+        except Exception:
+            pass
+
+        # ----- "READY" banner (shows for ~2.3 seconds before action begins) -
+        if not getattr(self, '_ready_banner_shown', False):
+            self._ready_banner_shown = True
+            _ready_font = pygame.font.SysFont(None, 220, bold=True)
+            _ready_sub = pygame.font.SysFont(None, 38, bold=True)
+            _go_font = pygame.font.SysFont(None, 260, bold=True)
+            _clock = pygame.time.Clock()
+            _ready_frames = 110
+            _go_frames = 28
+            for _f in range(_ready_frames + _go_frames):
+                for ev in pygame.event.get():
+                    if ev.type == pygame.QUIT:
+                        pygame.quit()
+                        return
+                # Background
+                self.screen.fill((15, 8, 24))
+                # Drifting fog
+                _t_fog = pygame.time.get_ticks() * 0.0008
+                for _fi in range(8):
+                    _fx = int((140 * _fi + math.sin(_t_fog + _fi) * 90) % 1000) - 60
+                    _fy = 120 + _fi * 65 + int(math.sin(_t_fog * 1.2 + _fi) * 22)
+                    _fa = 50 + int(22 * math.sin(_t_fog * 2 + _fi))
+                    _fog_s = pygame.Surface((300, 90), pygame.SRCALPHA)
+                    pygame.draw.ellipse(_fog_s, (130, 200, 160, _fa), (0, 0, 300, 90))
+                    self.screen.blit(_fog_s, (_fx, _fy))
+                if _f < _ready_frames:
+                    _pulse = 1.0 + 0.10 * math.sin(_f * 0.35)
+                    _g = max(160, min(255, int(220 * _pulse)))
+                    _col = (255, _g, 120)
+                    _txt = _ready_font.render('READY', True, _col)
+                    _shadow = _ready_font.render('READY', True, (0, 0, 0))
+                    _glow = _ready_font.render('READY', True, (255, 240, 100))
+                    _tw = _txt.get_width(); _th = _txt.get_height()
+                    _cx = (900 - _tw) // 2; _cy = (700 - _th) // 2 - 30
+                    for _ox in (-4, -2, 0, 2, 4):
+                        for _oy in (-4, -2, 0, 2, 4):
+                            self.screen.blit(_shadow, (_cx + _ox, _cy + _oy))
+                    self.screen.blit(_glow, (_cx, _cy))
+                    self.screen.blit(_txt, (_cx, _cy))
+                    _sub = _ready_sub.render('Get set, brave bear...', True, (240, 220, 180))
+                    self.screen.blit(_sub, ((900 - _sub.get_width()) // 2, _cy + _th + 18))
+                else:
+                    _gf = _f - _ready_frames
+                    _scale = 1.0 + 0.08 * (_go_frames - _gf) / _go_frames
+                    _txt = _go_font.render('GO!', True, (120, 255, 140))
+                    _shadow = _go_font.render('GO!', True, (0, 0, 0))
+                    _w = int(_txt.get_width() * _scale); _h = int(_txt.get_height() * _scale)
+                    _txt = pygame.transform.scale(_txt, (_w, _h))
+                    _shadow = pygame.transform.scale(_shadow, (_w, _h))
+                    _cx = (900 - _w) // 2; _cy = (700 - _h) // 2 - 30
+                    for _ox in (-4, -2, 0, 2, 4):
+                        for _oy in (-4, -2, 0, 2, 4):
+                            self.screen.blit(_shadow, (_cx + _ox, _cy + _oy))
+                    self.screen.blit(_txt, (_cx, _cy))
+                pygame.display.update()
+                _clock.tick(60)
 
         # ===================================================================
         # Main game loop
@@ -3027,7 +3090,7 @@ class mainGame:
                     beamReadyPopupShown = False
                     self._beam_uses_total += 1
                     self._kills_since_beam_use = 0
-                    _beam_dmg = bear.getDamageAttack() * 4
+                    _beam_dmg = self._roll_attack_bonus(bear.getDamageAttack()) * 4
                     _beam_vx = -18 if bear.getLeftDirection() else 18
                     _beam_x = (bear.getXPosition() - 100
                                if bear.getLeftDirection()
@@ -3527,7 +3590,7 @@ class mainGame:
                         if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
-                            _base_dmg = bear.getDamageAttack()
+                            _base_dmg = self._roll_attack_bonus(bear.getDamageAttack())
                             _is_crit = random.random() < 0.20
                             _dmg = _base_dmg * 2 if _is_crit else _base_dmg
                             if monster.getName() == "bigMummy":
@@ -3582,7 +3645,7 @@ class mainGame:
                         if is_monster_hurt(bear.getXPosition(), bear.getYPosition(),
                                          monster.getXPosition(), monster.getYPosition(),
                                          bear.getLeftDirection(), monster.getName()):
-                            _base_dmg = bear.getDamageAttack()
+                            _base_dmg = self._roll_attack_bonus(bear.getDamageAttack())
                             _is_crit = random.random() < 0.20
                             _dmg = _base_dmg * 2 if _is_crit else _base_dmg
                             if monster.getName() == "bigMummy":
@@ -4632,7 +4695,7 @@ class mainGame:
                     m_rect = pygame.Rect(monster.getXPosition(),
                                          monster.getYPosition(), 80, 100)
                     if pf_rect.colliderect(m_rect):
-                        _fb_dmg = bear.fireballDamage
+                        _fb_dmg = self._roll_attack_bonus(bear.fireballDamage)
                         _is_crit = random.random() < 0.20
                         if _is_crit:
                             _fb_dmg *= 2
@@ -7341,8 +7404,7 @@ class mainGame:
                     layer['active'] = False
 
     def _update_bonus_instrument_layer(self, track):
-        """Roll the dice — about half the time, layer an extra instrument
-        (woodwind/bells) over the current music for variety."""
+        """Slow drum boom layer that plays throughout the entire game (skipped only during boss tracks)."""
         if not getattr(self, '_tension_layers_ready', False):
             return
         if not hasattr(self, '_bonus_inst_channel'):
@@ -7358,7 +7420,6 @@ class mainGame:
             try: ch.fadeout(800)
             except Exception: pass
             return
-        # Replacement: slow drum-style boom layers picked at random.
         _candidates = [getattr(self, '_layer_drum_pulse', None),
                        getattr(self, '_layer_drum_heart', None),
                        getattr(self, '_layer_drum_swell', None)]
@@ -7368,19 +7429,23 @@ class mainGame:
             except Exception: pass
             return
         import random as _brnd
-        # 50% chance to activate this music phase
-        if _brnd.random() < 0.5:
-            snd = _brnd.choice(_candidates)
-            _vol = 0.10 if track in ("normal", "post_boss_normal") else 0.13
-            try:
-                ch.stop()
-                ch.play(snd, loops=-1, fade_ms=2500)
-                ch.set_volume(_vol)
-            except Exception:
-                pass
-        else:
-            try: ch.fadeout(1500)
-            except Exception: pass
+        snd = _brnd.choice(_candidates)
+        _vol = 0.32 if track in ("normal", "post_boss_normal") else 0.38
+        try:
+            ch.stop()
+            ch.play(snd, loops=-1, fade_ms=1500)
+            ch.set_volume(_vol)
+        except Exception:
+            pass
+
+    def _roll_attack_bonus(self, dmg):
+        """Apply per-attack damage rolls: 5%->+10%, 20%->+5%, 50%->+3, 25%->+4."""
+        import random as _r
+        if _r.random() < 0.05: dmg = int(dmg * 1.10 + 0.5)
+        if _r.random() < 0.20: dmg = int(dmg * 1.05 + 0.5)
+        if _r.random() < 0.50: dmg += 3
+        if _r.random() < 0.25: dmg += 4
+        return max(1, dmg)
 
     def _stop_tension_layers(self):
         if not getattr(self, '_tension_layers_ready', False):
@@ -7879,7 +7944,7 @@ class Mummy():
         randomMax = random.randint(300, 500)
         self.changeDirection = random.randint(200, randomMax)
         self.storeDirection = 1
-        self.health = int(random.randint(7, 16) * 1.20)
+        self.health = int(random.randint(7, 16) * 1.20 * 1.05)
         self._defense = random.randint(1, 10) / 100.0
         self._bear_x = 400
         self._bear_y = 300
@@ -7928,7 +7993,7 @@ class Mummy():
         if height > 100:  # Big mummy – use dedicated art with forehead marker
             self.damageAttack = 13
             self.exp = 20
-            self.health = int(24 * 1.20)
+            self.health = int(24 * 1.20 * 1.05)
             raw1     = pygame.image.load("Game/Images/Mummy/mummy1Big.png")
             raw_hurt = pygame.image.load("Game/Images/Mummy/hurtMummy.png")
             # Use the same art for both walk frames (flipped) so the character
@@ -8278,7 +8343,7 @@ class Witch():
         self.screen = screen
         self.fireball_sound = fireball_sound
         self.rand = random.choice([1, 1, 2])
-        self.health = int(random.randint(24, 42) * 1.20)
+        self.health = int(random.randint(24, 42) * 1.20 * 1.05)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.fire = pygame.image.load("Game/Images/fire2.png")
@@ -8630,7 +8695,7 @@ class GreenBlob():
         self.direction = -1 * random.randint(1, 2)
         self.x = x
         self.y = y
-        self.health = int(26 * 1.20)
+        self.health = int(26 * 1.20 * 1.05)
         self._defense = random.randint(1, 10) / 100.0
         self.destructionAnimation = 0
         self.stunned = 0
@@ -8670,7 +8735,7 @@ class GreenBlob():
         if self.height >= 200:
             self.height = 500
             self.width = 300
-            self.health = int(60 * 1.20)
+            self.health = int(60 * 1.20 * 1.05)
             self.exp = 40
             self.damageAttack = 34
 
@@ -9802,7 +9867,7 @@ class ShadowShaman():
         self.stunned = 0
         self.screen = screen
         self.rand = random.choice([1, 1, 2])
-        self.health = int(random.randint(40, 60) * 1.20)
+        self.health = int(random.randint(40, 60) * 1.20 * 1.05)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.fire = pygame.image.load("Game/Images/fire2.png")
@@ -10141,7 +10206,7 @@ class MiniFrankenBear():
         self.x = x
         self.y = y
         self.screen = screen
-        self.health = int(45 * 1.20)
+        self.health = int(45 * 1.20 * 1.05)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.direction = -1 if random.random() > 0.5 else 1
@@ -10338,7 +10403,7 @@ class FrankenBear():
         self.y = y
         self.screen = screen
         self.stunned = False
-        self.health = int(1000 * 1.44)  # base 1000 * 1.20 (orig) * 1.20 (boost)
+        self.health = int(1000 * 1.44 * 1.05)  # base 1000 * 1.20 (orig) * 1.20 (boost) * 1.05 (enemy hp +5%)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.startDestructionAnimation = False
@@ -10564,7 +10629,7 @@ class Snake:
         self.width = 220
         self.height = 100
         self.y = self.FLOOR_Y - self.height
-        self.health = int(15 * 1.80 * 2)
+        self.health = int(15 * 1.80 * 2 * 1.05)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.speed = random.choice([1, 1, 2, 2])
@@ -11143,7 +11208,7 @@ class MonkeyMummy:
         self.mummy2 = pygame.transform.flip(_base, True, False)
         self._anim_timer = 0
         self._land_timer = 0
-        self.health = int(20 * 1.15)
+        self.health = int(20 * 1.15 * 1.05)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.damageAttack = 11
@@ -11381,7 +11446,7 @@ class Lion:
         self.screen = screen
         self.roar_sound = roar_sound
         self._roar_cooldown = 0
-        self.health = int(25 * 1.20)
+        self.health = int(25 * 1.20 * 1.05)
         self.max_health = self.health
         self._defense = random.randint(1, 10) / 100.0
         self.speed = random.choice([4, 5, 5, 6])
