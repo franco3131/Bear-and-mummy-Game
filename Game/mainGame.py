@@ -988,16 +988,21 @@ class mainGame:
             self._layer_melody_drums = _make_snd(_smp)
 
             # Replacement bonus drum layers (loaded from disk).
+            # Per-sound volumes: pulse is the strongest hit so kept lowest (30%);
+            # heart and swell are softer but get a bit more presence (50%).
             try:
                 self._layer_drum_pulse = pygame.mixer.Sound("Game/Sounds/layer_drum_pulse.wav")
+                self._layer_drum_pulse.set_volume(0.30)
             except Exception:
                 self._layer_drum_pulse = None
             try:
                 self._layer_drum_heart = pygame.mixer.Sound("Game/Sounds/layer_drum_heart.wav")
+                self._layer_drum_heart.set_volume(0.50)
             except Exception:
                 self._layer_drum_heart = None
             try:
                 self._layer_drum_swell = pygame.mixer.Sound("Game/Sounds/layer_drum_swell.wav")
+                self._layer_drum_swell.set_volume(0.50)
             except Exception:
                 self._layer_drum_swell = None
 
@@ -1470,7 +1475,13 @@ class mainGame:
 
     def _update_and_draw_bear_trail(self, bear):
         """Render a rainbow afterimage trail behind the bear whenever it
-        moves (walking, sliding, jumping, etc).  Length scales 3% per level."""
+        moves (walking, sliding, jumping, etc).  Unlocks at level 5;
+        length scales 3% per level beyond that."""
+        try:
+            if bear.getLevel() < 5:
+                return
+        except Exception:
+            return
         if not hasattr(bear, '_move_trail'):
             bear._move_trail = []
             bear._last_trail_x = bear.getXPosition()
@@ -2136,11 +2147,10 @@ class mainGame:
         beamReadyPopupShown = False
         _q_key_prev = False
 
-        # Show intro toasts (non-blocking) once at game start
+        # Intro welcome toast removed — controls are shown as floating text
+        # at the bottom of the screen during the READY phase below.
         if not self._intro_shown:
             self._intro_shown = True
-            self._push_toast('Welcome, brave bear! Z:Attack  X:Fireball  ENTER:Shop',
-                             duration=420, color=(255, 220, 140))
 
         for mummy in self.mummys:
             mummy.setStunned(0)
@@ -2166,23 +2176,24 @@ class mainGame:
 
             def _draw_ready_text():
                 _f = 180 - _ready_state['timer']
-                _font_main = pygame.font.SysFont(None, 48, bold=True)
-                _font_info = pygame.font.SysFont(None, 22, bold=True)
+                _font_main = pygame.font.SysFont(None, 36, bold=True)
+                _font_info = pygame.font.SysFont(None, 20, bold=True)
                 _pulse = 1.0 + 0.18 * math.sin(_f * 0.30)
                 _g = max(180, min(255, int(220 * _pulse)))
-                # READY in the top center, small
-                _txt = _font_main.render('READY', True, (255, _g, 120))
-                _sh  = _font_main.render('READY', True, (0, 0, 0))
+                # "READY!" at the very top, small inline text (no popup box)
+                _txt = _font_main.render('READY!', True, (255, _g, 120))
+                _sh  = _font_main.render('READY!', True, (0, 0, 0))
                 _cx = (900 - _txt.get_width()) // 2
-                _cy = 14
+                _cy = 8
                 self.screen.blit(_sh, (_cx + 2, _cy + 2))
                 self.screen.blit(_txt, (_cx, _cy))
-                # Essential controls just below
+                # Floating control hints at the BOTTOM of the screen
+                # (screen height = 500 -> y=470 stays clear of the floor art)
                 _info_lines = [
                     'Z: Attack    X: Fireball    SPACE: Jump    DOWN+SPACE: Slide',
                     'ENTER: Shop    P: Pause/Menu',
                 ]
-                _y = _cy + _txt.get_height() + 4
+                _y = 470 - (len(_info_lines) * (_font_info.get_height() + 2))
                 for _line in _info_lines:
                     _ts = _font_info.render(_line, True, (255, 255, 255))
                     _sx = _font_info.render(_line, True, (0, 0, 0))
@@ -7555,8 +7566,10 @@ class mainGame:
             return
         import random as _brnd
         snd = _brnd.choice(_candidates)
-        # Keep drums sitting in the background under the melody
-        _vol = 0.32 if track in ("normal", "post_boss_normal") else 0.40
+        # Keep drums sitting in the background under the melody.
+        # Per-sound volumes (set at load) handle the relative mix between
+        # pulse (30%) and heart/swell (50%); channel acts as a master cap.
+        _vol = 0.55 if track in ("normal", "post_boss_normal") else 0.65
         try:
             ch.stop()
             ch.play(snd, loops=-1, fade_ms=800)
