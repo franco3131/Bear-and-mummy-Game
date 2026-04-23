@@ -7555,7 +7555,8 @@ class mainGame:
             return
         import random as _brnd
         snd = _brnd.choice(_candidates)
-        _vol = 0.85 if track in ("normal", "post_boss_normal") else 0.95
+        # Keep drums sitting in the background under the melody
+        _vol = 0.32 if track in ("normal", "post_boss_normal") else 0.40
         try:
             ch.stop()
             ch.play(snd, loops=-1, fade_ms=800)
