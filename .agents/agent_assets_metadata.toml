@@ -335,3 +335,45 @@ id = "n-fMw-w9tZzXc_53F57tI"
 uri = "file://Game/Sounds/samples/layer_drum_slow_taiko.wav"
 type = "audio"
 title = "5. Slow Taiko — 1 hit every 2 sec with tail"
+
+[[outputs]]
+id = "togYuRVQbX-gQU0ep5gqC"
+uri = "file://Game/Sounds/samples/coin_mario_bling.wav"
+type = "audio"
+title = "1. Mario Bling — classic two-tone up-pitch"
+
+[[outputs]]
+id = "-BDEQM8upVWG3YyyhoT4m"
+uri = "file://Game/Sounds/samples/coin_sparkle_chime.wav"
+type = "audio"
+title = "2. Sparkle Chime — bell-like multi-harmonic"
+
+[[outputs]]
+id = "c8420ubCgSN840mdy9LFy"
+uri = "file://Game/Sounds/samples/coin_gold_thunk.wav"
+type = "audio"
+title = "3. Gold Thunk — heavy treasure clunk"
+
+[[outputs]]
+id = "QCxvs52LK_Dmjw76oUKcV"
+uri = "file://Game/Sounds/samples/coin_chaching.wav"
+type = "audio"
+title = "4. Cha-Ching — cash-register two-tone"
+
+[[outputs]]
+id = "6v4kCL5pFeROFMPwen_xu"
+uri = "file://Game/Sounds/samples/coin_crystal_ping.wav"
+type = "audio"
+title = "5. Crystal Ping — high pure tone with sparkle tail"
+
+[[outputs]]
+id = "7OKGhFji77xG8K5jr4Z-3"
+uri = "file://Game/Sounds/samples/coin_wood_clack.wav"
+type = "audio"
+title = "6. Wood Clack — organic, jungle-feel"
+
+[[outputs]]
+id = "7qBy6xt4EU72bzqgck3jw"
+uri = "file://Game/Sounds/samples/coin_magic_shimmer.wav"
+type = "audio"
+title = "7. Magic Shimmer — rising magical sweep"
