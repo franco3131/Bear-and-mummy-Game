@@ -5323,8 +5323,8 @@ class mainGame:
                 ( 5000,  8000),  # zone 1
                 (11000, 14500),  # zone 3
                 (18500, 22000),  # zone 5
+                (22600, 24500),  # zone 6.5 (calm)
                 (25500, 29000),  # zone 7
-                (31500, 34000),  # zone 9 (calm)
                 (36500, 39500),  # zone 11
                 (42000, 43500),  # quiet zone 2 (calm)
                 (45000, 50500),  # zone 13
@@ -5537,7 +5537,7 @@ class mainGame:
                 if _bomb in self.bombs:
                     self.bombs.remove(_bomb)
 
-            if (totalDistance > 30000 and not getattr(self, '_checkpoint_saved', False)
+            if (totalDistance > 29050 and not getattr(self, '_checkpoint_saved', False)
                     and bear.getEndText() and not self.escape
                     and not getattr(self, '_monkey_level_active', False)):
                 self._save_checkpoint(backgroundScrollX, totalDistance, bear)
@@ -7248,11 +7248,12 @@ class mainGame:
             mini3 = MiniFrankenBear(2000, 200, self.screen)
             self.miniFrankenBears.extend([mini1, mini2, mini3])
 
-        # ── Calm Zone @ 31 500 – silent breather, only bombs + hearts ─────────
-        # Inserted in the 5 000-unit gap between the @29 000 mini-frankens zone
-        # and the @34 000 striped-platform zone. Sits ~56 % through the run.
+        # ── Calm Zone @ 22 600 – silent breather, only bombs + hearts ─────────
+        # Sits ~40 % through the run, between zone 13 (@22 000) and zone 4
+        # (@25 500). Clears any leftover monsters so the player gets a quiet
+        # stretch with hearts to grab.
         elif (not self._monkey_level_active
-              and backgroundScrollX > 31500
+              and backgroundScrollX > 22600
               and not getattr(self, '_calm_zone_active', False)):
             self._calm_zone_active = True
             self._calm_zone_exited = False
@@ -7270,10 +7271,10 @@ class mainGame:
                     'vy': 0.0, 'landed': True, 'life': 99999
                 })
 
-        # ── Calm Zone exit @ 33 500 – resume the previous track ───────────────
+        # ── Calm Zone exit @ 24 500 – resume the previous track ───────────────
         if (getattr(self, '_calm_zone_active', False)
                 and not getattr(self, '_calm_zone_exited', False)
-                and backgroundScrollX > 33500):
+                and backgroundScrollX > 24500):
             self._calm_zone_exited = True
             _resume = getattr(self, '_pre_calm_music', None) or "deep_crypt"
             self._switch_music(_resume)
@@ -11089,10 +11090,14 @@ class FrankenBear():
         self.destructionAnimation += 1
         if self.destructionAnimation < 70 and self.destructionAnimation % 2 == 0:
             _num_fires = 3 if self.destructionAnimation < 30 else 2
+            _fw = self.fire.get_width(); _fh = self.fire.get_height()
+            _sw, _sh = self.screen.get_size()
             for _ in range(_num_fires):
-                self.screen.blit(self.fire,
-                                 (self.x + random.randint(-300, 50),
-                                  self.y + random.randint(-300, 50)))
+                _fx = self.x + random.randint(-180, 80)
+                _fy = self.y + random.randint(-180, 80)
+                _fx = max(0, min(_sw - _fw, _fx))
+                _fy = max(0, min(_sh - _fh, _fy))
+                self.screen.blit(self.fire, (_fx, _fy))
 
     def getDestructionAnimationCount(self):
         return self.destructionAnimation
