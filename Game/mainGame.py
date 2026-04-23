@@ -3184,6 +3184,7 @@ class mainGame:
                         and not (keys[pygame.K_UP] and keys[pygame.K_a])
                         and not (keys[pygame.K_a] and keys[pygame.K_DOWN] and beamCharge >= 100.0 and beamCooldown == 0)
                         and playerFireCooldown == 0):
+                    self._fireball_ever_shot = True
                     _base_cd = 30
                     if getattr(bear, 'has_aimer', False):
                         _base_cd = 12
@@ -6294,6 +6295,14 @@ class mainGame:
                         'life': 99999, 'max_life': 99999,
                         'color': (255, 90, 90),
                         'tag': 'bigmummy'})
+                    if (not getattr(self, '_fireball_ever_shot', False)
+                            and not getattr(self, '_fireball_reminder_shown', False)):
+                        self._fireball_reminder_shown = True
+                        self._head_alerts.append({
+                            'text': 'TIP: PRESS X TO THROW FIREBALLS!',
+                            'life': 360, 'max_life': 360,
+                            'color': (255, 200, 60),
+                            'tag': 'fireball_tip'})
 
             for spike in self.spikes:
                 spike.draw()
