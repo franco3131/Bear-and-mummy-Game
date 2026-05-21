@@ -2648,6 +2648,7 @@ class mainGame:
                             bear.buffer_jump()
 
             background.render(totalDistance)
+            self._render_atmosphere(totalDistance, getattr(background, '_jungle_mode', False))
             self._update_tension_layers(totalDistance)
             if shop_open:
                 _overlay = pygame.Surface((900, 700), pygame.SRCALPHA)
@@ -7884,6 +7885,75 @@ class mainGame:
         self.hurtBear = self._tint_silver(self.hurtBear)
 
     # -----------------------------------------------------------------------
+    def _render_atmosphere(self, totalDistance, jungle_mode):
+        """Drifting background particles + occasional distant lightning.
+        Purely cosmetic — never affects gameplay."""
+        if not hasattr(self, '_atmo_particles'):
+            self._atmo_particles = []
+            self._atmo_lightning = 0
+            self._atmo_lightning_cd = random.randint(600, 1500)
+            self._atmo_seed_done = False
+
+        _target_count = 22
+        # Spawn new particles drifting in from the right
+        while len(self._atmo_particles) < _target_count:
+            _x = random.randint(0, 900) if not self._atmo_seed_done else random.randint(880, 1000)
+            _y = random.randint(40, 360)
+            if jungle_mode:
+                _col = random.choice([(255, 220, 120), (180, 255, 140), (255, 180, 220)])
+                _size = random.randint(2, 4)
+                _vx = random.uniform(-1.4, -0.4)
+                _vy = random.uniform(-0.3, 0.3)
+                _bob = random.uniform(0.02, 0.05)
+            else:
+                _col = random.choice([(180, 220, 255), (200, 180, 255), (255, 230, 160)])
+                _size = random.randint(1, 3)
+                _vx = random.uniform(-0.8, -0.2)
+                _vy = random.uniform(-0.2, 0.2)
+                _bob = random.uniform(0.01, 0.04)
+            self._atmo_particles.append({
+                'x': _x, 'y': _y, 'vx': _vx, 'vy': _vy,
+                'col': _col, 'size': _size, 'bob': _bob,
+                'phase': random.uniform(0, 6.28),
+                'life': random.randint(300, 700)})
+        self._atmo_seed_done = True
+
+        _t = pygame.time.get_ticks() * 0.001
+        _remove = []
+        for _p in self._atmo_particles:
+            _p['x'] += _p['vx']
+            _p['y'] += _p['vy'] + math.sin(_t * 2 + _p['phase']) * _p['bob']
+            _p['life'] -= 1
+            if _p['x'] < -20 or _p['life'] <= 0:
+                _remove.append(_p)
+                continue
+            _twinkle = 0.55 + 0.45 * abs(math.sin(_t * 3 + _p['phase']))
+            _alpha = int(180 * _twinkle)
+            _r = _p['size'] + 2
+            _ps = pygame.Surface((_r * 4, _r * 4), pygame.SRCALPHA)
+            _r2, _g2, _b2 = _p['col']
+            pygame.draw.circle(_ps, (_r2, _g2, _b2, _alpha // 3),
+                               (_r * 2, _r * 2), _r * 2)
+            pygame.draw.circle(_ps, (_r2, _g2, _b2, _alpha),
+                               (_r * 2, _r * 2), _r)
+            self.screen.blit(_ps, (int(_p['x']) - _r * 2, int(_p['y']) - _r * 2))
+        for _p in _remove:
+            self._atmo_particles.remove(_p)
+
+        # Distant lightning flash (pre-jungle, pre-boss intense zones)
+        if not jungle_mode and totalDistance < 60000:
+            self._atmo_lightning_cd -= 1
+            if self._atmo_lightning_cd <= 0 and self._atmo_lightning == 0:
+                self._atmo_lightning = 14
+                self._atmo_lightning_cd = random.randint(900, 2400)
+            if self._atmo_lightning > 0:
+                _stage = self._atmo_lightning
+                _alpha = int(120 * (_stage / 14.0) ** 2)
+                _fs = pygame.Surface((900, 700), pygame.SRCALPHA)
+                _fs.fill((220, 230, 255, _alpha))
+                self.screen.blit(_fs, (0, 0))
+                self._atmo_lightning -= 1
+
     def _update_tension_layers(self, totalDistance):
         if not getattr(self, '_tension_layers_ready', False):
             return
