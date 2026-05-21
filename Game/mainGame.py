@@ -5254,8 +5254,15 @@ class mainGame:
                 elif _hd['landed']:
                     _hd_rect = pygame.Rect(_hx - 15, _hy - 15, 30, 30)
                     if _hd_rect.colliderect(pygame.Rect(bear.getXPosition(), bear.getYPosition(), 100, 100)):
-                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + _hd.get('heal', 25)))
+                        _heal_amt = _hd.get('heal', 25)
+                        bear.setHp(min(bear.getMaxHp(), bear.getHp() + _heal_amt))
                         bear.setCoins(bear.getCoins() + 1)
+                        self._floating_texts = getattr(self, '_floating_texts', [])
+                        self._floating_texts.append({
+                            'text': '+' + str(_heal_amt) + ' HP',
+                            'x': _hx, 'y': _hy - 10,
+                            'vy': -1.4, 'life': 60, 'max_life': 60,
+                            'color': (120, 255, 140)})
                         if getattr(self, 'coin_sound', None):
                             self.coin_sound.play()
                         _alt = getattr(self, 'mmx_coin_sound_alt', None)
@@ -5891,6 +5898,47 @@ class mainGame:
             bear.displayBearHp()
             bear.displayBearExp()
             bear.displayBearCoins()
+
+            # ---- Low HP red vignette (QoL warning) ----------------------
+            try:
+                _hp_ratio_v = bear.getHp() / max(1, bear.getMaxHp())
+            except Exception:
+                _hp_ratio_v = 1.0
+            if 0 < _hp_ratio_v < 0.25:
+                _vpulse = 0.5 + 0.5 * abs(math.sin(pygame.time.get_ticks() * 0.008))
+                _vmax_alpha = int(70 + 80 * (1 - _hp_ratio_v / 0.25))
+                _va = int(_vmax_alpha * _vpulse)
+                if not hasattr(self, '_vignette_surf'):
+                    _vs = pygame.Surface((900, 700), pygame.SRCALPHA)
+                    for _i in range(28):
+                        _alpha = int(255 * (_i / 28) ** 2)
+                        pygame.draw.rect(_vs, (255, 30, 30, _alpha),
+                                         (_i, _i, 900 - _i * 2, 700 - _i * 2),
+                                         width=1)
+                    self._vignette_surf = _vs
+                _vs2 = self._vignette_surf.copy()
+                _vs2.set_alpha(_va)
+                self.screen.blit(_vs2, (0, 0))
+
+            # ---- Floating texts (QoL pickup feedback) -------------------
+            _ft_list = getattr(self, '_floating_texts', None)
+            if _ft_list:
+                _ft_font = pygame.font.SysFont(None, 26, bold=True)
+                _ft_remove = []
+                for _ft in _ft_list:
+                    _ft['y'] += _ft['vy']
+                    _ft['life'] -= 1
+                    _alpha = int(255 * max(0, _ft['life'] / _ft['max_life']))
+                    _surf = _ft_font.render(_ft['text'], True, _ft['color'])
+                    _sh = _ft_font.render(_ft['text'], True, (0, 0, 0))
+                    _surf.set_alpha(_alpha)
+                    _sh.set_alpha(_alpha)
+                    self.screen.blit(_sh, (_ft['x'] + 2, _ft['y'] + 2))
+                    self.screen.blit(_surf, (_ft['x'], _ft['y']))
+                    if _ft['life'] <= 0:
+                        _ft_remove.append(_ft)
+                for _ft in _ft_remove:
+                    _ft_list.remove(_ft)
 
             # ── Big Mummy boss bar — top-of-screen forefront UI ──────────────
             _bm_ref = None
